@@ -2,16 +2,47 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
+import {AuthProvider} from './context/AuthContext';
+import SolicitudesProvider from "./context/SolicitudesContext";
+import { UsuariosProvider } from "./context/UsuariosContext";
+import { MsalProvider } from "@azure/msal-react";
+import { broadcastResponseToMainFrame } from "@azure/msal-browser/redirect-bridge";
+import { msalInstance } from "./authConfig";
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+if (window.location.pathname === "/redirect") {
+  broadcastResponseToMainFrame().catch((error) => {
+    console.error("Error procesando el retorno de Microsoft:", error);
+  });
+} else {
+  const root = ReactDOM.createRoot(
+    document.getElementById("root")
+  );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  root.render(
+
+    <React.StrictMode>
+
+      <MsalProvider instance={msalInstance}>
+
+        <AuthProvider>
+
+          <UsuariosProvider>
+
+            <SolicitudesProvider>
+
+              <App />
+
+            </SolicitudesProvider>
+
+          </UsuariosProvider>
+
+        </AuthProvider>
+
+      </MsalProvider>
+
+    </React.StrictMode>
+
+  );
+}
+
+
