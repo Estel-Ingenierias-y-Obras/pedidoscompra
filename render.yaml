@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: pedidoscompra
+    runtime: node
+    plan: free
+    buildCommand: npm --prefix backend ci && npm --prefix backend run build
+    startCommand: npm --prefix backend start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: TENANT_ID
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: CLIENT_SECRET
+        sync: false
+      - key: BC_SCOPE
+        sync: false
+      - key: BC_API_URL
+        sync: false
