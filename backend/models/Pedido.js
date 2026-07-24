@@ -8,9 +8,9 @@ const pedidoSchema = new mongoose.Schema({
   },
 
   email: {
-  type: String,
-  required: true
-},
+    type: String,
+    required: true
+  },
 
   proyecto: {
     type: String,
@@ -19,6 +19,11 @@ const pedidoSchema = new mongoose.Schema({
 
   descripcion: {
     type: String
+  },
+
+  motivoUrgencia: {
+    type: String,
+    default: ""
   },
 
   urgente: {
@@ -39,6 +44,28 @@ const pedidoSchema = new mongoose.Schema({
   fechaCreacion: {
     type: Date,
     default: Date.now
+  },
+
+  archivos: {
+    type: [{
+      fileId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
+      },
+      nombre: {
+        type: String,
+        required: true
+      },
+      tipoMime: {
+        type: String,
+        required: true
+      },
+      tamano: {
+        type: Number,
+        required: true
+      }
+    }],
+    default: []
   }
 
 });
