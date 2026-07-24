@@ -1,10 +1,76 @@
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import Layout from "../components/Layout";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { UsuariosContext } from "../context/UsuariosContext";
 import { useState } from "react";
 import api from "../api";
 
+function AdjuntosPedido({ pedido }) {
+  const archivos = Array.isArray(pedido?.archivos)
+    ? pedido.archivos
+    : [];
+
+  if (archivos.length === 0) {
+    return <span>Sin archivos adjuntos</span>;
+  }
+
+  return (
+    <div>
+      {archivos.map(archivo => {
+        const ruta =
+          `/api/pedidos/${pedido._id}/archivos/${archivo.fileId}`;
+        const url = `${api.defaults.baseURL || ""}${ruta}`;
+
+        return (
+          <div
+            key={archivo.fileId}
+            style={{
+              padding: "12px 0",
+              borderBottom: "1px solid #e0e0e0"
+            }}
+          >
+            <div>
+              📎 <strong>{archivo.nombre}</strong>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                marginTop: "8px"
+              }}
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    url,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+              >
+                Abrir
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `${url}?download=1`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+              >
+                Descargar
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 function ValidarSolicitudes() {
 
   const {
@@ -25,6 +91,42 @@ function ValidarSolicitudes() {
 
   const [pedidoSeleccionado, setPedidoSeleccionado] =
   useState(null);
+
+  const [proyectos, setProyectos] = useState([]);
+
+  useEffect(() => {
+    const cargarProyectos = async () => {
+      try {
+        const response = await api.get("/api/proyectos");
+
+        setProyectos(
+          Array.isArray(response.data)
+            ? response.data
+            : response.data.value || []
+        );
+      } catch (error) {
+        console.error(
+          "Error cargando proyectos:",
+          error
+        );
+      }
+    };
+
+    cargarProyectos();
+  }, []);
+
+  const obtenerProyectoCompleto = (codigoProyecto) => {
+    const proyectoEncontrado = proyectos.find(
+      proyectoItem =>
+        proyectoItem.nomProyecto === codigoProyecto
+    );
+
+    if (!proyectoEncontrado?.descProyecto) {
+      return codigoProyecto;
+    }
+
+    return `${codigoProyecto} - ${proyectoEncontrado.descProyecto}`;
+  };
 
   const compradores = usuarios.filter(
     usuario => usuario.rol === "Comprador"
@@ -184,7 +286,21 @@ filtroEstado
             <tr key={solicitud._id}>
               <td>{solicitud._id.slice(-6)}</td>
               <td>{solicitud.solicitante}</td>
-              <td>{solicitud.proyecto}</td>
+              <td style={{ maxWidth: "280px" }}>
+                <span
+                  title={obtenerProyectoCompleto(
+                    solicitud.proyecto
+                  )}
+                  style={{
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {solicitud.proyecto}
+                </span>
+              </td>
               <td>
   <select
     value={solicitud.compradorAsignado}
@@ -310,13 +426,23 @@ filtroEstado
 
   <div className="modal-overlay">
 
-    <div className="modal">
+    <div
+      className="modal"
+      style={{
+        width: "min(90vw, 760px)",
+        maxWidth: "760px",
+        maxHeight: "85vh",
+        overflowY: "auto"
+      }}
+    >
 
       <h2>Detalles del pedido</h2>
 
       <p>
         <strong>Proyecto:</strong>{" "}
-        {pedidoSeleccionado.proyecto}
+        {obtenerProyectoCompleto(
+          pedidoSeleccionado.proyecto
+        )}
       </p>
 
       <p>
@@ -336,9 +462,15 @@ filtroEstado
       </p>
 
       <p>
-        <strong>Urgente:</strong>{" "}
-        {pedidoSeleccionado.urgente}
+        <strong>Urgente:</strong>
       </p>
+
+      <div className="descripcion-pedido">
+        {pedidoSeleccionado.urgente
+          ? pedidoSeleccionado.motivoUrgencia ||
+            "Sin motivo de urgencia"
+          : "No"}
+      </div>
 
       <p>
         <strong>Descripción:</strong>
@@ -349,11 +481,10 @@ filtroEstado
       </div>
 
       <p>
-        <strong>Archivo:</strong>{" "}
-        {pedidoSeleccionado.archivo
-          ? "Adjunto disponible"
-          : "Sin archivo"}
+        <strong>Adjuntos:</strong>
       </p>
+
+      <AdjuntosPedido pedido={pedidoSeleccionado} />
 
       <div className="modal-buttons">
 

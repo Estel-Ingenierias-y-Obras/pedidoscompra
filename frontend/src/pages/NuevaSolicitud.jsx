@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Layout from "../components/Layout";
 import { useContext } from "react";
 import { SolicitudesContext } from "../context/SolicitudesContext";
@@ -25,8 +25,9 @@ const { user } = useContext(AuthContext);
   const [urgente, setUrgente] = useState("No");
   const [motivoUrgencia, setMotivoUrgencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [setArchivo] = useState(null);
+  const [archivos, setArchivos] = useState([]);
   const [mensaje, setMensaje] = useState("");
+  const archivoInputRef = useRef(null);
 
   useEffect(() => {
 
@@ -125,18 +126,63 @@ const { user } = useContext(AuthContext);
     }
   };
 
+  const agregarArchivos = (event) => {
+    const nuevosArchivos = Array.from(
+      event.target.files || []
+    );
+
+    setArchivos(archivosActuales => {
+      const clavesActuales = new Set(
+        archivosActuales.map(archivoItem =>
+          `${archivoItem.name}-${archivoItem.size}-${archivoItem.lastModified}`
+        )
+      );
+
+      const archivosSinDuplicar = nuevosArchivos.filter(
+        archivoItem =>
+          !clavesActuales.has(
+            `${archivoItem.name}-${archivoItem.size}-${archivoItem.lastModified}`
+          )
+      );
+
+      return [...archivosActuales, ...archivosSinDuplicar];
+    });
+
+    event.target.value = "";
+  };
+
+  const eliminarArchivoSeleccionado = (indice) => {
+    setArchivos(archivosActuales =>
+      archivosActuales.filter(
+        (archivoItem, indiceItem) => indiceItem !== indice
+      )
+    );
+  };
+
+  const limpiarArchivos = () => {
+    setArchivos([]);
+
+    if (archivoInputRef.current) {
+      archivoInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async () => {
 
-  const nuevaSolicitud = {
-  solicitante: user.nombre,
-  compradorAsignado:"",
-  email: user.email,
-  proyecto,
-  urgente: urgente === "Sí",
-  motivoUrgencia,
-  descripcion,
-  estado: "Pendiente"
-};
+  const nuevaSolicitud = new FormData();
+
+  nuevaSolicitud.append("solicitante", user.nombre);
+  nuevaSolicitud.append("compradorAsignado", "");
+  nuevaSolicitud.append("email", user.email);
+  nuevaSolicitud.append("proyecto", proyecto);
+  nuevaSolicitud.append("urgente", urgente === "Sí");
+  nuevaSolicitud.append("motivoUrgencia", motivoUrgencia);
+  nuevaSolicitud.append("descripcion", descripcion);
+  nuevaSolicitud.append("estado", "Pendiente");
+
+  archivos.forEach(archivoItem => {
+    nuevaSolicitud.append("archivos", archivoItem);
+  });
 
     try {
 
@@ -172,7 +218,7 @@ setBusquedaProyecto("");
 setUrgente("No");
 setMotivoUrgencia("");
 setDescripcion("");
-setArchivo(null);
+limpiarArchivos();
 
 setMensaje("Pedido enviado correctamente");
   setTimeout(() => {
@@ -339,10 +385,37 @@ setMensaje("Pedido enviado correctamente");
 
           <input
             type="file"
-            onChange={(e) =>
-              setArchivo(e.target.files[0])
-            }
+            ref={archivoInputRef}
+            multiple
+            onChange={agregarArchivos}
           />
+
+          {archivos.length > 0 && (
+            <div className="archivo-seleccionado">
+              {archivos.map((archivoItem, indice) => (
+                <p
+                  key={`${archivoItem.name}-${archivoItem.size}-${archivoItem.lastModified}`}
+                >
+                  📎 <strong>{archivoItem.name}</strong>{" "}
+                  <button
+                    type="button"
+                    aria-label={`Eliminar ${archivoItem.name}`}
+                    title="Eliminar archivo"
+                    onClick={() =>
+                      eliminarArchivoSeleccionado(indice)
+                    }
+                    style={{
+                      marginLeft: "6px",
+                      padding: "2px 8px",
+                      minWidth: "auto"
+                    }}
+                  >
+                    ×
+                  </button>
+                </p>
+              ))}
+            </div>
+          )}
         </div>
 
         <br />
