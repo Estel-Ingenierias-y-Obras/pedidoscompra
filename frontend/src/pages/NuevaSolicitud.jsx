@@ -230,7 +230,10 @@ setMensaje("Pedido enviado correctamente");
     <Layout>
 
       <div className="page-header">
-        <h1>Nuevo Pedido</h1>
+        <h1>Nueva solicitud de compra</h1>
+        <p className="page-subtitle">
+          Completa los datos para registrar una necesidad de compra.
+        </p>
       </div>
 
       {mensaje && (
@@ -239,7 +242,7 @@ setMensaje("Pedido enviado correctamente");
         </div>
 )}
 
-      <div className="page-content">
+      <div className="page-content new-request-form">
 
         <div className="form-group">
           <label>Proyecto</label>
@@ -306,8 +309,11 @@ setMensaje("Pedido enviado correctamente");
         <br />
         <br />
 
-        <div className="form-group">
-          <label>Urgente</label>
+        <div className="form-group urgency-field">
+          <label>Prioridad de la solicitud</label>
+          <p className="field-help">
+            Indica si la compra requiere atención urgente.
+          </p>
 
           <div className="radio-group">
             <label>
@@ -344,6 +350,7 @@ setMensaje("Pedido enviado correctamente");
 
               <textarea
                 value={motivoUrgencia}
+                placeholder="Elementos urgentes"
                 onChange={(e) =>
                   setMotivoUrgencia(e.target.value)
                 }
@@ -357,6 +364,7 @@ setMensaje("Pedido enviado correctamente");
 
               <textarea
                 value={descripcion}
+                placeholder="Elementos no urgentes"
                 onChange={(e) =>
                   setDescripcion(e.target.value)
                 }
@@ -371,6 +379,7 @@ setMensaje("Pedido enviado correctamente");
 
             <textarea
               value={descripcion}
+              placeholder="Elementos solicitados"
               onChange={(e) =>
                 setDescripcion(e.target.value)
               }
@@ -379,7 +388,10 @@ setMensaje("Pedido enviado correctamente");
         )}
 
         <div className="form-group">
-          <label>Archivo adjunto</label>
+          <label>Documentación adjunta</label>
+          <p className="field-help">
+            Puedes seleccionar varios archivos, hasta 10 MB por archivo.
+          </p>
 
           <br />
 
@@ -421,7 +433,7 @@ setMensaje("Pedido enviado correctamente");
         <br />
         <br />
 
-        <button onClick={handleSubmit}>
+        <button className="submit-request-button" onClick={handleSubmit}>
           Enviar Solicitud
         </button>
 

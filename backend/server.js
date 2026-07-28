@@ -9,6 +9,8 @@ const usuariosRoutes = require("./routes/usuarios");
 const pedidosRoutes = require("./routes/pedidos");
 const proyectosRoutes = require("./routes/proyectos");
 const solicitudesAccesoRoutes = require("./routes/solicitudesAcceso");
+const destinatariosAccesoRoutes = require("./routes/destinatariosAcceso");
+const destinatariosCompraRoutes = require("./routes/destinatariosCompra");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -34,6 +36,14 @@ app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/pedidos", pedidosRoutes);
 app.use("/api/proyectos", proyectosRoutes);
 app.use("/api/solicitudes-acceso", solicitudesAccesoRoutes);
+app.use(
+  "/api/configuracion/notificaciones-acceso",
+  destinatariosAccesoRoutes
+);
+app.use(
+  "/api/configuracion/notificaciones-compras",
+  destinatariosCompraRoutes
+);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(frontendBuildPath));
@@ -50,3 +60,4 @@ if (process.env.NODE_ENV === "production") {
 app.listen(port, "0.0.0.0", () => {
   console.log(`Servidor ejecutándose en puerto ${port}`);
 });
+

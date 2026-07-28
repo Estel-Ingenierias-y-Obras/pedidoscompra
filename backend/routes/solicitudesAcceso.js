@@ -2,8 +2,10 @@ const express = require("express");
 const mongoose = require("mongoose");
 const SolicitudAcceso = require("../models/SolicitudAcceso");
 const Usuario = require("../models/Usuario");
+const DestinatarioAcceso = require("../models/DestinatarioAcceso");
 const {
-  sendAccessApprovedNotification
+  sendAccessApprovedNotification,
+  sendAccessRequestNotification
 } = require("../services/emailService");
 
 const router = express.Router();
@@ -64,6 +66,27 @@ router.post("/", async (req, res) => {
           email,
           estado: "pendiente"
         });
+      }
+    }
+
+    if (creada) {
+      try {
+        const destinatarios = await DestinatarioAcceso.find()
+          .select("email")
+          .lean();
+        const recipients = destinatarios.map(item => item.email);
+
+        if (recipients.length > 0) {
+          await sendAccessRequestNotification({
+            solicitud,
+            recipients
+          });
+        }
+      } catch (emailError) {
+        console.error(
+          `Error enviando nueva solicitud de acceso ${solicitud._id}:`,
+          emailError.response?.data || emailError.message
+        );
       }
     }
 

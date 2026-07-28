@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const Pedido = require("../models/Pedido");
+const DestinatarioCompra = require("../models/DestinatarioCompra");
 const {
   sendPurchaseRequestNotification,
   sendStatusChangeNotification
@@ -126,7 +127,14 @@ router.post("/", recibirArchivos, async (req, res) => {
     await pedido.save();
 
     try {
-      await sendPurchaseRequestNotification(pedido);
+      const destinatarios = await DestinatarioCompra.find()
+        .select("email")
+        .lean();
+      const recipients = destinatarios.map(item => item.email);
+
+      if (recipients.length > 0) {
+        await sendPurchaseRequestNotification(pedido, recipients);
+      }
     } catch (emailError) {
       console.error(
         `Error enviando notificación del pedido ${pedido._id}:`,
@@ -271,3 +279,4 @@ router.delete("/:id", async (req, res) => {
 });
 
 module.exports = router;
+

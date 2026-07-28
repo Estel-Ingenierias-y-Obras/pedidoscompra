@@ -118,19 +118,20 @@ const buildInfoRows = (rows) => rows.map((row) => {
     </tr>`;
 }).join("");
 
-const buildButton = (frontendUrl) => {
+const buildButton = (frontendUrl, buttonText = "Acceder a la plataforma") => {
   const safeUrl = escapeHtml(frontendUrl);
+  const safeButtonText = escapeHtml(buttonText);
 
   return `
     <!--[if mso]>
     <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:44px;v-text-anchor:middle;width:230px;" arcsize="10%" stroke="f" fillcolor="${COLORS.blue}">
       <w:anchorlock/>
-      <center style="color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:600;">Acceder a la plataforma</center>
+      <center style="color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:600;">${safeButtonText}</center>
     </v:roundrect>
     <![endif]-->
     <!--[if !mso]><!-->
     <a href="${safeUrl}" target="_blank" style="display:inline-block;min-width:198px;padding:12px 16px;border-radius:6px;background-color:${COLORS.blue};color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:600;line-height:20px;text-align:center;text-decoration:none;">
-      Acceder a la plataforma
+      ${safeButtonText}
     </a>
     <!--<![endif]-->`;
 };
@@ -140,7 +141,8 @@ const buildCorporateEmail = ({
   title,
   paragraphs,
   rows,
-  frontendUrl
+  frontendUrl,
+  buttonText = "Acceder a la plataforma"
 }) => `<!doctype html>
 <html lang="es">
 <head>
@@ -193,7 +195,7 @@ const buildCorporateEmail = ({
           </tr>
           <tr>
             <td align="center" class="mobile-padding" style="padding:2px 42px 38px;">
-              ${buildButton(frontendUrl)}
+              ${buildButton(frontendUrl, buttonText)}
             </td>
           </tr>
           <tr>
@@ -269,26 +271,48 @@ const buildAccessApprovedBody = (rol, frontendUrl) =>
     frontendUrl
   });
 
+const buildAccessRequestBody = (solicitud, frontendUrl) =>
+  buildCorporateEmail({
+    preheader: `Nueva solicitud de acceso de ${solicitud.email || ""}`,
+    title: "Nueva solicitud de acceso",
+    paragraphs: [
+      "Se ha registrado una nueva solicitud de acceso a la plataforma."
+    ],
+    rows: [
+      { label: "Nombre", value: solicitud.nombre || "" },
+      { label: "Email", value: solicitud.email || "" },
+      {
+        label: "Fecha de solicitud",
+        value: formatDate(solicitud.fechaSolicitud)
+      }
+    ],
+    frontendUrl,
+    buttonText: "Revisar solicitudes"
+  });
+
 const sendMail = async ({
   recipient,
   subject,
   body,
   startMessage,
+  recipients,
   successMessage
 }) => {
   const sender = requiredEnv("GRAPH_SENDER_EMAIL");
   const accessToken = await getAccessToken();
 
   console.log(startMessage);
+  const recipientList = recipients || [recipient];
+
   await axios.post(
     `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(sender)}/sendMail`,
     {
       message: {
         subject,
         body: { contentType: "HTML", content: body },
-        toRecipients: [{
-          emailAddress: { address: recipient }
-        }]
+        toRecipients: recipientList.map(address => ({
+          emailAddress: { address }
+        }))
       },
       saveToSentItems: true
     },
@@ -302,11 +326,11 @@ const sendMail = async ({
   console.log(successMessage);
 };
 
-const sendPurchaseRequestNotification = async (pedido) => {
+const sendPurchaseRequestNotification = async (pedido, recipients) => {
   const frontendUrl = requiredEnv("FRONTEND_URL");
 
   await sendMail({
-    recipient: requiredEnv("NOTIFICATION_EMAIL"),
+    recipients,
     subject: `Nueva solicitud de compra - ${pedido.proyecto}`,
     body: buildPurchaseRequestBody(pedido, frontendUrl),
     startMessage: `[EMAIL] Enviando notificación del pedido ${pedido._id}`,
@@ -341,8 +365,24 @@ const sendAccessApprovedNotification = async ({ email, rol }) => {
   });
 };
 
+const sendAccessRequestNotification = async ({ solicitud, recipients }) => {
+  const frontendUrl = requiredEnv("FRONTEND_URL");
+
+  await sendMail({
+    recipients,
+    subject: "Nueva solicitud de acceso a la plataforma",
+    body: buildAccessRequestBody(solicitud, frontendUrl),
+    startMessage:
+      `[EMAIL] Enviando solicitud de acceso ${solicitud._id}`,
+    successMessage:
+      `[EMAIL] Solicitud de acceso enviada a ${recipients.length} destinatarios`
+  });
+};
+
 module.exports = {
   sendPurchaseRequestNotification,
   sendStatusChangeNotification,
-  sendAccessApprovedNotification
+  sendAccessApprovedNotification,
+  sendAccessRequestNotification
 };
+
