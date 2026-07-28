@@ -13,7 +13,7 @@ function AdjuntosPedido({ pedido }) {
   if (archivos.length === 0) {
     return <span>Sin archivos adjuntos</span>;
   }
-
+//hola
   return (
     <div>
       {archivos.map(archivo => {
