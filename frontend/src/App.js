@@ -8,6 +8,7 @@ import ValidarSolicitudes from "./pages/ValidarSolicitudes";
 import Configuracion from "./pages/Configuracion";
 import "./App.css";
 import HistoricoPedidos from "./pages/HistoricoPedidos";
+import "./business-central-theme.css";
 
 function App() {
   return (

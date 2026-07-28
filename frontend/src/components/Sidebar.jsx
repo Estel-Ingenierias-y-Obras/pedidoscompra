@@ -1,7 +1,7 @@
 import "./Sidebar.css";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import logo from "../assets/ESTEL_LOGO_RGB_GRANDE_NEGATIVO.png";
 
 function Sidebar() {
@@ -11,6 +11,9 @@ function Sidebar() {
   localStorage.removeItem("user");
   setUser(null);
 };
+  const navClassName = ({ isActive }) =>
+    isActive ? "nav-link-active" : undefined;
+
 
   return (
     <div className = "sidebar">
@@ -27,19 +30,27 @@ function Sidebar() {
 
       <ul>
         <li>
-          <Link to="/nuevasolicitud">Nuevo Pedido</Link>
+          <NavLink to="/nuevasolicitud" className={navClassName}>
+            Nuevo Pedido
+          </NavLink>
         </li>
         <li>
-          <Link to="/missolicitudes">Mis Pedidos</Link>
+          <NavLink to="/missolicitudes" className={navClassName}>
+            Mis Pedidos
+          </NavLink>
         </li>
 
         {user?.rol === "Comprador" && (
           <>
          <li>
-            <Link to="/validar-solicitudes">Gestión de Pedidos</Link>
+            <NavLink to="/validar-solicitudes" className={navClassName}>
+              Gestión de Pedidos
+            </NavLink>
         </li>
         <li>
-          <Link to="/historico-pedidos">Histórico de Pedidos</Link>
+          <NavLink to="/historico-pedidos" className={navClassName}>
+            Histórico de Pedidos
+          </NavLink>
         </li>
             </>
         )}
@@ -47,18 +58,26 @@ function Sidebar() {
         {user?.rol === "Admin" && (
           <>
             <li>
-              <Link to="/usuarios">Usuarios</Link>
+              <NavLink to="/usuarios" className={navClassName}>
+                Usuarios
+              </NavLink>
             </li>
 
             <li>
-              <Link to="/configuracion">Configuración</Link>
+              <NavLink to="/configuracion" className={navClassName}>
+                Configuración
+              </NavLink>
             </li>
 
             <li>
-            <Link to="/validar-solicitudes">Gestión de Pedidos</Link>
+              <NavLink to="/validar-solicitudes" className={navClassName}>
+                Gestión de Pedidos
+              </NavLink>
             </li>
             <li>
-          <Link to="/historico-pedidos">Histórico de Pedidos</Link>
+              <NavLink to="/historico-pedidos" className={navClassName}>
+                Histórico de Pedidos
+              </NavLink>
           </li>
           </>
         )}
