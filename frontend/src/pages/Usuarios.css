@@ -27,3 +27,58 @@ th {
   width: auto;
   white-space: nowrap;
 }
+
+.usuarios-section {
+  margin-top: 36px;
+}
+
+.usuarios-section h2 {
+  margin-bottom: 16px;
+}
+
+.estado-solicitud {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.estado-pendiente {
+  background: #fff3cd;
+  color: #664d03;
+}
+
+.estado-aprobada {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.estado-rechazada {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.tabla-vacia {
+  color: #6c757d;
+  text-align: center;
+}
+
+.solicitud-buttons {
+  flex-wrap: wrap;
+}
+
+.solicitud-buttons button {
+  width: auto;
+}
+
+.button-danger {
+  background-color: #b02a37;
+}
+
+@media (max-width: 760px) {
+  .usuarios-section {
+    overflow-x: auto;
+  }
+}

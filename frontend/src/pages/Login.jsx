@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { UsuariosContext } from "../context/UsuariosContext";
+import api from "../api";
 import { useMsal } from "@azure/msal-react";
 import logoEstelPositivo from "../assets/ESTEL_LOGO_RGB POSITIVO.png";
 
@@ -9,10 +9,10 @@ function Login() {
 
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
+  const [estadoSolicitud, setEstadoSolicitud] = useState(null);
 
 const { instance } = useMsal();
 
-const { usuarios } = useContext(UsuariosContext);
 
 
   const loginMicrosoft = async () => {
@@ -28,27 +28,29 @@ const { usuarios } = useContext(UsuariosContext);
     const email =
       response.account.username;
 
-    const usuarioEncontrado =
-      usuarios.find(
-        usuario =>
-          usuario.email.toLowerCase() ===
-          email.toLowerCase()
-      );
+    const acceso = await api.post(
+      "/api/solicitudes-acceso",
+      {
+        nombre: response.account.name || email,
+        email,
+        tenantId: response.account.tenantId || ""
+      }
+    );
 
-    if (!usuarioEncontrado) {
+    if (!acceso.data.autorizado) {
 
-      alert(
-        "No tiene permisos para acceder a esta aplicación."
+      setEstadoSolicitud(
+        acceso.data.solicitudCreada ? "enviada" : "pendiente"
       );
 
       return;
     }
 
-    setUser(usuarioEncontrado);
+    setUser(acceso.data.usuario);
 
     localStorage.setItem(
       "user",
-      JSON.stringify(usuarioEncontrado)
+      JSON.stringify(acceso.data.usuario)
     );
 
     navigate("/nuevasolicitud");
@@ -83,6 +85,37 @@ const { usuarios } = useContext(UsuariosContext);
         Plataforma de solicitudes
         y seguimiento de compras
       </p>
+
+      {estadoSolicitud === "enviada" && (
+        <div
+          className="login-access-message login-access-message-sent"
+          role="status"
+          aria-live="polite"
+        >
+          <h2>✅ Solicitud enviada</h2>
+          <p>Tu cuenta todavía no está autorizada.</p>
+          <p>
+            Se ha enviado una solicitud de acceso a los administradores.
+          </p>
+          <p>
+            Recibirás acceso cuando un administrador apruebe la solicitud.
+          </p>
+        </div>
+      )}
+
+      {estadoSolicitud === "pendiente" && (
+        <div
+          className="login-access-message login-access-message-pending"
+          role="status"
+          aria-live="polite"
+        >
+          <h2>⏳ Solicitud pendiente</h2>
+          <p>
+            Tu solicitud de acceso ya existe y está pendiente de revisión
+            por un administrador.
+          </p>
+        </div>
+      )}
 
       <button
         className="microsoft-button"

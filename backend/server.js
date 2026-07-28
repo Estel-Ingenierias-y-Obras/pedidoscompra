@@ -8,6 +8,7 @@ const path = require("path");
 const usuariosRoutes = require("./routes/usuarios");
 const pedidosRoutes = require("./routes/pedidos");
 const proyectosRoutes = require("./routes/proyectos");
+const solicitudesAccesoRoutes = require("./routes/solicitudesAcceso");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -32,6 +33,7 @@ app.get("/healthz", (req, res) => {
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/pedidos", pedidosRoutes);
 app.use("/api/proyectos", proyectosRoutes);
+app.use("/api/solicitudes-acceso", solicitudesAccesoRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(frontendBuildPath));
