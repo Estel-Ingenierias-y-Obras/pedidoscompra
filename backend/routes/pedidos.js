@@ -2,6 +2,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const Pedido = require("../models/Pedido");
+const {
+  sendPurchaseRequestNotification
+} = require("../services/emailService");
 
 const router = express.Router();
 
@@ -120,6 +123,16 @@ router.post("/", recibirArchivos, async (req, res) => {
     });
 
     await pedido.save();
+
+    try {
+      await sendPurchaseRequestNotification(pedido);
+    } catch (emailError) {
+      console.error(
+        `Error enviando notificación del pedido ${pedido._id}:`,
+        emailError.response?.data || emailError.message
+      );
+    }
+
     res.status(201).json(pedido);
   } catch (error) {
     for (const archivoGuardado of archivosGuardados) {
