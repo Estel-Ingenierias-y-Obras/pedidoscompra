@@ -2,6 +2,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const SolicitudAcceso = require("../models/SolicitudAcceso");
 const Usuario = require("../models/Usuario");
+const {
+  sendAccessApprovedNotification
+} = require("../services/emailService");
 
 const router = express.Router();
 const ROLES_VALIDOS = new Set(["Admin", "Comprador", "Usuario"]);
@@ -130,6 +133,18 @@ router.patch("/:id/aprobar", async (req, res) => {
     solicitud.nombre = nombre;
     solicitud.estado = "aprobada";
     await solicitud.save();
+
+    try {
+      await sendAccessApprovedNotification({
+        email: solicitud.email,
+        rol
+      });
+    } catch (emailError) {
+      console.error(
+        `Error enviando acceso aprobado a ${solicitud.email}:`,
+        emailError.response?.data || emailError.message
+      );
+    }
 
     res.json({ solicitud, usuario });
   } catch (error) {

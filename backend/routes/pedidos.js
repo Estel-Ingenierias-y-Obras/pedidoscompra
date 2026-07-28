@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const Pedido = require("../models/Pedido");
 const {
-  sendPurchaseRequestNotification
+  sendPurchaseRequestNotification,
+  sendStatusChangeNotification
 } = require("../services/emailService");
 
 const router = express.Router();
@@ -223,11 +224,23 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   try {
+    const pedidoAnterior = await Pedido.findById(req.params.id);
     const pedido = await Pedido.findByIdAndUpdate(
       req.params.id,
       req.body,
       { returnDocument: "after" }
     );
+
+    if (pedidoAnterior && pedido && pedidoAnterior.estado !== pedido.estado) {
+      try {
+        await sendStatusChangeNotification(pedido);
+      } catch (emailError) {
+        console.error(
+          `Error enviando actualización de estado del pedido ${pedido._id}:`,
+          emailError.response?.data || emailError.message
+        );
+      }
+    }
 
     res.json(pedido);
   } catch (error) {

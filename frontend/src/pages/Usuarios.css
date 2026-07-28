@@ -35,6 +35,10 @@ th {
 .usuarios-section h2 {
   margin-bottom: 16px;
 }
+.usuarios-section th:nth-child(4),
+.usuarios-section td:nth-child(4) {
+  text-align: center;
+}
 
 .estado-solicitud {
   display: inline-block;
