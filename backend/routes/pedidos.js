@@ -101,6 +101,24 @@ const eliminarArchivo = async (fileId) => {
   );
 };
 
+const normalizarBooleano = (value) =>
+  value === true || value === "true" || value === "Sí";
+
+const parsearArchivosExistentes = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  const parsed = Array.isArray(value) ? value : JSON.parse(value);
+
+  return Array.isArray(parsed)
+    ? parsed.map(item => String(item)).filter(mongoose.isValidObjectId)
+    : [];
+};
+
+const crearClaveArchivo = (archivo) =>
+  `${archivo.nombre || archivo.originalname}-${archivo.tamano || archivo.size}-${archivo.tipoMime || archivo.mimetype}`;
+
 router.get("/", async (req, res) => {
   try {
     const pedidos = await Pedido.find();
@@ -230,16 +248,98 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", recibirArchivos, async (req, res) => {
+  const archivosGuardados = [];
+
   try {
     const pedidoAnterior = await Pedido.findById(req.params.id);
+
+    if (!pedidoAnterior) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    const camposGestion = new Set(["estado", "compradorAsignado"]);
+    const camposRecibidos = Object.keys(req.body || {});
+    const esActualizacionGestion =
+      camposRecibidos.length > 0 &&
+      camposRecibidos.every(campo => camposGestion.has(campo));
+
+    if (
+      !esActualizacionGestion &&
+      pedidoAnterior.estado !== "Pendiente"
+    ) {
+      return res.status(409).json({
+        error:
+          "No es posible modificar un pedido que ya está siendo gestionado."
+      });
+    }
+
+    let datosActualizacion = esActualizacionGestion
+      ? req.body
+      : {
+          proyecto: req.body.proyecto,
+          urgente: normalizarBooleano(req.body.urgente),
+          motivoUrgencia: req.body.motivoUrgencia,
+          descripcion: req.body.descripcion
+        };
+
+    const debeActualizarArchivos =
+      !esActualizacionGestion &&
+      (
+        Object.prototype.hasOwnProperty.call(req.body, "archivosExistentes") ||
+        (req.files || []).length > 0
+      );
+
+    let archivosEliminados = [];
+
+    if (debeActualizarArchivos) {
+      const idsConservados = new Set(
+        parsearArchivosExistentes(req.body.archivosExistentes)
+      );
+      const archivosConservados = (pedidoAnterior.archivos || [])
+        .filter(archivo => idsConservados.has(archivo.fileId.toString()));
+      archivosEliminados = (pedidoAnterior.archivos || [])
+        .filter(archivo => !idsConservados.has(archivo.fileId.toString()));
+      const clavesArchivos = new Set(
+        archivosConservados.map(crearClaveArchivo)
+      );
+
+      for (const file of req.files || []) {
+        const claveArchivo = crearClaveArchivo(file);
+
+        if (clavesArchivos.has(claveArchivo)) {
+          continue;
+        }
+
+        const archivoGuardado = await guardarArchivo(file);
+        archivosGuardados.push(archivoGuardado);
+        clavesArchivos.add(claveArchivo);
+      }
+
+      datosActualizacion = {
+        ...datosActualizacion,
+        archivos: [...archivosConservados, ...archivosGuardados]
+      };
+    }
+
     const pedido = await Pedido.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      datosActualizacion,
       { returnDocument: "after" }
     );
 
-    if (pedidoAnterior && pedido && pedidoAnterior.estado !== pedido.estado) {
+    for (const archivo of archivosEliminados) {
+      try {
+        await eliminarArchivo(archivo.fileId);
+      } catch (cleanupError) {
+        console.error(
+          "Error eliminando adjunto retirado del pedido:",
+          cleanupError
+        );
+      }
+    }
+
+    if (pedidoAnterior.estado !== pedido.estado) {
       try {
         await sendStatusChangeNotification(pedido);
       } catch (emailError) {
@@ -252,6 +352,17 @@ router.put("/:id", async (req, res) => {
 
     res.json(pedido);
   } catch (error) {
+    for (const archivoGuardado of archivosGuardados) {
+      try {
+        await eliminarArchivo(archivoGuardado.fileId);
+      } catch (cleanupError) {
+        console.error(
+          "Error eliminando archivo huérfano:",
+          cleanupError
+        );
+      }
+    }
+
     res.status(500).json({ error: error.message });
   }
 });
@@ -263,6 +374,13 @@ router.delete("/:id", async (req, res) => {
     if (!pedido) {
       return res.status(404).json({
         error: "Pedido no encontrado"
+      });
+    }
+
+    if (pedido.estado !== "Pendiente") {
+      return res.status(409).json({
+        error:
+          "No es posible eliminar un pedido que ya está siendo gestionado."
       });
     }
 
@@ -279,4 +397,6 @@ router.delete("/:id", async (req, res) => {
 });
 
 module.exports = router;
+
+
 

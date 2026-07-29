@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
+import DeleteIconButton from "../components/DeleteIconButton";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 
@@ -188,9 +189,8 @@ function Configuracion() {
                 <td className="settings-email">{destinatario.email}</td>
                 <td>{formatearFecha(destinatario.fechaCreacion)}</td>
                 <td>
-                  <button
-                    type="button"
-                    className="danger-button"
+                  <DeleteIconButton
+                    label="Eliminar destinatario"
                     onClick={() =>
                       eliminarDestinatario({
                         destinatario,
@@ -198,9 +198,7 @@ function Configuracion() {
                         setDestinatarios
                       })
                     }
-                  >
-                    Eliminar
-                  </button>
+                  />
                 </td>
               </tr>
             ))}
@@ -244,28 +242,10 @@ function Configuracion() {
           setEmail: setEmailAcceso,
           setDestinatarios: setDestinatariosAcceso
         })}
-
-        <section className="settings-section settings-about">
-          <h2>PedidosCompra</h2>
-          <p>Versión: 0.1</p>
-
-          <h3>Integraciones previstas</h3>
-          <ul>
-            <li>Microsoft Entra ID</li>
-            <li>API Business Central</li>
-            <li>Power Automate</li>
-          </ul>
-
-          <h3>Roles</h3>
-          <ul>
-            <li>Admin</li>
-            <li>Compras</li>
-            <li>Jefe de Obra</li>
-          </ul>
-        </section>
       </div>
     </Layout>
   );
 }
 
 export default Configuracion;
+

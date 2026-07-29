@@ -700,7 +700,7 @@ table select {
 
 @media (max-width: 640px) {
   .page-content {
-    padding: 18px;
+    padding: 16px;
   }
 
   .new-request-form {
@@ -761,7 +761,7 @@ table select {
 .settings-section-header {
   display: flex;
   justify-content: space-between;
-  gap: 18px;
+  gap: 12px;
   margin-bottom: 22px;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--border-soft);
@@ -845,5 +845,299 @@ table select {
 
   .settings-form button {
     width: 100%;
+  }
+}
+.mis-pedidos-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mis-pedidos-action-button,
+.delete-icon-button {
+  display: inline-flex;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mis-pedidos-edit-button {
+  border: 1px solid var(--brand-navy);
+  background: linear-gradient(135deg, var(--brand-navy) 0%, #2f628a 100%);
+  color: #ffffff;
+}
+
+.mis-pedidos-edit-button:hover {
+  border-color: #204462;
+  background: linear-gradient(135deg, #204462 0%, #3b77a5 100%);
+  box-shadow: 0 3px 8px rgba(23, 50, 77, 0.24);
+}
+
+.delete-icon-button {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.delete-icon-button:hover {
+  border-color: var(--danger-hover);
+  background: var(--danger-hover);
+  box-shadow: 0 3px 8px rgba(164, 38, 44, 0.24);
+}
+
+.attachment-delete-button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin-left: 8px;
+}
+
+.edit-order-modal {
+  width: min(92vw, 680px);
+  max-width: 680px;
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.edit-order-form {
+  margin-top: 12px;
+}
+
+.edit-order-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.98));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.09);
+}
+
+.edit-order-section {
+  display: grid;
+  gap: 6px;
+}
+
+.edit-order-section > label,
+.edit-order-field-block > label {
+  margin: 0;
+  color: var(--brand-navy);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.edit-order-section input[type="text"] {
+  max-width: none;
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.edit-order-section textarea {
+  max-width: none;
+  min-height: 76px;
+  padding: 8px 10px;
+  line-height: 1.35;
+  resize: vertical;
+}
+
+.edit-order-descriptions {
+  gap: 12px;
+}
+
+.edit-order-field-block {
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.edit-order-field-block:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.edit-priority-segment {
+  display: inline-grid;
+  width: fit-content;
+  grid-template-columns: repeat(2, 74px);
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-muted);
+}
+
+.edit-priority-segment label {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.edit-priority-segment input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.edit-priority-segment span {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.edit-priority-segment span:hover {
+  background: #eef3f8;
+  color: var(--brand-navy);
+}
+
+.edit-priority-segment input:checked + span {
+  background: linear-gradient(135deg, var(--brand-navy) 0%, #2f628a 100%);
+  box-shadow: 0 2px 6px rgba(23, 50, 77, 0.18);
+  color: #ffffff;
+}
+
+.edit-priority-segment input:checked + span:hover {
+  background: linear-gradient(135deg, var(--brand-navy) 0%, #2f628a 100%);
+  color: #ffffff;
+}
+
+.edit-priority-segment input:focus-visible + span {
+  outline: 3px solid rgba(15, 108, 189, 0.24);
+  outline-offset: 2px;
+}
+
+.edit-order-actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  .mis-pedidos-actions {
+    gap: 12px;
+  }
+
+  .edit-order-card {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .edit-order-section textarea {
+    min-height: 72px;
+  }
+
+  .edit-priority-segment {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .edit-order-actions {
+    justify-content: stretch;
+  }
+}
+
+
+table .delete-icon-button {
+  vertical-align: middle;
+}
+
+.delete-icon-button svg,
+.mis-pedidos-action-button svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.edit-attachments-list {
+  display: grid;
+  gap: 8px;
+}
+
+.edit-attachments-empty {
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+}
+
+.edit-attachment-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.edit-attachment-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--brand-navy);
+}
+
+.edit-attachment-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.edit-attachment-info strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-attachment-info span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.edit-attachment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-attachment-actions button:not(.delete-icon-button) {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .edit-attachment-item {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .edit-attachment-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 }

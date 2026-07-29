@@ -461,24 +461,37 @@ filtroEstado
         {pedidoSeleccionado.estado}
       </p>
 
-      <p>
-        <strong>Urgente:</strong>
-      </p>
+      {pedidoSeleccionado.urgente ? (
+        <>
+          <p>
+            <strong>Urgente:</strong>
+          </p>
 
-      <div className="descripcion-pedido">
-        {pedidoSeleccionado.urgente
-          ? pedidoSeleccionado.motivoUrgencia ||
-            "Sin motivo de urgencia"
-          : "No"}
-      </div>
+          <div className="descripcion-pedido">
+            {pedidoSeleccionado.motivoUrgencia ||
+              "Sin elementos urgentes"}
+          </div>
 
-      <p>
-        <strong>Descripción:</strong>
-      </p>
+          <p>
+            <strong>No urgente:</strong>
+          </p>
 
-      <div className="descripcion-pedido">
-        {pedidoSeleccionado.descripcion}
-      </div>
+          <div className="descripcion-pedido">
+            {pedidoSeleccionado.descripcion ||
+              "Sin elementos no urgentes"}
+          </div>
+        </>
+      ) : (
+        <>
+          <p>
+            <strong>Descripción:</strong>
+          </p>
+
+          <div className="descripcion-pedido">
+            {pedidoSeleccionado.descripcion}
+          </div>
+        </>
+      )}
 
       <p>
         <strong>Adjuntos:</strong>
@@ -509,3 +522,4 @@ filtroEstado
 }
 
 export default ValidarSolicitudes;
+

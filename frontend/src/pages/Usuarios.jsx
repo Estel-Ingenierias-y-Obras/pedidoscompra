@@ -1,4 +1,5 @@
 import Layout from "../components/Layout";
+import DeleteIconButton from "../components/DeleteIconButton";
 import "./Usuarios.css";
 import { useContext, useEffect, useState } from "react";
 import { UsuariosContext } from "../context/UsuariosContext";
@@ -344,13 +345,12 @@ const formatearFecha = (fecha) =>
   </td>
 
   <td>
-    <button
+    <DeleteIconButton
+      label="Eliminar usuario"
       onClick={() =>
         solicitarEliminacion(usuario)
       }
-    >
-      Eliminar
-    </button>
+    />
   </td>
 
 </tr>
@@ -503,6 +503,8 @@ const formatearFecha = (fecha) =>
         </button>
 
         <button
+          type="button"
+          className="button-danger"
           onClick={confirmarEliminacion}
         >
           Eliminar
@@ -566,3 +568,7 @@ const formatearFecha = (fecha) =>
 }
 
 export default Usuarios;
+
+
+
+

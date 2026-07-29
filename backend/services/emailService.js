@@ -121,16 +121,18 @@ const buildInfoRows = (rows) => rows.map((row) => {
 const buildButton = (frontendUrl, buttonText = "Acceder a la plataforma") => {
   const safeUrl = escapeHtml(frontendUrl);
   const safeButtonText = escapeHtml(buttonText);
+  const buttonStart = COLORS.navy;
+  const buttonEnd = "#2F628A";
 
   return `
     <!--[if mso]>
-    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:44px;v-text-anchor:middle;width:230px;" arcsize="10%" stroke="f" fillcolor="${COLORS.blue}">
+    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:44px;v-text-anchor:middle;width:230px;" arcsize="10%" stroke="f" fillcolor="${buttonStart}">
       <w:anchorlock/>
       <center style="color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:600;">${safeButtonText}</center>
     </v:roundrect>
     <![endif]-->
     <!--[if !mso]><!-->
-    <a href="${safeUrl}" target="_blank" style="display:inline-block;min-width:198px;padding:12px 16px;border-radius:6px;background-color:${COLORS.blue};color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:600;line-height:20px;text-align:center;text-decoration:none;">
+    <a href="${safeUrl}" target="_blank" aria-label="${safeButtonText}" style="display:inline-block;min-width:198px;padding:12px 16px;border-radius:6px;background-color:${buttonStart};background-image:linear-gradient(135deg, ${buttonStart} 0%, ${buttonEnd} 100%);color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:600;line-height:20px;text-align:center;text-decoration:none;box-shadow:0 10px 18px rgba(23, 50, 77, 0.18);">
       ${safeButtonText}
     </a>
     <!--<![endif]-->`;
@@ -385,4 +387,5 @@ module.exports = {
   sendAccessApprovedNotification,
   sendAccessRequestNotification
 };
+
 

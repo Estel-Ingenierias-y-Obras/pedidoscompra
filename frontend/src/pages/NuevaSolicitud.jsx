@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
 import Layout from "../components/Layout";
+import DeleteIconButton from "../components/DeleteIconButton";
+import ProjectSelector from "../components/ProjectSelector";
 import { useContext } from "react";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
-import { useEffect } from "react";
 
 
 function NuevaSolicitud() {
@@ -14,117 +15,13 @@ const {
 } = useContext(SolicitudesContext);
 
 const { user } = useContext(AuthContext);
-
-  const [proyectos, setProyectos] =
-  useState([]);
-
-  const [proyecto, setProyecto] = useState("");
-  const [busquedaProyecto, setBusquedaProyecto] = useState("");
-  const [mostrarResultados, setMostrarResultados] = useState(false);
-  const [indiceActivo, setIndiceActivo] = useState(-1);
+const [proyecto, setProyecto] = useState("");
   const [urgente, setUrgente] = useState("No");
   const [motivoUrgencia, setMotivoUrgencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [archivos, setArchivos] = useState([]);
   const [mensaje, setMensaje] = useState("");
   const archivoInputRef = useRef(null);
-
-  useEffect(() => {
-
-  const cargarProyectos = async () => {
-
-    try {
-
-      const response =
-        await api.get(
-          "/api/proyectos"
-        );
-
-      setProyectos(
-  Array.isArray(response.data)
-    ? response.data
-    : response.data.value || []
-);
-
-    } catch (error) {
-
-      console.error(
-        "Error cargando proyectos:",
-        error
-      );
-
-    }
-
-  };
-
-  cargarProyectos();
-
-}, []);
-
-  const terminoBusqueda =
-    proyecto ? "" : busquedaProyecto.trim().toLowerCase();
-
-  const proyectosFiltrados = terminoBusqueda
-    ? proyectos
-        .map(proyectoItem => {
-          const codigo =
-            (proyectoItem.nomProyecto || "").toLowerCase();
-          const descripcionProyecto =
-            (proyectoItem.descProyecto || "").toLowerCase();
-
-          let prioridad = 3;
-
-          if (codigo.startsWith(terminoBusqueda)) {
-            prioridad = 0;
-          } else if (codigo.includes(terminoBusqueda)) {
-            prioridad = 1;
-          } else if (descripcionProyecto.includes(terminoBusqueda)) {
-            prioridad = 2;
-          }
-
-          return {
-            proyecto: proyectoItem,
-            prioridad
-          };
-        })
-        .filter(resultado => resultado.prioridad < 3)
-        .sort((a, b) => a.prioridad - b.prioridad)
-        .slice(0, 50)
-        .map(resultado => resultado.proyecto)
-    : proyectos.slice(0, 50);
-
-  const seleccionarProyecto = (proyectoSeleccionado) => {
-    setProyecto(proyectoSeleccionado.nomProyecto);
-    setBusquedaProyecto(
-      `${proyectoSeleccionado.nomProyecto} - ${proyectoSeleccionado.descProyecto}`
-    );
-    setMostrarResultados(false);
-    setIndiceActivo(-1);
-  };
-
-  const manejarTecladoProyecto = (e) => {
-    if (!mostrarResultados || proyectosFiltrados.length === 0) {
-      return;
-    }
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setIndiceActivo(indiceActual =>
-        Math.min(indiceActual + 1, proyectosFiltrados.length - 1)
-      );
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setIndiceActivo(indiceActual =>
-        Math.max(indiceActual - 1, 0)
-      );
-    } else if (e.key === "Enter" && indiceActivo >= 0) {
-      e.preventDefault();
-      seleccionarProyecto(proyectosFiltrados[indiceActivo]);
-    } else if (e.key === "Escape") {
-      setMostrarResultados(false);
-      setIndiceActivo(-1);
-    }
-  };
 
   const agregarArchivos = (event) => {
     const nuevosArchivos = Array.from(
@@ -214,7 +111,6 @@ const { user } = useContext(AuthContext);
 });
 
   setProyecto("");
-setBusquedaProyecto("");
 setUrgente("No");
 setMotivoUrgencia("");
 setDescripcion("");
@@ -248,62 +144,7 @@ setMensaje("Pedido enviado correctamente");
           <label>Proyecto</label>
           <br />
 
-          <div className="buscador-proyectos">
-            <input
-              type="search"
-              placeholder="Buscar por código o descripción..."
-              value={busquedaProyecto}
-              onFocus={(e) => {
-                setMostrarResultados(true);
-                setIndiceActivo(-1);
-                e.target.select();
-              }}
-              onChange={(e) => {
-                setBusquedaProyecto(e.target.value);
-                setProyecto("");
-                setMostrarResultados(true);
-                setIndiceActivo(-1);
-              }}
-              onKeyDown={manejarTecladoProyecto}
-              onBlur={() => setMostrarResultados(false)}
-              role="combobox"
-              aria-expanded={mostrarResultados}
-              aria-controls="resultados-proyectos"
-              aria-autocomplete="list"
-            />
-
-            {mostrarResultados && (
-              <div
-                id="resultados-proyectos"
-                className="resultados-proyectos"
-                role="listbox"
-              >
-                {proyectosFiltrados.length === 0 ? (
-                  <div className="sin-resultados-proyectos">
-                    No se encontraron proyectos
-                  </div>
-                ) : (
-                  proyectosFiltrados.map((proyectoItem, indice) => (
-                    <button
-                      type="button"
-                      key={proyectoItem.id}
-                      className={`resultado-proyecto${
-                        indice === indiceActivo ? " resultado-proyecto-activo" : ""
-                      }`}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        seleccionarProyecto(proyectoItem);
-                      }}
-                      role="option"
-                      aria-selected={indice === indiceActivo}
-                    >
-                      {proyectoItem.nomProyecto} - {proyectoItem.descProyecto}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+          <ProjectSelector value={proyecto} onChange={setProyecto} />
         </div>
 
         <br />
@@ -409,21 +250,13 @@ setMensaje("Pedido enviado correctamente");
                   key={`${archivoItem.name}-${archivoItem.size}-${archivoItem.lastModified}`}
                 >
                   📎 <strong>{archivoItem.name}</strong>{" "}
-                  <button
-                    type="button"
-                    aria-label={`Eliminar ${archivoItem.name}`}
-                    title="Eliminar archivo"
+                  <DeleteIconButton
+                    label={`Eliminar ${archivoItem.name}`}
+                    className="attachment-delete-button"
                     onClick={() =>
                       eliminarArchivoSeleccionado(indice)
                     }
-                    style={{
-                      marginLeft: "6px",
-                      padding: "2px 8px",
-                      minWidth: "auto"
-                    }}
-                  >
-                    ×
-                  </button>
+                  />
                 </p>
               ))}
             </div>
@@ -445,3 +278,8 @@ setMensaje("Pedido enviado correctamente");
 }
 
 export default NuevaSolicitud;
+
+
+
+
+
