@@ -7,17 +7,20 @@ import AttachmentList, {
   obtenerIconoArchivo
 } from "../components/AttachmentList";
 import DeleteIconButton from "../components/DeleteIconButton";
+import { AuthContext } from "../context/AuthContext";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { UsuariosContext } from "../context/UsuariosContext";
 import api from "../api";
 
 function ValidarSolicitudes() {
+  const { user } = useContext(AuthContext);
   const { solicitudes, setSolicitudes } = useContext(SolicitudesContext);
   const { usuarios } = useContext(UsuariosContext);
 
   const [filtroEstado, setFiltroEstado] = useState("Todas");
   const [busquedaProyecto, setBusquedaProyecto] = useState("");
   const [pedidoAArchivar, setPedidoAArchivar] = useState(null);
+  const [pedidoAEliminar, setPedidoAEliminar] = useState(null);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   const [pedidoInfoCompras, setPedidoInfoCompras] = useState(null);
   const [comentarioCompras, setComentarioCompras] = useState("");
@@ -57,6 +60,7 @@ function ValidarSolicitudes() {
   };
 
   const compradores = usuarios.filter(usuario => usuario.rol === "Comprador");
+  const esAdmin = user?.rol === "Admin";
 
   const refrescarPedidoEnListado = (pedidoActualizado) => {
     setSolicitudes(solicitudesActuales =>
@@ -98,6 +102,25 @@ function ValidarSolicitudes() {
       setSolicitudes(response.data);
     } catch (error) {
       console.error("Error asignando comprador:", error);
+    }
+  };
+  const confirmarEliminacionAdmin = async () => {
+    if (!pedidoAEliminar) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/pedidos/admin/${pedidoAEliminar._id}`, {
+        headers: { "x-user-role": user?.rol || "" }
+      });
+      setSolicitudes(solicitudesActuales =>
+        solicitudesActuales.filter(solicitud => solicitud._id !== pedidoAEliminar._id)
+      );
+      setPedidoAEliminar(null);
+      setMensaje("Pedido eliminado correctamente");
+      setTimeout(() => setMensaje(""), 3000);
+    } catch (error) {
+      console.error("Error eliminando pedido:", error);
     }
   };
 
@@ -222,7 +245,6 @@ function ValidarSolicitudes() {
     </div>
   );
   const solicitudesVisibles = solicitudes
-    .filter(solicitud => solicitud.estado !== "Archivar")
     .filter(solicitud =>
       filtroEstado === "Todas" || solicitud.estado === filtroEstado
     )
@@ -278,6 +300,7 @@ function ValidarSolicitudes() {
               <th>Estado</th>
               <th>Adjunto</th>
               <th>Detalles</th>
+              {esAdmin && <th>Eliminar</th>}
             </tr>
           </thead>
 
@@ -351,6 +374,14 @@ function ValidarSolicitudes() {
                     👁 Ver
                   </button>
                 </td>
+                {esAdmin && (
+                  <td className="admin-delete-cell">
+                    <DeleteIconButton
+                      label="Eliminar pedido"
+                      onClick={() => setPedidoAEliminar(solicitud)}
+                    />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -375,6 +406,32 @@ function ValidarSolicitudes() {
         </div>
       )}
 
+      {pedidoAEliminar && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Eliminar pedido</h2>
+            <p>¿Deseas eliminar este pedido?</p>
+            <p>Esta acción eliminará también sus archivos asociados.</p>
+            <p>
+              <strong>Proyecto:</strong>{" "}
+              {obtenerProyectoCompleto(pedidoAEliminar.proyecto)}
+            </p>
+
+            <div className="modal-buttons">
+              <button type="button" onClick={() => setPedidoAEliminar(null)}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="button-danger"
+                onClick={confirmarEliminacionAdmin}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {pedidoInfoCompras && (
         <div className="modal-overlay">
           <div className="modal edit-order-modal">

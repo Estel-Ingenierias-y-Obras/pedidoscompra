@@ -624,8 +624,10 @@ table select {
 }
 
 .submit-request-button {
+  display: block;
   min-width: 210px;
   min-height: 42px;
+  margin: 0 auto;
 }
 
 .login-access-message {
@@ -1281,5 +1283,16 @@ table .delete-icon-button {
 }
 
 .gestion-pedidos-table td:nth-child(5) .attachments-summary-button {
+  margin-inline: auto;
+}
+
+.gestion-pedidos-table th:last-child,
+.gestion-pedidos-table td:last-child,
+.gestion-pedidos-table .admin-delete-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.gestion-pedidos-table .admin-delete-cell .delete-icon-button {
   margin-inline: auto;
 }

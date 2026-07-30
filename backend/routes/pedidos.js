@@ -132,6 +132,36 @@ const obtenerArchivosRecibidos = (req, campo = "archivos") => {
   return Array.isArray(req.files?.[campo]) ? req.files[campo] : [];
 };
 
+const obtenerTodosLosArchivosPedido = (pedido) => [
+  ...(pedido.archivos || []),
+  ...(pedido.archivosDescripcion || []),
+  ...(pedido.archivosUrgente || []),
+  ...(pedido.archivosNoUrgente || []),
+  ...(pedido.adjuntosCompras || [])
+];
+
+const eliminarArchivosPedido = async (pedido) => {
+  const archivos = obtenerTodosLosArchivosPedido(pedido);
+  const idsEliminados = new Set();
+
+  for (const archivo of archivos) {
+    const fileId = archivo.fileId?.toString();
+
+    if (!fileId || idsEliminados.has(fileId)) {
+      continue;
+    }
+
+    try {
+      await eliminarArchivo(fileId);
+    } catch (error) {
+      if (error?.code !== "ENOENT" && error?.message !== "FileNotFound") {
+        throw error;
+      }
+    }
+
+    idsEliminados.add(fileId);
+  }
+};
 const construirActualizacionArchivos = async ({
   archivosActuales,
   idsConservados,
@@ -535,6 +565,30 @@ router.put("/:id", recibirArchivos, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.delete("/admin/:id", async (req, res) => {
+  try {
+    if (req.get("x-user-role") !== "Admin") {
+      return res.status(403).json({
+        error: "Forbidden"
+      });
+    }
+
+    const pedido = await Pedido.findById(req.params.id);
+
+    if (!pedido) {
+      return res.status(404).json({
+        error: "Pedido no encontrado"
+      });
+    }
+
+    await eliminarArchivosPedido(pedido);
+    await Pedido.findByIdAndDelete(req.params.id);
+
+    res.json({ mensaje: "Pedido eliminado" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 router.delete("/:id", async (req, res) => {
   try {
     const pedido = await Pedido.findById(req.params.id);
@@ -552,13 +606,7 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    for (const archivo of [
-      ...(pedido.archivos || []),
-      ...(pedido.adjuntosCompras || [])
-    ]) {
-      await eliminarArchivo(archivo.fileId);
-    }
-
+    await eliminarArchivosPedido(pedido);
     await Pedido.findByIdAndDelete(req.params.id);
 
     res.json({ mensaje: "Pedido eliminado" });
