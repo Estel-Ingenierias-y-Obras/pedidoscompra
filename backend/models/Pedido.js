@@ -1,5 +1,24 @@
 const mongoose = require("mongoose");
 
+const archivoSchema = {
+  fileId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true
+  },
+  nombre: {
+    type: String,
+    required: true
+  },
+  tipoMime: {
+    type: String,
+    required: true
+  },
+  tamano: {
+    type: Number,
+    required: true
+  }
+};
+
 const pedidoSchema = new mongoose.Schema({
 
   solicitante: {
@@ -38,6 +57,7 @@ const pedidoSchema = new mongoose.Schema({
 
   estado: {
     type: String,
+    enum: ["Pendiente", "Pedido", "Archivar"],
     default: "Pendiente"
   },
 
@@ -47,24 +67,32 @@ const pedidoSchema = new mongoose.Schema({
   },
 
   archivos: {
-    type: [{
-      fileId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true
-      },
-      nombre: {
-        type: String,
-        required: true
-      },
-      tipoMime: {
-        type: String,
-        required: true
-      },
-      tamano: {
-        type: Number,
-        required: true
-      }
-    }],
+    type: [archivoSchema],
+    default: []
+  },
+
+  archivosDescripcion: {
+    type: [archivoSchema],
+    default: []
+  },
+
+  archivosUrgente: {
+    type: [archivoSchema],
+    default: []
+  },
+
+  archivosNoUrgente: {
+    type: [archivoSchema],
+    default: []
+  },
+
+  comentarioCompras: {
+    type: String,
+    default: ""
+  },
+
+  adjuntosCompras: {
+    type: [archivoSchema],
     default: []
   }
 

@@ -14,7 +14,8 @@ async function obtenerToken() {
       headers: {
         "Content-Type":
           "application/x-www-form-urlencoded"
-      }
+      },
+      proxy: false
     }
   );
 
@@ -30,7 +31,8 @@ async function obtenerProyectos() {
     {
       headers: {
         Authorization: `Bearer ${token}`
-      }
+      },
+      proxy: false
     }
   );
 

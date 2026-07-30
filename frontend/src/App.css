@@ -406,12 +406,7 @@ h1 {
   color: #084298;
 }
 
-.estado-recibido {
-  background-color: #d1e7dd;
-  color: #0f5132;
-}
-
-.estado-entregado {
+.estado-archivar {
   background-color: #f8d7e8;
   color: #842054;
 }
@@ -460,3 +455,4 @@ h1 {
   padding: 12px;
   color: #666666;
 }
+

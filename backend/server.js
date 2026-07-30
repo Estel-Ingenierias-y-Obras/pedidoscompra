@@ -11,6 +11,7 @@ const proyectosRoutes = require("./routes/proyectos");
 const solicitudesAccesoRoutes = require("./routes/solicitudesAcceso");
 const destinatariosAccesoRoutes = require("./routes/destinatariosAcceso");
 const destinatariosCompraRoutes = require("./routes/destinatariosCompra");
+const Pedido = require("./models/Pedido");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -19,10 +20,36 @@ const frontendBuildPath = path.join(__dirname, "../frontend/build");
 app.use(cors());
 app.use(express.json());
 
+const migrarAdjuntosPorBloque = async () => {
+  const pedidos = await Pedido.find({
+    archivos: { $exists: true, $ne: [] }
+  });
+
+  for (const pedido of pedidos) {
+    const archivosExistentes = pedido.archivos || [];
+
+    if (archivosExistentes.length === 0) {
+      continue;
+    }
+
+    if (!pedido.urgente && (!pedido.archivosDescripcion || pedido.archivosDescripcion.length === 0)) {
+      pedido.archivosDescripcion = archivosExistentes;
+      await pedido.save();
+      continue;
+    }
+
+    if (pedido.urgente && (!pedido.archivosNoUrgente || pedido.archivosNoUrgente.length === 0)) {
+      pedido.archivosNoUrgente = archivosExistentes;
+      await pedido.save();
+    }
+  }
+};
+
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB conectado");
+    await migrarAdjuntosPorBloque();
   })
   .catch((error) => {
     console.log(error);
@@ -60,4 +87,7 @@ if (process.env.NODE_ENV === "production") {
 app.listen(port, "0.0.0.0", () => {
   console.log(`Servidor ejecutándose en puerto ${port}`);
 });
+
+
+
 

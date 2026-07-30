@@ -1,98 +1,30 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFile } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
+import AttachmentList, {
+  formatearTamanoArchivo,
+  obtenerIconoArchivo
+} from "../components/AttachmentList";
+import DeleteIconButton from "../components/DeleteIconButton";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { UsuariosContext } from "../context/UsuariosContext";
-import { useState } from "react";
 import api from "../api";
 
-function AdjuntosPedido({ pedido }) {
-  const archivos = Array.isArray(pedido?.archivos)
-    ? pedido.archivos
-    : [];
-
-  if (archivos.length === 0) {
-    return <span>Sin archivos adjuntos</span>;
-  }
-//hola
-  return (
-    <div>
-      {archivos.map(archivo => {
-        const ruta =
-          `/api/pedidos/${pedido._id}/archivos/${archivo.fileId}`;
-        const url = `${api.defaults.baseURL || ""}${ruta}`;
-
-        return (
-          <div
-            key={archivo.fileId}
-            style={{
-              padding: "12px 0",
-              borderBottom: "1px solid #e0e0e0"
-            }}
-          >
-            <div>
-              📎 <strong>{archivo.nombre}</strong>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                marginTop: "8px"
-              }}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  window.open(
-                    url,
-                    "_blank",
-                    "noopener,noreferrer"
-                  )
-                }
-              >
-                Abrir
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  window.open(
-                    `${url}?download=1`,
-                    "_blank",
-                    "noopener,noreferrer"
-                  )
-                }
-              >
-                Descargar
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 function ValidarSolicitudes() {
-
-  const {
-    solicitudes,
-    setSolicitudes
-  } = useContext(SolicitudesContext);
-
+  const { solicitudes, setSolicitudes } = useContext(SolicitudesContext);
   const { usuarios } = useContext(UsuariosContext);
 
-  const [filtroEstado, setFiltroEstado] =
-  useState("Todas");
-
-  const [busquedaProyecto, setBusquedaProyecto] =
-  useState("");
-
-  const [pedidoAEntregar, setPedidoAEntregar] =
-  useState(null);
-
-  const [pedidoSeleccionado, setPedidoSeleccionado] =
-  useState(null);
-
+  const [filtroEstado, setFiltroEstado] = useState("Todas");
+  const [busquedaProyecto, setBusquedaProyecto] = useState("");
+  const [pedidoAArchivar, setPedidoAArchivar] = useState(null);
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+  const [pedidoInfoCompras, setPedidoInfoCompras] = useState(null);
+  const [comentarioCompras, setComentarioCompras] = useState("");
+  const [adjuntosComprasNuevos, setAdjuntosComprasNuevos] = useState([]);
   const [proyectos, setProyectos] = useState([]);
+  const [mensaje, setMensaje] = useState("");
+  const archivoComprasInputRef = useRef(null);
 
   useEffect(() => {
     const cargarProyectos = async () => {
@@ -105,10 +37,7 @@ function ValidarSolicitudes() {
             : response.data.value || []
         );
       } catch (error) {
-        console.error(
-          "Error cargando proyectos:",
-          error
-        );
+        console.error("Error cargando proyectos:", error);
       }
     };
 
@@ -117,8 +46,7 @@ function ValidarSolicitudes() {
 
   const obtenerProyectoCompleto = (codigoProyecto) => {
     const proyectoEncontrado = proyectos.find(
-      proyectoItem =>
-        proyectoItem.nomProyecto === codigoProyecto
+      proyectoItem => proyectoItem.nomProyecto === codigoProyecto
     );
 
     if (!proyectoEncontrado?.descProyecto) {
@@ -128,90 +56,193 @@ function ValidarSolicitudes() {
     return `${codigoProyecto} - ${proyectoEncontrado.descProyecto}`;
   };
 
-  const compradores = usuarios.filter(
-    usuario => usuario.rol === "Comprador"
-  );
+  const compradores = usuarios.filter(usuario => usuario.rol === "Comprador");
 
-  const cambiarEstado = async (
-  id,
-  nuevoEstado
-) => {
+  const refrescarPedidoEnListado = (pedidoActualizado) => {
+    setSolicitudes(solicitudesActuales =>
+      solicitudesActuales.map(solicitud =>
+        solicitud._id === pedidoActualizado._id
+          ? pedidoActualizado
+          : solicitud
+      )
+    );
 
-  try {
+    setPedidoInfoCompras(actual =>
+      actual?._id === pedidoActualizado._id ? pedidoActualizado : actual
+    );
 
-    await api.put(
-      `/api/pedidos/${id}`,
-      {
-        estado: nuevoEstado
+    setPedidoSeleccionado(actual =>
+      actual?._id === pedidoActualizado._id ? pedidoActualizado : actual
+    );
+  };
+
+  const cambiarEstado = async (id, nuevoEstado) => {
+    try {
+      await api.put(`/api/pedidos/${id}`, { estado: nuevoEstado });
+      const response = await api.get("/api/pedidos");
+      setSolicitudes(response.data);
+    } catch (error) {
+      console.error("Error cambiando estado:", error);
+    }
+  };
+
+  const confirmarArchivo = () => {
+    cambiarEstado(pedidoAArchivar._id, "Archivar");
+    setPedidoAArchivar(null);
+  };
+
+  const asignarComprador = async (id, comprador) => {
+    try {
+      await api.put(`/api/pedidos/${id}`, { compradorAsignado: comprador });
+      const response = await api.get("/api/pedidos");
+      setSolicitudes(response.data);
+    } catch (error) {
+      console.error("Error asignando comprador:", error);
+    }
+  };
+
+  const abrirInfoCompras = (pedido) => {
+    setPedidoInfoCompras(pedido);
+    setComentarioCompras(pedido.comentarioCompras || "");
+    setAdjuntosComprasNuevos([]);
+
+    if (archivoComprasInputRef.current) {
+      archivoComprasInputRef.current.value = "";
+    }
+  };
+
+  const cerrarInfoCompras = () => {
+    setPedidoInfoCompras(null);
+    setComentarioCompras("");
+    setAdjuntosComprasNuevos([]);
+
+    if (archivoComprasInputRef.current) {
+      archivoComprasInputRef.current.value = "";
+    }
+  };
+
+  const obtenerClaveArchivo = (archivo) =>
+    `${archivo.nombre || archivo.name}-${archivo.tamano || archivo.size}-${archivo.tipoMime || archivo.type}`;
+
+  const agregarAdjuntosCompras = (event) => {
+    const archivosSeleccionados = Array.from(event.target.files || []);
+    const clavesExistentes = new Set([
+      ...(pedidoInfoCompras?.adjuntosCompras || []).map(obtenerClaveArchivo),
+      ...adjuntosComprasNuevos.map(obtenerClaveArchivo)
+    ]);
+
+    const nuevosSinDuplicar = archivosSeleccionados.filter(archivo => {
+      const clave = obtenerClaveArchivo(archivo);
+
+      if (clavesExistentes.has(clave)) {
+        return false;
       }
+
+      clavesExistentes.add(clave);
+      return true;
+    });
+
+    setAdjuntosComprasNuevos(actuales => [...actuales, ...nuevosSinDuplicar]);
+    event.target.value = "";
+  };
+
+  const eliminarAdjuntoNuevoCompras = (indice) => {
+    setAdjuntosComprasNuevos(actuales =>
+      actuales.filter((_, indiceActual) => indiceActual !== indice)
+    );
+  };
+
+  const guardarInfoCompras = async (adjuntosConservados) => {
+    if (!pedidoInfoCompras) {
+      return;
+    }
+
+    const datosInfoCompras = new FormData();
+    datosInfoCompras.append("comentarioCompras", comentarioCompras);
+    datosInfoCompras.append(
+      "adjuntosComprasExistentes",
+      JSON.stringify(adjuntosConservados.map(archivo => archivo.fileId))
     );
 
-    const response =
-      await api.get(
-        "/api/pedidos"
-      );
+    adjuntosComprasNuevos.forEach(archivo => {
+      datosInfoCompras.append("archivos", archivo);
+    });
 
-    setSolicitudes(response.data);
-
-  } catch (error) {
-
-    console.error(
-      "Error cambiando estado:",
-      error
+    const response = await api.put(
+      `/api/pedidos/${pedidoInfoCompras._id}`,
+      datosInfoCompras
     );
 
-  }
+    refrescarPedidoEnListado(response.data);
+    cerrarInfoCompras();
+    setMensaje("Adjuntado con éxito");
+    setTimeout(() => setMensaje(""), 3000);
+  };
 
-};
+  const guardarInformacionCompras = async () => {
+    if (!pedidoInfoCompras) {
+      return;
+    }
 
-const confirmarEntrega = () => {
+    try {
+      await guardarInfoCompras(pedidoInfoCompras.adjuntosCompras || []);
+    } catch (error) {
+      console.error("Error guardando información de Compras:", error);
+    }
+  };
 
-  cambiarEstado(
-    pedidoAEntregar._id,
-    "Entregado"
+
+  const obtenerAdjuntosDescripcion = (pedido) =>
+    Array.isArray(pedido.archivosDescripcion) && pedido.archivosDescripcion.length > 0
+      ? pedido.archivosDescripcion
+      : !pedido.urgente
+        ? pedido.archivos || []
+        : [];
+
+  const obtenerAdjuntosUrgente = (pedido) =>
+    Array.isArray(pedido.archivosUrgente) ? pedido.archivosUrgente : [];
+
+  const obtenerAdjuntosNoUrgente = (pedido) =>
+    Array.isArray(pedido.archivosNoUrgente) && pedido.archivosNoUrgente.length > 0
+      ? pedido.archivosNoUrgente
+      : pedido.urgente
+        ? pedido.archivos || []
+        : [];
+
+  const renderBloqueDetalle = ({ titulo, texto, archivos, pedido }) => (
+    <div className="compras-info-readonly">
+      <h3>{titulo}</h3>
+      <div className="compras-info-block">
+        <p>{texto || "Sin contenido"}</p>
+      </div>
+      <div className="compras-info-block">
+        <strong>Archivos:</strong>
+        <AttachmentList pedido={pedido} archivos={archivos} />
+      </div>
+    </div>
   );
-
-  setPedidoAEntregar(null);
-};
-
-const asignarComprador = async (
-  id,
-  comprador
-) => {
-
-  try {
-
-    await api.put(
-      `/api/pedidos/${id}`,
-      {
-        compradorAsignado: comprador
-      }
+  const solicitudesVisibles = solicitudes
+    .filter(solicitud => solicitud.estado !== "Archivar")
+    .filter(solicitud =>
+      filtroEstado === "Todas" || solicitud.estado === filtroEstado
+    )
+    .filter(solicitud =>
+      (solicitud.proyecto || "")
+        .toLowerCase()
+        .includes(busquedaProyecto.toLowerCase())
     );
-
-    const response =
-      await api.get(
-        "/api/pedidos"
-      );
-
-    setSolicitudes(response.data);
-
-  } catch (error) {
-
-    console.error(
-      "Error asignando comprador:",
-      error
-    );
-
-  }
-
-};
 
   return (
     <Layout>
-
       <div className="page-header">
         <h1>Gestión de Pedidos</h1>
       </div>
+
+      {mensaje && (
+        <div className="mensaje-exito">
+          {mensaje}
+        </div>
+      )}
 
       <div className="page-content">
         <div className="barra-busqueda">
@@ -220,306 +251,274 @@ const asignarComprador = async (
             type="search"
             placeholder="Buscar proyecto..."
             value={busquedaProyecto}
-            onChange={(e) =>
-              setBusquedaProyecto(e.target.value)
-            }
+            onChange={(event) => setBusquedaProyecto(event.target.value)}
           />
         </div>
 
         <label>Filtrar por estado:</label>
+        <select
+          value={filtroEstado}
+          onChange={(event) => setFiltroEstado(event.target.value)}
+        >
+          <option>Todas</option>
+          <option>Pendiente</option>
+          <option>Pedido</option>
+          <option>Archivar</option>
+        </select>
 
-<select
-  value={filtroEstado}
-  onChange={(e) =>
-    setFiltroEstado(e.target.value)
-  }
->
-  <option>Todas</option>
-  <option>Pendiente</option>
-  <option>Pedido</option>
-  <option>Recibido</option>
-  <option>Entregado</option>
-</select>
+        <br />
+        <br />
 
-<br />
-<br />
-
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Solicitante</th>
-            <th>Proyecto</th>
-            <th>Comprador</th>
-            <th>Estado</th>
-            <th>Detalles</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-
-
-          {solicitudes
-            .filter(
-              solicitud =>
-                solicitud.estado !== "Entregado"
-            )
-
-.filter(solicitud => {
-
-  if (filtroEstado === "Todas") {
-    return true;
-  }
-
-return (
-solicitud.estado ===
-filtroEstado
-);
-})
-  .filter(solicitud =>
-    (solicitud.proyecto || "")
-      .toLowerCase()
-      .includes(busquedaProyecto.toLowerCase())
-  )
-  .map(solicitud => (
-            <tr key={solicitud._id}>
-              <td>{solicitud._id.slice(-6)}</td>
-              <td>{solicitud.solicitante}</td>
-              <td style={{ maxWidth: "280px" }}>
-                <span
-                  title={obtenerProyectoCompleto(
-                    solicitud.proyecto
-                  )}
-                  style={{
-                    display: "block",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  {solicitud.proyecto}
-                </span>
-              </td>
-              <td>
-  <select
-    value={solicitud.compradorAsignado}
-    onChange={(e) =>
-      asignarComprador(
-        solicitud._id,
-        e.target.value
-      )
-    }
-  >
-    <option value="">
-      Sin asignar
-    </option>
-
-    {compradores.map(comprador => (
-      <option
-        key={comprador._id}
-        value={comprador.nombre}
-      >
-        {comprador.nombre}
-      </option>
-    ))}
-  </select>
-</td>
-              <td>
-  <select
-  className={`estado estado-select estado-${solicitud.estado.toLowerCase()}`}
-  value={solicitud.estado}
-  onChange={(e) => {
-
-    const nuevoEstado =
-      e.target.value;
-
-    if (nuevoEstado === "Entregado") {
-
-      setPedidoAEntregar(
-        solicitud
-      );
-
-      return;
-    }
-
-    cambiarEstado(
-      solicitud._id,
-      nuevoEstado
-    );
-  }}
->
-    <option value="Pendiente">
-      Pendiente
-    </option>
-
-    <option value="Pedido">
-      Pedido
-    </option>
-
-    <option value="Recibido">
-      Recibido
-    </option>
-
-    <option value="Entregado">
-      Entregado
-    </option>
-
-  </select>
-</td>
-
-<td>
-  <button
-    onClick={() =>
-      setPedidoSeleccionado(
-        solicitud)
-    }
-  >
-    👁 Ver
-  </button>
-</td>
-
+        <table className="gestion-pedidos-table">
+          <thead>
+            <tr>
+              <th>Solicitante</th>
+              <th>Proyecto</th>
+              <th>Comprador</th>
+              <th>Estado</th>
+              <th>Adjunto</th>
+              <th>Detalles</th>
             </tr>
-          ))}
+          </thead>
 
-        </tbody>
+          <tbody>
+            {solicitudesVisibles.map(solicitud => (
+              <tr key={solicitud._id}>
+                <td>{solicitud.solicitante}</td>
+                <td style={{ maxWidth: "280px" }}>
+                  <span
+                    title={obtenerProyectoCompleto(solicitud.proyecto)}
+                    style={{
+                      display: "block",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    {solicitud.proyecto}
+                  </span>
+                </td>
+                <td>
+                  <select
+                    value={solicitud.compradorAsignado}
+                    onChange={(event) =>
+                      asignarComprador(solicitud._id, event.target.value)
+                    }
+                  >
+                    <option value="">Sin asignar</option>
+                    {compradores.map(comprador => (
+                      <option key={comprador._id} value={comprador.nombre}>
+                        {comprador.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <select
+                    className={`estado estado-select estado-${solicitud.estado.toLowerCase()}`}
+                    value={solicitud.estado}
+                    onChange={(event) => {
+                      const nuevoEstado = event.target.value;
+
+                      if (nuevoEstado === "Archivar") {
+                        setPedidoAArchivar(solicitud);
+                        return;
+                      }
+
+                      cambiarEstado(solicitud._id, nuevoEstado);
+                    }}
+                  >
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Pedido">Pedido</option>
+                    <option value="Archivar">Archivar</option>
+                  </select>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="attachments-summary-button"
+                    onClick={() => abrirInfoCompras(solicitud)}
+                    title="Gestionar información de Compras"
+                  >
+                    Gestionar
+                  </button>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    onClick={() => setPedidoSeleccionado(solicitud)}
+                  >
+                    👁 Ver
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
 
-       {pedidoAEntregar && (
+      {pedidoAArchivar && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Archivar pedido</h2>
+            <p>¿Desea archivar este pedido?</p>
 
-  <div className="modal-overlay">
-
-    <div className="modal">
-
-      <h2>Marcar pedido como entregado</h2>
-
-      <p>
-        ¿Desea marcar este pedido como entregado?
-      </p>
-
-      <div className="modal-buttons">
-
-        <button
-          onClick={() =>
-            setPedidoAEntregar(null)
-          }
-        >
-          Cancelar
-        </button>
-
-        <button
-          onClick={confirmarEntrega}
-        >
-          Confirmar
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-)} 
-
-{pedidoSeleccionado && (
-
-  <div className="modal-overlay">
-
-    <div
-      className="modal"
-      style={{
-        width: "min(90vw, 760px)",
-        maxWidth: "760px",
-        maxHeight: "85vh",
-        overflowY: "auto"
-      }}
-    >
-
-      <h2>Detalles del pedido</h2>
-
-      <p>
-        <strong>Proyecto:</strong>{" "}
-        {obtenerProyectoCompleto(
-          pedidoSeleccionado.proyecto
-        )}
-      </p>
-
-      <p>
-        <strong>Solicitante:</strong>{" "}
-        {pedidoSeleccionado.solicitante}
-      </p>
-
-      <p>
-        <strong>Comprador:</strong>{" "}
-        {pedidoSeleccionado.compradorAsignado ||
-          "Sin asignar"}
-      </p>
-
-      <p>
-        <strong>Estado:</strong>{" "}
-        {pedidoSeleccionado.estado}
-      </p>
-
-      {pedidoSeleccionado.urgente ? (
-        <>
-          <p>
-            <strong>Urgente:</strong>
-          </p>
-
-          <div className="descripcion-pedido">
-            {pedidoSeleccionado.motivoUrgencia ||
-              "Sin elementos urgentes"}
+            <div className="modal-buttons">
+              <button onClick={() => setPedidoAArchivar(null)}>
+                Cancelar
+              </button>
+              <button onClick={confirmarArchivo}>
+                Confirmar
+              </button>
+            </div>
           </div>
-
-          <p>
-            <strong>No urgente:</strong>
-          </p>
-
-          <div className="descripcion-pedido">
-            {pedidoSeleccionado.descripcion ||
-              "Sin elementos no urgentes"}
-          </div>
-        </>
-      ) : (
-        <>
-          <p>
-            <strong>Descripción:</strong>
-          </p>
-
-          <div className="descripcion-pedido">
-            {pedidoSeleccionado.descripcion}
-          </div>
-        </>
+        </div>
       )}
 
-      <p>
-        <strong>Adjuntos:</strong>
-      </p>
+      {pedidoInfoCompras && (
+        <div className="modal-overlay">
+          <div className="modal edit-order-modal">
+            <h2>Información de Compras</h2>
+            <p>
+              <strong>Proyecto:</strong>{" "}
+              {obtenerProyectoCompleto(pedidoInfoCompras.proyecto)}
+            </p>
 
-      <AdjuntosPedido pedido={pedidoSeleccionado} />
+            <div className="edit-order-section compras-info-section">
+              <label>Comentario</label>
+              <textarea
+                value={comentarioCompras}
+                placeholder="Escribe la información que verá el solicitante"
+                onChange={(event) => setComentarioCompras(event.target.value)}
+              />
+            </div>
 
-      <div className="modal-buttons">
+            <div className="edit-order-section compras-info-section">
+              <label>Adjuntar archivos</label>
+              <input
+                type="file"
+                ref={archivoComprasInputRef}
+                multiple
+                onChange={agregarAdjuntosCompras}
+              />
 
-        <button
-          onClick={() =>
-            setPedidoSeleccionado(null)
-          }
-        >
-          Cerrar
-        </button>
+              {adjuntosComprasNuevos.length > 0 && (
+                <div className="edit-attachments-list new-attachments-list">
+                  {adjuntosComprasNuevos.map((archivo, indice) => (
+                    <div
+                      className="edit-attachment-item"
+                      key={`${archivo.name}-${archivo.size}-${archivo.lastModified}`}
+                    >
+                      <FontAwesomeIcon
+                        className="edit-attachment-icon"
+                        icon={obtenerIconoArchivo(archivo.type) || faFile}
+                      />
+                      <div className="edit-attachment-info">
+                        <strong>{archivo.name}</strong>
+                        <span>{formatearTamanoArchivo(archivo.size)} · Nuevo</span>
+                      </div>
+                      <div className="edit-attachment-actions">
+                        <DeleteIconButton
+                          label={`Eliminar ${archivo.name}`}
+                          onClick={() => eliminarAdjuntoNuevoCompras(indice)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-      </div>
+            <div className="modal-buttons edit-order-actions">
+              <button type="button" onClick={cerrarInfoCompras}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={guardarInformacionCompras}
+                disabled={
+                  adjuntosComprasNuevos.length === 0 &&
+                  comentarioCompras === (pedidoInfoCompras.comentarioCompras || "")
+                }
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-    </div>
+      {pedidoSeleccionado && (
+        <div className="modal-overlay">
+          <div
+            className="modal"
+            style={{
+              width: "min(90vw, 760px)",
+              maxWidth: "760px",
+              maxHeight: "85vh",
+              overflowY: "auto"
+            }}
+          >
+            <h2>Detalles del pedido</h2>
 
-  </div>
+            <p>
+              <strong>Proyecto:</strong>{" "}
+              {obtenerProyectoCompleto(pedidoSeleccionado.proyecto)}
+            </p>
+            <p>
+              <strong>Solicitante:</strong> {pedidoSeleccionado.solicitante}
+            </p>
+            <p>
+              <strong>Comprador:</strong>{" "}
+              {pedidoSeleccionado.compradorAsignado || "Sin asignar"}
+            </p>
+            <p>
+              <strong>Estado:</strong> {pedidoSeleccionado.estado}
+            </p>
 
-)}
+            {pedidoSeleccionado.urgente ? (
+              <>
+                {renderBloqueDetalle({
+                  titulo: "Urgente",
+                  texto: pedidoSeleccionado.motivoUrgencia,
+                  archivos: obtenerAdjuntosUrgente(pedidoSeleccionado),
+                  pedido: pedidoSeleccionado
+                })}
+                {renderBloqueDetalle({
+                  titulo: "No urgente",
+                  texto: pedidoSeleccionado.descripcion,
+                  archivos: obtenerAdjuntosNoUrgente(pedidoSeleccionado),
+                  pedido: pedidoSeleccionado
+                })}
+              </>
+            ) : (
+              renderBloqueDetalle({
+                titulo: "Descripción",
+                texto: pedidoSeleccionado.descripcion,
+                archivos: obtenerAdjuntosDescripcion(pedidoSeleccionado),
+                pedido: pedidoSeleccionado
+              })
+            )}
 
+            <div className="modal-buttons">
+              <button onClick={() => setPedidoSeleccionado(null)}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
 
 export default ValidarSolicitudes;
+
+
+
+
+
+
+
+
 

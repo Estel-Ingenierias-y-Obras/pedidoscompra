@@ -275,7 +275,7 @@ const formatearFecha = (fecha) =>
 
 <br />
 
-<table>
+<table className="usuarios-table acciones-centradas-table">
   <thead>
     <tr>
       <th>Nombre</th>
@@ -361,7 +361,7 @@ const formatearFecha = (fecha) =>
 <section className="usuarios-section">
   <h2>Solicitudes de acceso</h2>
 
-  <table>
+  <table className="solicitudes-acceso-table acciones-centradas-table">
     <thead>
       <tr>
         <th>Nombre</th>

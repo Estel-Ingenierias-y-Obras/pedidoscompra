@@ -43,7 +43,12 @@ const upload = multer({
 });
 
 const recibirArchivos = (req, res, next) => {
-  upload.array("archivos", 10)(req, res, (error) => {
+  upload.fields([
+    { name: "archivos", maxCount: 10 },
+    { name: "archivosDescripcion", maxCount: 10 },
+    { name: "archivosUrgente", maxCount: 10 },
+    { name: "archivosNoUrgente", maxCount: 10 }
+  ])(req, res, (error) => {
     if (!error) {
       next();
       return;
@@ -119,6 +124,47 @@ const parsearArchivosExistentes = (value) => {
 const crearClaveArchivo = (archivo) =>
   `${archivo.nombre || archivo.originalname}-${archivo.tamano || archivo.size}-${archivo.tipoMime || archivo.mimetype}`;
 
+const obtenerArchivosRecibidos = (req, campo = "archivos") => {
+  if (Array.isArray(req.files)) {
+    return campo === "archivos" ? req.files : [];
+  }
+
+  return Array.isArray(req.files?.[campo]) ? req.files[campo] : [];
+};
+
+const construirActualizacionArchivos = async ({
+  archivosActuales,
+  idsConservados,
+  archivosNuevos,
+  archivosGuardados
+}) => {
+  const ids = new Set(idsConservados);
+  const conservados = (archivosActuales || [])
+    .filter(archivo => ids.has(archivo.fileId.toString()));
+  const eliminados = (archivosActuales || [])
+    .filter(archivo => !ids.has(archivo.fileId.toString()));
+  const clavesArchivos = new Set(conservados.map(crearClaveArchivo));
+  const guardadosBloque = [];
+
+  for (const file of archivosNuevos || []) {
+    const claveArchivo = crearClaveArchivo(file);
+
+    if (clavesArchivos.has(claveArchivo)) {
+      continue;
+    }
+
+    const archivoGuardado = await guardarArchivo(file);
+    archivosGuardados.push(archivoGuardado);
+    guardadosBloque.push(archivoGuardado);
+    clavesArchivos.add(claveArchivo);
+  }
+
+  return {
+    archivos: [...conservados, ...guardadosBloque],
+    eliminados
+  };
+};
+
 router.get("/", async (req, res) => {
   try {
     const pedidos = await Pedido.find();
@@ -132,14 +178,41 @@ router.post("/", recibirArchivos, async (req, res) => {
   const archivosGuardados = [];
 
   try {
-    for (const file of req.files || []) {
+    const archivosLegacy = [];
+    const archivosDescripcion = [];
+    const archivosUrgente = [];
+    const archivosNoUrgente = [];
+
+    for (const file of obtenerArchivosRecibidos(req, "archivos")) {
       const archivoGuardado = await guardarArchivo(file);
       archivosGuardados.push(archivoGuardado);
+      archivosLegacy.push(archivoGuardado);
+    }
+
+    for (const file of obtenerArchivosRecibidos(req, "archivosDescripcion")) {
+      const archivoGuardado = await guardarArchivo(file);
+      archivosGuardados.push(archivoGuardado);
+      archivosDescripcion.push(archivoGuardado);
+    }
+
+    for (const file of obtenerArchivosRecibidos(req, "archivosUrgente")) {
+      const archivoGuardado = await guardarArchivo(file);
+      archivosGuardados.push(archivoGuardado);
+      archivosUrgente.push(archivoGuardado);
+    }
+
+    for (const file of obtenerArchivosRecibidos(req, "archivosNoUrgente")) {
+      const archivoGuardado = await guardarArchivo(file);
+      archivosGuardados.push(archivoGuardado);
+      archivosNoUrgente.push(archivoGuardado);
     }
 
     const pedido = new Pedido({
       ...req.body,
-      archivos: archivosGuardados
+      archivos: archivosLegacy,
+      archivosDescripcion,
+      archivosUrgente,
+      archivosNoUrgente
     });
 
     await pedido.save();
@@ -190,7 +263,13 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
 
     const pedido = await Pedido.findOne({
       _id: req.params.pedidoId,
-      "archivos.fileId": req.params.fileId
+      $or: [
+        { "archivos.fileId": req.params.fileId },
+        { "archivosDescripcion.fileId": req.params.fileId },
+        { "archivosUrgente.fileId": req.params.fileId },
+        { "archivosNoUrgente.fileId": req.params.fileId },
+        { "adjuntosCompras.fileId": req.params.fileId }
+      ]
     });
 
     if (!pedido) {
@@ -199,7 +278,13 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
       });
     }
 
-    const archivo = pedido.archivos.find(
+    const archivo = [
+      ...(pedido.archivos || []),
+      ...(pedido.archivosDescripcion || []),
+      ...(pedido.archivosUrgente || []),
+      ...(pedido.archivosNoUrgente || []),
+      ...(pedido.adjuntosCompras || [])
+    ].find(
       item => item.fileId.toString() === req.params.fileId
     );
     const bucket = obtenerBucket();
@@ -209,7 +294,7 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
       })
       .next();
 
-    if (!gridFile) {
+    if (!gridFile || !archivo) {
       return res.status(404).json({
         error: "Archivo no encontrado"
       });
@@ -259,13 +344,29 @@ router.put("/:id", recibirArchivos, async (req, res) => {
     }
 
     const camposGestion = new Set(["estado", "compradorAsignado"]);
-    const camposRecibidos = Object.keys(req.body || {});
+    const camposAdjuntos = new Set(["archivosExistentes"]);
+    const camposInfoCompras = new Set([
+      "comentarioCompras",
+      "adjuntosComprasExistentes"
+    ]);
+    const camposActualizacion = Object.keys(req.body || {});
     const esActualizacionGestion =
-      camposRecibidos.length > 0 &&
-      camposRecibidos.every(campo => camposGestion.has(campo));
+      camposActualizacion.length > 0 &&
+      camposActualizacion.every(campo => camposGestion.has(campo));
+    const esActualizacionAdjuntos =
+      camposActualizacion.length > 0 &&
+      camposActualizacion.every(campo => camposAdjuntos.has(campo));
+    const tieneCamposInfoCompras =
+      Object.prototype.hasOwnProperty.call(req.body, "comentarioCompras") ||
+      Object.prototype.hasOwnProperty.call(req.body, "adjuntosComprasExistentes");
+    const esActualizacionInfoCompras =
+      tieneCamposInfoCompras &&
+      camposActualizacion.every(campo => camposInfoCompras.has(campo));
 
     if (
       !esActualizacionGestion &&
+      !esActualizacionAdjuntos &&
+      !esActualizacionInfoCompras &&
       pedidoAnterior.estado !== "Pendiente"
     ) {
       return res.status(409).json({
@@ -276,49 +377,117 @@ router.put("/:id", recibirArchivos, async (req, res) => {
 
     let datosActualizacion = esActualizacionGestion
       ? req.body
-      : {
-          proyecto: req.body.proyecto,
-          urgente: normalizarBooleano(req.body.urgente),
-          motivoUrgencia: req.body.motivoUrgencia,
-          descripcion: req.body.descripcion
-        };
+      : esActualizacionAdjuntos
+        ? {}
+        : esActualizacionInfoCompras
+          ? { comentarioCompras: req.body.comentarioCompras || "" }
+          : {
+              proyecto: req.body.proyecto,
+              urgente: normalizarBooleano(req.body.urgente),
+              motivoUrgencia: req.body.motivoUrgencia,
+              descripcion: req.body.descripcion
+            };
 
     const debeActualizarArchivos =
       !esActualizacionGestion &&
+      !esActualizacionInfoCompras &&
       (
         Object.prototype.hasOwnProperty.call(req.body, "archivosExistentes") ||
         (req.files || []).length > 0
       );
 
+    const debeActualizarInfoCompras = esActualizacionInfoCompras;
+
     let archivosEliminados = [];
 
     if (debeActualizarArchivos) {
-      const idsConservados = new Set(
-        parsearArchivosExistentes(req.body.archivosExistentes)
+      const resultadoArchivos = await construirActualizacionArchivos({
+        archivosActuales: pedidoAnterior.archivos || [],
+        idsConservados: parsearArchivosExistentes(req.body.archivosExistentes),
+        archivosNuevos: obtenerArchivosRecibidos(req, "archivos"),
+        archivosGuardados
+      });
+
+      archivosEliminados = resultadoArchivos.eliminados;
+      datosActualizacion = {
+        ...datosActualizacion,
+        archivos: resultadoArchivos.archivos
+      };
+    }
+
+    const bloquesAdjuntosPedido = [
+      {
+        campo: "archivosDescripcion",
+        campoExistentes: "archivosDescripcionExistentes"
+      },
+      {
+        campo: "archivosUrgente",
+        campoExistentes: "archivosUrgenteExistentes"
+      },
+      {
+        campo: "archivosNoUrgente",
+        campoExistentes: "archivosNoUrgenteExistentes"
+      }
+    ];
+
+    if (!esActualizacionGestion && !esActualizacionInfoCompras) {
+      for (const bloque of bloquesAdjuntosPedido) {
+        const debeActualizarBloque =
+          Object.prototype.hasOwnProperty.call(req.body, bloque.campoExistentes) ||
+          obtenerArchivosRecibidos(req, bloque.campo).length > 0;
+
+        if (!debeActualizarBloque) {
+          continue;
+        }
+
+        const resultadoBloque = await construirActualizacionArchivos({
+          archivosActuales: pedidoAnterior[bloque.campo] || [],
+          idsConservados: parsearArchivosExistentes(req.body[bloque.campoExistentes]),
+          archivosNuevos: obtenerArchivosRecibidos(req, bloque.campo),
+          archivosGuardados
+        });
+
+        archivosEliminados = [
+          ...archivosEliminados,
+          ...resultadoBloque.eliminados
+        ];
+        datosActualizacion = {
+          ...datosActualizacion,
+          [bloque.campo]: resultadoBloque.archivos
+        };
+      }
+    }
+
+    if (debeActualizarInfoCompras) {
+      const idsConservadosCompras = new Set(
+        parsearArchivosExistentes(req.body.adjuntosComprasExistentes)
       );
-      const archivosConservados = (pedidoAnterior.archivos || [])
-        .filter(archivo => idsConservados.has(archivo.fileId.toString()));
-      archivosEliminados = (pedidoAnterior.archivos || [])
-        .filter(archivo => !idsConservados.has(archivo.fileId.toString()));
-      const clavesArchivos = new Set(
-        archivosConservados.map(crearClaveArchivo)
+      const adjuntosComprasConservados = (pedidoAnterior.adjuntosCompras || [])
+        .filter(archivo => idsConservadosCompras.has(archivo.fileId.toString()));
+      archivosEliminados = [
+        ...archivosEliminados,
+        ...(pedidoAnterior.adjuntosCompras || [])
+          .filter(archivo => !idsConservadosCompras.has(archivo.fileId.toString()))
+      ];
+      const clavesAdjuntosCompras = new Set(
+        adjuntosComprasConservados.map(crearClaveArchivo)
       );
 
-      for (const file of req.files || []) {
+      for (const file of obtenerArchivosRecibidos(req, "archivos")) {
         const claveArchivo = crearClaveArchivo(file);
 
-        if (clavesArchivos.has(claveArchivo)) {
+        if (clavesAdjuntosCompras.has(claveArchivo)) {
           continue;
         }
 
         const archivoGuardado = await guardarArchivo(file);
         archivosGuardados.push(archivoGuardado);
-        clavesArchivos.add(claveArchivo);
+        clavesAdjuntosCompras.add(claveArchivo);
       }
 
       datosActualizacion = {
         ...datosActualizacion,
-        archivos: [...archivosConservados, ...archivosGuardados]
+        adjuntosCompras: [...adjuntosComprasConservados, ...archivosGuardados]
       };
     }
 
@@ -366,7 +535,6 @@ router.put("/:id", recibirArchivos, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 router.delete("/:id", async (req, res) => {
   try {
     const pedido = await Pedido.findById(req.params.id);
@@ -384,7 +552,10 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    for (const archivo of pedido.archivos || []) {
+    for (const archivo of [
+      ...(pedido.archivos || []),
+      ...(pedido.adjuntosCompras || [])
+    ]) {
       await eliminarArchivo(archivo.fileId);
     }
 
@@ -397,6 +568,24 @@ router.delete("/:id", async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

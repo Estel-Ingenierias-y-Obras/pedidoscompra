@@ -9,8 +9,8 @@ function HistoricoPedidos() {
   const [pedidoARecuperar, setPedidoARecuperar] = useState(null);
   const [mensaje, setMensaje] = useState("");
 
-  const pedidosEntregados = solicitudes.filter(
-    solicitud => solicitud.estado === "Entregado"
+  const pedidosArchivados = solicitudes.filter(
+    solicitud => solicitud.estado === "Archivar"
   );
 
   const confirmarRecuperacion = async () => {
@@ -55,7 +55,7 @@ function HistoricoPedidos() {
       )}
 
       <div className="page-content">
-        {pedidosEntregados.length === 0 ? (
+        {pedidosArchivados.length === 0 ? (
           <div className="empty-state">
             No hay pedidos en el histórico.
           </div>
@@ -72,7 +72,7 @@ function HistoricoPedidos() {
               </tr>
             </thead>
             <tbody>
-              {pedidosEntregados.map(solicitud => (
+              {pedidosArchivados.map(solicitud => (
                 <tr key={solicitud._id}>
                   <td>{solicitud._id.slice(-6)}</td>
                   <td>{solicitud.solicitante}</td>
@@ -81,7 +81,7 @@ function HistoricoPedidos() {
                     {solicitud.compradorAsignado || "Sin asignar"}
                   </td>
                   <td>
-                    <span className="estado estado-entregado">
+                    <span className="estado estado-archivar">
                       {solicitud.estado}
                     </span>
                   </td>

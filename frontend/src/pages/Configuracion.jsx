@@ -175,7 +175,7 @@ function Configuracion() {
           No hay destinatarios configurados.
         </div>
       ) : (
-        <table className="settings-table">
+        <table className="settings-table acciones-centradas-table">
           <thead>
             <tr>
               <th>Correo</th>
