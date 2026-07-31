@@ -11,6 +11,7 @@ import { AuthContext } from "../context/AuthContext";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { UsuariosContext } from "../context/UsuariosContext";
 import api from "../api";
+import { Navigate } from "react-router-dom";
 
 function ValidarSolicitudes() {
   const { user } = useContext(AuthContext);
@@ -30,6 +31,10 @@ function ValidarSolicitudes() {
   const archivoComprasInputRef = useRef(null);
 
   useEffect(() => {
+    if (!["Admin", "Comprador"].includes(user?.rol)) {
+      return;
+    }
+
     const cargarProyectos = async () => {
       try {
         const response = await api.get("/api/proyectos");
@@ -45,7 +50,7 @@ function ValidarSolicitudes() {
     };
 
     cargarProyectos();
-  }, []);
+  }, [user?.rol]);
 
   const obtenerProyectoCompleto = (codigoProyecto) => {
     const proyectoEncontrado = proyectos.find(
@@ -58,6 +63,10 @@ function ValidarSolicitudes() {
 
     return `${codigoProyecto} - ${proyectoEncontrado.descProyecto}`;
   };
+
+  if (!["Admin", "Comprador"].includes(user?.rol)) {
+    return <Navigate to="/nuevasolicitud" replace />;
+  }
 
   const compradores = usuarios.filter(usuario => usuario.rol === "Comprador");
   const esAdmin = user?.rol === "Admin";

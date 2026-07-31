@@ -2,7 +2,12 @@ const express = require("express");
 const mongoose = require("mongoose");
 const DestinatarioCompra = require("../models/DestinatarioCompra");
 
+const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
+
 const router = express.Router();
+
+router.use(obtenerUsuarioActual);
+router.use(permitirRoles("Admin"));
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.get("/", async (req, res) => {

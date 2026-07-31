@@ -1,9 +1,13 @@
 const express = require("express");
 const Usuario = require("../models/Usuario");
 
+const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
+
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.use(obtenerUsuarioActual);
+
+router.get("/", permitirRoles("Admin", "Comprador"), async (req, res) => {
 
   try {
 
@@ -22,7 +26,7 @@ router.get("/", async (req, res) => {
 
 });
 
-router.post("/", async (req, res) => {
+router.post("/", permitirRoles("Admin"), async (req, res) => {
 
   try {
 
@@ -43,7 +47,7 @@ router.post("/", async (req, res) => {
 
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", permitirRoles("Admin"), async (req, res) => {
 
   try {
 
@@ -66,7 +70,7 @@ router.put("/:id", async (req, res) => {
 
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", permitirRoles("Admin"), async (req, res) => {
 
   try {
 

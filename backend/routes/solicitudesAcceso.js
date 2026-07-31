@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const SolicitudAcceso = require("../models/SolicitudAcceso");
 const Usuario = require("../models/Usuario");
 const DestinatarioAcceso = require("../models/DestinatarioAcceso");
+const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const {
   sendAccessApprovedNotification,
   sendAccessRequestNotification
@@ -100,7 +101,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", obtenerUsuarioActual, permitirRoles("Admin"), async (req, res) => {
   try {
     const solicitudes = await SolicitudAcceso.find().sort({
       fechaSolicitud: -1
@@ -112,7 +113,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.patch("/:id/aprobar", async (req, res) => {
+router.patch("/:id/aprobar", obtenerUsuarioActual, permitirRoles("Admin"), async (req, res) => {
   const nombre = String(req.body.nombre || "").trim();
   const rol = String(req.body.rol || "").trim();
 
@@ -176,7 +177,7 @@ router.patch("/:id/aprobar", async (req, res) => {
   }
 });
 
-router.patch("/:id/rechazar", async (req, res) => {
+router.patch("/:id/rechazar", obtenerUsuarioActual, permitirRoles("Admin"), async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
     return res.status(400).json({ error: "Solicitud no válida" });
   }

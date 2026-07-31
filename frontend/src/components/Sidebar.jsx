@@ -9,6 +9,7 @@ function Sidebar() {
   
   const logout = () => {
   localStorage.removeItem("user");
+  localStorage.removeItem("microsoftAuthToken");
   setUser(null);
 };
   const navClassName = ({ isActive }) =>

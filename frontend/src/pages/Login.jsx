@@ -46,6 +46,10 @@ const { instance } = useMsal();
       return;
     }
 
+    if (response.idToken) {
+      localStorage.setItem("microsoftAuthToken", response.idToken);
+    }
+
     setUser(acceso.data.usuario);
 
     localStorage.setItem(

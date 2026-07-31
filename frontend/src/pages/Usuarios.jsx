@@ -5,6 +5,7 @@ import { useContext, useEffect, useState } from "react";
 import { UsuariosContext } from "../context/UsuariosContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
+import { Navigate } from "react-router-dom";
 
 function Usuarios() {
   const {
@@ -37,19 +38,27 @@ function Usuarios() {
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
   const [nombreAprobacion, setNombreAprobacion] = useState("");
   const [rolAprobacion, setRolAprobacion] = useState("Usuario");
-
   const cargarSolicitudes = async () => {
     const response = await api.get("/api/solicitudes-acceso");
     setSolicitudes(response.data);
   };
 
   useEffect(() => {
+    if (user?.rol !== "Admin") {
+      setSolicitudes([]);
+      return;
+    }
+
     cargarSolicitudes().catch(error =>
       console.error(
         "Error cargando solicitudes de acceso:", error
       )
     );
-  }, []);
+  }, [user?.rol]);
+
+  if (user?.rol !== "Admin") {
+    return <Navigate to="/nuevasolicitud" replace />;
+  }
 
   const cambiarRol = async (
   id,

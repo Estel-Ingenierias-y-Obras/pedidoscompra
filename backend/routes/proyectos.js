@@ -1,6 +1,10 @@
 const express = require("express");
 
+const { obtenerUsuarioActual } = require("../middleware/auth");
+
 const router = express.Router();
+
+router.use(obtenerUsuarioActual);
 
 const {
   obtenerProyectos

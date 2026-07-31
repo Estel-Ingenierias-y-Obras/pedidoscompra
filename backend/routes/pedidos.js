@@ -3,12 +3,15 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const Pedido = require("../models/Pedido");
 const DestinatarioCompra = require("../models/DestinatarioCompra");
+const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const {
   sendPurchaseRequestNotification,
   sendStatusChangeNotification
 } = require("../services/emailService");
 
 const router = express.Router();
+
+router.use(obtenerUsuarioActual);
 
 const TIPOS_PERMITIDOS = new Set([
   "application/pdf",
@@ -195,9 +198,18 @@ const construirActualizacionArchivos = async ({
   };
 };
 
+const puedeGestionarPedidos = (usuario) =>
+  ["Admin", "Comprador"].includes(usuario?.rol);
+
+const esPropietarioPedido = (pedido, usuario) =>
+  String(pedido.email || "").toLowerCase() === String(usuario?.email || "").toLowerCase();
+
 router.get("/", async (req, res) => {
   try {
-    const pedidos = await Pedido.find();
+    const filtro = puedeGestionarPedidos(req.usuarioActual)
+      ? {}
+      : { email: req.usuarioActual.email };
+    const pedidos = await Pedido.find(filtro);
     res.json(pedidos);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -239,6 +251,8 @@ router.post("/", recibirArchivos, async (req, res) => {
 
     const pedido = new Pedido({
       ...req.body,
+      solicitante: req.usuarioActual.nombre,
+      email: req.usuarioActual.email,
       archivos: archivosLegacy,
       archivosDescripcion,
       archivosUrgente,
@@ -308,6 +322,10 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
       });
     }
 
+    if (!puedeGestionarPedidos(req.usuarioActual) && !esPropietarioPedido(pedido, req.usuarioActual)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const archivo = [
       ...(pedido.archivos || []),
       ...(pedido.archivosDescripcion || []),
@@ -373,6 +391,12 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
 
+    const esGestorPedido = puedeGestionarPedidos(req.usuarioActual);
+
+    if (!esGestorPedido && !esPropietarioPedido(pedidoAnterior, req.usuarioActual)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const camposGestion = new Set(["estado", "compradorAsignado"]);
     const camposAdjuntos = new Set(["archivosExistentes"]);
     const camposInfoCompras = new Set([
@@ -392,6 +416,10 @@ router.put("/:id", recibirArchivos, async (req, res) => {
     const esActualizacionInfoCompras =
       tieneCamposInfoCompras &&
       camposActualizacion.every(campo => camposInfoCompras.has(campo));
+
+    if (!esGestorPedido && (esActualizacionGestion || esActualizacionInfoCompras)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
     if (
       !esActualizacionGestion &&
@@ -565,15 +593,9 @@ router.put("/:id", recibirArchivos, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-router.delete("/admin/:id", async (req, res) => {
+router.delete("/admin/:id", permitirRoles("Admin"), async (req, res) => {
   try {
-    if (req.get("x-user-role") !== "Admin") {
-      return res.status(403).json({
-        error: "Forbidden"
-      });
-    }
-
-    const pedido = await Pedido.findById(req.params.id);
+const pedido = await Pedido.findById(req.params.id);
 
     if (!pedido) {
       return res.status(404).json({
@@ -597,6 +619,10 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({
         error: "Pedido no encontrado"
       });
+    }
+
+    if (!esPropietarioPedido(pedido, req.usuarioActual)) {
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     if (pedido.estado !== "Pendiente") {

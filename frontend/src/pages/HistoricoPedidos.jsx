@@ -1,13 +1,20 @@
 import { useContext, useState } from "react";
+import { Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { SolicitudesContext } from "../context/SolicitudesContext";
+import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 
 function HistoricoPedidos() {
+  const { user } = useContext(AuthContext);
   const { solicitudes, setSolicitudes } =
     useContext(SolicitudesContext);
   const [pedidoARecuperar, setPedidoARecuperar] = useState(null);
   const [mensaje, setMensaje] = useState("");
+
+  if (!["Admin", "Comprador"].includes(user?.rol)) {
+    return <Navigate to="/nuevasolicitud" replace />;
+  }
 
   const pedidosArchivados = solicitudes.filter(
     solicitud => solicitud.estado === "Archivar"
