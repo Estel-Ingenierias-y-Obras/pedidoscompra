@@ -157,7 +157,6 @@ const obtenerUsuarioActual = async (req, res, next) => {
     const token = authorization.slice(bearerPrefix.length).trim();
     const identidad = await validarTokenMicrosoft(token);
     const email = identidad.email;
-    console.log(`[AUTH] Usuario autenticado mediante token Microsoft: ${email}`);
 
     const usuario = await buscarUsuarioAutorizado(email);
 
@@ -170,7 +169,7 @@ const obtenerUsuarioActual = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("[AUTH] Token Microsoft rechazado:", error.message);
-    res.status(403).json({ error: "Forbidden" });
+    res.status(401).json({ error: "Unauthorized" });
   }
 };
 
@@ -187,4 +186,5 @@ module.exports = {
   permitirRoles,
   validarTokenMicrosoft
 };
+
 

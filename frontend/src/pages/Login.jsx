@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 import { useMsal } from "@azure/msal-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faShieldHalved } from "@fortawesome/free-solid-svg-icons";
 import logoEstelPositivo from "../assets/ESTEL_LOGO_RGB POSITIVO.png";
 
 function Login() {
@@ -10,12 +12,24 @@ function Login() {
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
   const [estadoSolicitud, setEstadoSolicitud] = useState(null);
+  const [sesionExpirada, setSesionExpirada] = useState(false);
 
 const { instance } = useMsal();
+
+  useEffect(() => {
+    const sesionCaducada = sessionStorage.getItem("sessionExpired") === "1";
+
+    if (sesionCaducada) {
+      sessionStorage.removeItem("sessionExpired");
+      setSesionExpirada(true);
+    }
+  }, []);
 
 
 
   const loginMicrosoft = async () => {
+
+  setSesionExpirada(false);
 
   try {
 
@@ -24,6 +38,10 @@ const { instance } = useMsal();
         prompt: "select_account",
         scopes: ["User.Read"]
 });
+
+    if (response.account) {
+      instance.setActiveAccount(response.account);
+    }
 
     const email =
       response.account.username;
@@ -90,6 +108,21 @@ const { instance } = useMsal();
         y seguimiento de compras
       </p>
 
+      {sesionExpirada && (
+        <div
+          className="login-access-message login-session-expired-message"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="login-session-icon"><FontAwesomeIcon icon={faShieldHalved} /></div>
+          <h2>Sesión expirada</h2>
+          <p>Tu sesión ha expirado por motivos de seguridad.</p>
+          <p>
+            Por favor, vuelve a iniciar sesión para continuar utilizando la aplicación.
+          </p>
+        </div>
+      )}
+
       {estadoSolicitud === "enviada" && (
         <div
           className="login-access-message login-access-message-sent"
@@ -125,7 +158,7 @@ const { instance } = useMsal();
         className="microsoft-button"
         onClick={loginMicrosoft}
       >
-        Iniciar sesión con Microsoft
+        {sesionExpirada ? "Iniciar sesión de nuevo" : "Iniciar sesión con Microsoft"}
       </button>
 
     </div>

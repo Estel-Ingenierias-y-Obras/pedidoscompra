@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFile } from "@fortawesome/free-solid-svg-icons";
+import { faCirclePlus, faClipboardList, faFile, faPaperclip } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import AttachmentList, {
   formatearTamanoArchivo,
@@ -119,9 +119,7 @@ function ValidarSolicitudes() {
     }
 
     try {
-      await api.delete(`/api/pedidos/admin/${pedidoAEliminar._id}`, {
-        headers: { "x-user-role": user?.rol || "" }
-      });
+      await api.delete(`/api/pedidos/admin/${pedidoAEliminar._id}`);
       setSolicitudes(solicitudesActuales =>
         solicitudesActuales.filter(solicitud => solicitud._id !== pedidoAEliminar._id)
       );
@@ -133,7 +131,18 @@ function ValidarSolicitudes() {
     }
   };
 
-  const abrirInfoCompras = (pedido) => {
+  const cerrarInfoCompras = () => {
+    setPedidoInfoCompras(null);
+    setComentarioCompras("");
+    setAdjuntosComprasNuevos([]);
+
+    if (archivoComprasInputRef.current) {
+      archivoComprasInputRef.current.value = "";
+    }
+  };
+
+  const abrirDetallePedido = (pedido) => {
+    setPedidoSeleccionado(pedido);
     setPedidoInfoCompras(pedido);
     setComentarioCompras(pedido.comentarioCompras || "");
     setAdjuntosComprasNuevos([]);
@@ -143,14 +152,9 @@ function ValidarSolicitudes() {
     }
   };
 
-  const cerrarInfoCompras = () => {
-    setPedidoInfoCompras(null);
-    setComentarioCompras("");
-    setAdjuntosComprasNuevos([]);
-
-    if (archivoComprasInputRef.current) {
-      archivoComprasInputRef.current.value = "";
-    }
+  const cerrarDetallePedido = () => {
+    setPedidoSeleccionado(null);
+    cerrarInfoCompras();
   };
 
   const obtenerClaveArchivo = (archivo) =>
@@ -206,7 +210,14 @@ function ValidarSolicitudes() {
     );
 
     refrescarPedidoEnListado(response.data);
-    cerrarInfoCompras();
+    setPedidoSeleccionado(response.data);
+    setPedidoInfoCompras(response.data);
+    setAdjuntosComprasNuevos([]);
+
+    if (archivoComprasInputRef.current) {
+      archivoComprasInputRef.current.value = "";
+    }
+
     setMensaje("Adjuntado con éxito");
     setTimeout(() => setMensaje(""), 3000);
   };
@@ -301,23 +312,28 @@ function ValidarSolicitudes() {
         <br />
 
         <table className="gestion-pedidos-table">
+          <colgroup>
+            <col className="gestion-col-solicitante" />
+            <col className="gestion-col-proyecto" />
+            <col className="gestion-col-comprador" />
+            <col className="gestion-col-estado" />
+            {esAdmin && <col className="gestion-col-eliminar" />}
+          </colgroup>
           <thead>
             <tr>
               <th>Solicitante</th>
               <th>Proyecto</th>
               <th>Comprador</th>
               <th>Estado</th>
-              <th>Adjunto</th>
-              <th>Detalles</th>
               {esAdmin && <th>Eliminar</th>}
             </tr>
           </thead>
 
           <tbody>
             {solicitudesVisibles.map(solicitud => (
-              <tr key={solicitud._id}>
+              <tr key={solicitud._id} className="clickable-order-row" onClick={() => abrirDetallePedido(solicitud)}>
                 <td>{solicitud.solicitante}</td>
-                <td style={{ maxWidth: "280px" }}>
+                <td className="gestion-project-cell">
                   <span
                     title={obtenerProyectoCompleto(solicitud.proyecto)}
                     style={{
@@ -333,6 +349,7 @@ function ValidarSolicitudes() {
                 <td>
                   <select
                     value={solicitud.compradorAsignado}
+                    onClick={(event) => event.stopPropagation()}
                     onChange={(event) =>
                       asignarComprador(solicitud._id, event.target.value)
                     }
@@ -349,6 +366,7 @@ function ValidarSolicitudes() {
                   <select
                     className={`estado estado-select estado-${solicitud.estado.toLowerCase()}`}
                     value={solicitud.estado}
+                    onClick={(event) => event.stopPropagation()}
                     onChange={(event) => {
                       const nuevoEstado = event.target.value;
 
@@ -365,29 +383,11 @@ function ValidarSolicitudes() {
                     <option value="Archivar">Archivar</option>
                   </select>
                 </td>
-                <td>
-                  <button
-                    type="button"
-                    className="attachments-summary-button"
-                    onClick={() => abrirInfoCompras(solicitud)}
-                    title="Gestionar información de Compras"
-                  >
-                    Gestionar
-                  </button>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    onClick={() => setPedidoSeleccionado(solicitud)}
-                  >
-                    👁 Ver
-                  </button>
-                </td>
                 {esAdmin && (
                   <td className="admin-delete-cell">
                     <DeleteIconButton
                       label="Eliminar pedido"
-                      onClick={() => setPedidoAEliminar(solicitud)}
+                      onClick={(event) => { event.stopPropagation(); setPedidoAEliminar(solicitud); }}
                     />
                   </td>
                 )}
@@ -441,133 +441,154 @@ function ValidarSolicitudes() {
           </div>
         </div>
       )}
-      {pedidoInfoCompras && (
-        <div className="modal-overlay">
-          <div className="modal edit-order-modal">
-            <h2>Información de Compras</h2>
-            <p>
-              <strong>Proyecto:</strong>{" "}
-              {obtenerProyectoCompleto(pedidoInfoCompras.proyecto)}
-            </p>
-
-            <div className="edit-order-section compras-info-section">
-              <label>Comentario</label>
-              <textarea
-                value={comentarioCompras}
-                placeholder="Escribe la información que verá el solicitante"
-                onChange={(event) => setComentarioCompras(event.target.value)}
-              />
-            </div>
-
-            <div className="edit-order-section compras-info-section">
-              <label>Adjuntar archivos</label>
-              <input
-                type="file"
-                ref={archivoComprasInputRef}
-                multiple
-                onChange={agregarAdjuntosCompras}
-              />
-
-              {adjuntosComprasNuevos.length > 0 && (
-                <div className="edit-attachments-list new-attachments-list">
-                  {adjuntosComprasNuevos.map((archivo, indice) => (
-                    <div
-                      className="edit-attachment-item"
-                      key={`${archivo.name}-${archivo.size}-${archivo.lastModified}`}
-                    >
-                      <FontAwesomeIcon
-                        className="edit-attachment-icon"
-                        icon={obtenerIconoArchivo(archivo.type) || faFile}
-                      />
-                      <div className="edit-attachment-info">
-                        <strong>{archivo.name}</strong>
-                        <span>{formatearTamanoArchivo(archivo.size)} · Nuevo</span>
-                      </div>
-                      <div className="edit-attachment-actions">
-                        <DeleteIconButton
-                          label={`Eliminar ${archivo.name}`}
-                          onClick={() => eliminarAdjuntoNuevoCompras(indice)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="modal-buttons edit-order-actions">
-              <button type="button" onClick={cerrarInfoCompras}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={guardarInformacionCompras}
-                disabled={
-                  adjuntosComprasNuevos.length === 0 &&
-                  comentarioCompras === (pedidoInfoCompras.comentarioCompras || "")
-                }
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {pedidoSeleccionado && (
         <div className="modal-overlay">
-          <div
-            className="modal"
-            style={{
-              width: "min(90vw, 760px)",
-              maxWidth: "760px",
-              maxHeight: "85vh",
-              overflowY: "auto"
-            }}
-          >
+          <div className="modal order-detail-modal">
             <h2>Detalles del pedido</h2>
 
-            <p>
-              <strong>Proyecto:</strong>{" "}
-              {obtenerProyectoCompleto(pedidoSeleccionado.proyecto)}
-            </p>
-            <p>
-              <strong>Solicitante:</strong> {pedidoSeleccionado.solicitante}
-            </p>
-            <p>
-              <strong>Comprador:</strong>{" "}
-              {pedidoSeleccionado.compradorAsignado || "Sin asignar"}
-            </p>
-            <p>
-              <strong>Estado:</strong> {pedidoSeleccionado.estado}
-            </p>
+            <div className="order-detail-meta">
+              <div>
+                <span>Proyecto</span>
+                <strong>{obtenerProyectoCompleto(pedidoSeleccionado.proyecto)}</strong>
+              </div>
+              <div>
+                <span>Solicitante</span>
+                <strong>{pedidoSeleccionado.solicitante}</strong>
+              </div>
+              <div>
+                <span>Comprador</span>
+                <strong>{pedidoSeleccionado.compradorAsignado || "Sin asignar"}</strong>
+              </div>
+              <div>
+                <span>Estado</span>
+                <strong>{pedidoSeleccionado.estado}</strong>
+              </div>
+            </div>
 
-            {pedidoSeleccionado.urgente ? (
-              <>
-                {renderBloqueDetalle({
-                  titulo: "Urgente",
-                  texto: pedidoSeleccionado.motivoUrgencia,
-                  archivos: obtenerAdjuntosUrgente(pedidoSeleccionado),
-                  pedido: pedidoSeleccionado
-                })}
-                {renderBloqueDetalle({
-                  titulo: "No urgente",
-                  texto: pedidoSeleccionado.descripcion,
-                  archivos: obtenerAdjuntosNoUrgente(pedidoSeleccionado),
-                  pedido: pedidoSeleccionado
-                })}
-              </>
-            ) : (
-              renderBloqueDetalle({
-                titulo: "Descripción",
-                texto: pedidoSeleccionado.descripcion,
-                archivos: obtenerAdjuntosDescripcion(pedidoSeleccionado),
-                pedido: pedidoSeleccionado
-              })
-            )}
+            <div className="profile-info-grid">
+              <section className="profile-info-panel obra-panel">
+                <div className="profile-panel-header">
+                  <span className="profile-panel-icon"><FontAwesomeIcon icon={faClipboardList} /></span>
+                  <div>
+                    <h3>Información del solicitante</h3>
+                    <p>Solicitud original y documentación asociada.</p>
+                  </div>
+                </div>
 
-            <div className="modal-buttons">
-              <button onClick={() => setPedidoSeleccionado(null)}>
+                {pedidoSeleccionado.urgente ? (
+                  <>
+                    {renderBloqueDetalle({
+                      titulo: "Urgente",
+                      texto: pedidoSeleccionado.motivoUrgencia,
+                      archivos: obtenerAdjuntosUrgente(pedidoSeleccionado),
+                      pedido: pedidoSeleccionado
+                    })}
+                    {renderBloqueDetalle({
+                      titulo: "No urgente",
+                      texto: pedidoSeleccionado.descripcion,
+                      archivos: obtenerAdjuntosNoUrgente(pedidoSeleccionado),
+                      pedido: pedidoSeleccionado
+                    })}
+                  </>
+                ) : (
+                  renderBloqueDetalle({
+                    titulo: "Descripción",
+                    texto: pedidoSeleccionado.descripcion,
+                    archivos: obtenerAdjuntosDescripcion(pedidoSeleccionado),
+                    pedido: pedidoSeleccionado
+                  })
+                )}
+              </section>
+
+              <section className="profile-info-panel compras-panel">
+                <div className="profile-panel-header">
+                  <span className="profile-panel-icon"><FontAwesomeIcon icon={faCirclePlus} /></span>
+                  <div>
+                    <h3>Añadir información</h3>
+                    <p>Comentario y archivos que verá el solicitante.</p>
+                  </div>
+                </div>
+
+                <div className="edit-order-section compras-info-section">
+                  <label>Comentario para el solicitante</label>
+                  <textarea
+                    value={comentarioCompras}
+                    placeholder="Escribe la información que verá el solicitante"
+                    onChange={(event) => setComentarioCompras(event.target.value)}
+                  />
+                </div>
+
+                <div className="compras-info-block">
+                  <strong>Archivos actuales de Compras:</strong>
+                  {(pedidoInfoCompras?.adjuntosCompras || pedidoSeleccionado.adjuntosCompras || []).length > 0 ? (
+                    <AttachmentList
+                      pedido={pedidoSeleccionado}
+                      archivos={pedidoInfoCompras?.adjuntosCompras || pedidoSeleccionado.adjuntosCompras || []}
+                    />
+                  ) : (
+                    <div className="edit-attachments-empty">Sin archivos adjuntos de Compras</div>
+                  )}
+                </div>
+
+                <div className="edit-order-section compras-info-section">
+                  <span className="block-attachments-label">Añadir archivos de Compras</span>
+                  <input
+                    id="compras-detail-files"
+                    className="visually-hidden-file-input"
+                    type="file"
+                    ref={archivoComprasInputRef}
+                    multiple
+                    onChange={agregarAdjuntosCompras}
+                  />
+                  <label className="clean-file-picker" htmlFor="compras-detail-files">
+                    <FontAwesomeIcon icon={faPaperclip} />
+                    Elegir archivos
+                  </label>
+
+                  {adjuntosComprasNuevos.length > 0 && (
+                    <div className="edit-attachments-list new-attachments-list">
+                      {adjuntosComprasNuevos.map((archivo, indice) => (
+                        <div
+                          className="edit-attachment-item"
+                          key={`${archivo.name}-${archivo.size}-${archivo.lastModified}`}
+                        >
+                          <FontAwesomeIcon
+                            className="edit-attachment-icon"
+                            icon={obtenerIconoArchivo(archivo.type) || faFile}
+                          />
+                          <div className="edit-attachment-info">
+                            <strong>{archivo.name}</strong>
+                            <span>{formatearTamanoArchivo(archivo.size)} · Nuevo</span>
+                          </div>
+                          <div className="edit-attachment-actions">
+                            <DeleteIconButton
+                              label={`Eliminar ${archivo.name}`}
+                              onClick={() => eliminarAdjuntoNuevoCompras(indice)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="modal-buttons edit-order-actions compras-detail-actions">
+                  <button
+                    type="button"
+                    onClick={guardarInformacionCompras}
+                    disabled={
+                      adjuntosComprasNuevos.length === 0 &&
+                      comentarioCompras === ((pedidoInfoCompras || pedidoSeleccionado).comentarioCompras || "")
+                    }
+                  >
+                    Guardar información de Compras
+                  </button>
+                </div>
+              </section>
+            </div>
+
+            <div className="modal-buttons order-detail-sticky-footer">
+              <button type="button" onClick={cerrarDetallePedido}>
                 Cerrar
               </button>
             </div>

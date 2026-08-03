@@ -4,7 +4,7 @@ import { AuthContext } from "../context/AuthContext";
 import { NavLink } from "react-router-dom";
 import logo from "../assets/ESTEL_LOGO_RGB_GRANDE_NEGATIVO.png";
 
-function Sidebar() {
+function Sidebar({ onNavigate }) {
   const { user, setUser } = useContext(AuthContext);
   
   const logout = () => {
@@ -31,12 +31,12 @@ function Sidebar() {
 
       <ul>
         <li>
-          <NavLink to="/nuevasolicitud" className={navClassName}>
+          <NavLink to="/nuevasolicitud" className={navClassName} onClick={onNavigate}>
             Nuevo Pedido
           </NavLink>
         </li>
         <li>
-          <NavLink to="/missolicitudes" className={navClassName}>
+          <NavLink to="/missolicitudes" className={navClassName} onClick={onNavigate}>
             Mis Pedidos
           </NavLink>
         </li>
@@ -44,12 +44,12 @@ function Sidebar() {
         {user?.rol === "Comprador" && (
           <>
          <li>
-            <NavLink to="/validar-solicitudes" className={navClassName}>
+            <NavLink to="/validar-solicitudes" className={navClassName} onClick={onNavigate}>
               Gestión de Pedidos
             </NavLink>
         </li>
         <li>
-          <NavLink to="/historico-pedidos" className={navClassName}>
+          <NavLink to="/historico-pedidos" className={navClassName} onClick={onNavigate}>
             Histórico de Pedidos
           </NavLink>
         </li>
@@ -59,24 +59,24 @@ function Sidebar() {
         {user?.rol === "Admin" && (
           <>
             <li>
-              <NavLink to="/usuarios" className={navClassName}>
+              <NavLink to="/usuarios" className={navClassName} onClick={onNavigate}>
                 Usuarios
               </NavLink>
             </li>
 
             <li>
-              <NavLink to="/configuracion" className={navClassName}>
+              <NavLink to="/configuracion" className={navClassName} onClick={onNavigate}>
                 Configuración
               </NavLink>
             </li>
 
             <li>
-              <NavLink to="/validar-solicitudes" className={navClassName}>
+              <NavLink to="/validar-solicitudes" className={navClassName} onClick={onNavigate}>
                 Gestión de Pedidos
               </NavLink>
             </li>
             <li>
-              <NavLink to="/historico-pedidos" className={navClassName}>
+              <NavLink to="/historico-pedidos" className={navClassName} onClick={onNavigate}>
                 Histórico de Pedidos
               </NavLink>
           </li>
@@ -86,7 +86,7 @@ function Sidebar() {
     </div>
 
       <div className="sidebar-footer">
-        <button onClick={logout}>
+        <button onClick={() => { logout(); onNavigate?.(); }}>
         Cerrar sesión
       </button>
       </div>
@@ -96,3 +96,4 @@ function Sidebar() {
 }
 
 export default Sidebar;
+

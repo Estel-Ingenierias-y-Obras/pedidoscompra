@@ -7,6 +7,7 @@ import {
   faFileImage,
   faFileLines,
   faFilePdf,
+  faPaperclip,
   faPen
 } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
@@ -284,9 +285,10 @@ function MisSolicitudes() {
     inputId
   }) => (
     <div className="block-attachments">
-      <label htmlFor={inputId}>Adjuntos relacionados</label>
+      <span className="block-attachments-label">Adjuntos relacionados</span>
       <input
         id={inputId}
+        className="visually-hidden-file-input"
         type="file"
         ref={inputRef}
         multiple
@@ -294,6 +296,10 @@ function MisSolicitudes() {
           agregarAdjuntosEdicion(event, existentes, nuevos, setNuevos)
         }
       />
+      <label className="clean-file-picker" htmlFor={inputId}>
+        <FontAwesomeIcon icon={faPaperclip} />
+        Elegir archivos
+      </label>
 
       {(existentes.length > 0 || nuevos.length > 0) && (
         <div className="edit-attachments-list new-attachments-list">
@@ -403,7 +409,11 @@ function MisSolicitudes() {
             <tbody>
               {misPedidosFiltrados.map(solicitud => (
                 <tr key={solicitud._id}>
-                  <td>{solicitud.proyecto}</td>
+                  <td className="project-name-cell">
+                    <span title={solicitud.proyecto}>
+                      {solicitud.proyecto}
+                    </span>
+                  </td>
                   <td>
                     <span className={`estado estado-${solicitud.estado.toLowerCase()}`}>
                       {solicitud.estado}
@@ -497,8 +507,8 @@ function MisSolicitudes() {
                 </div>
 
                 <div className="edit-order-section">
-                  <label>Prioridad urgente</label>
-                  <div className="edit-priority-segment" role="group" aria-label="Prioridad urgente">
+                  <label>Tipo de solicitud</label>
+                  <div className="edit-priority-segment edit-request-type-segment" role="group" aria-label="Tipo de solicitud">
                     <label>
                       <input
                         type="radio"
@@ -507,7 +517,7 @@ function MisSolicitudes() {
                         checked={formEdicion.urgente === "Sí"}
                         onChange={(event) => actualizarCampoEdicion("urgente", event.target.value)}
                       />
-                      <span>Sí</span>
+                      <span>Urgente</span>
                     </label>
                     <label>
                       <input
@@ -517,7 +527,7 @@ function MisSolicitudes() {
                         checked={formEdicion.urgente === "No"}
                         onChange={(event) => actualizarCampoEdicion("urgente", event.target.value)}
                       />
-                      <span>No</span>
+                      <span>Normal</span>
                     </label>
                   </div>
                 </div>
@@ -525,7 +535,7 @@ function MisSolicitudes() {
                 <div className="edit-order-section edit-order-descriptions">
                   {formEdicion.urgente === "Sí" ? (
                     <>
-                      <div className="edit-order-field-block request-block-card">
+                      <div className="edit-order-field-block request-block-card request-block-urgent edit-urgent-block">
                         <label>Urgente</label>
                         <textarea
                           value={formEdicion.motivoUrgencia}
