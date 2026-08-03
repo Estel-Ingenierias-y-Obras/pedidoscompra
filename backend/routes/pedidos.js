@@ -4,6 +4,7 @@ const multer = require("multer");
 const Pedido = require("../models/Pedido");
 const DestinatarioCompra = require("../models/DestinatarioCompra");
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
+const { responderErrorInterno } = require("../utils/httpErrors");
 const {
   sendPurchaseRequestNotification,
   sendStatusChangeNotification
@@ -212,7 +213,7 @@ router.get("/", async (req, res) => {
     const pedidos = await Pedido.find(filtro);
     res.json(pedidos);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
@@ -290,7 +291,7 @@ router.post("/", recibirArchivos, async (req, res) => {
       }
     }
 
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
@@ -377,7 +378,7 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
       })
       .pipe(res);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
@@ -590,7 +591,7 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       }
     }
 
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 router.delete("/admin/:id", permitirRoles("Admin"), async (req, res) => {
@@ -608,7 +609,7 @@ const pedido = await Pedido.findById(req.params.id);
 
     res.json({ mensaje: "Pedido eliminado" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 router.delete("/:id", async (req, res) => {
@@ -637,11 +638,12 @@ router.delete("/:id", async (req, res) => {
 
     res.json({ mensaje: "Pedido eliminado" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
 module.exports = router;
+
 
 
 

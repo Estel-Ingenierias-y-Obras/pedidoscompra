@@ -17,7 +17,31 @@ const app = express();
 const port = process.env.PORT || 5000;
 const frontendBuildPath = path.join(__dirname, "../frontend/build");
 
-app.use(cors());
+const configurarCors = () => {
+  const origenesPermitidos = new Set([
+    "http://localhost:3000",
+    "http://localhost:5000"
+  ]);
+
+  if (process.env.FRONTEND_URL) {
+    origenesPermitidos.add(process.env.FRONTEND_URL);
+  }
+
+  return {
+    origin: (origin, callback) => {
+      if (!origin || origenesPermitidos.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origen no permitido por CORS"));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  };
+};
+
+app.use(cors(configurarCors()));
 app.use(express.json());
 
 const migrarAdjuntosPorBloque = async () => {
@@ -87,6 +111,7 @@ if (process.env.NODE_ENV === "production") {
 app.listen(port, "0.0.0.0", () => {
   console.log(`Servidor ejecutándose en puerto ${port}`);
 });
+
 
 
 

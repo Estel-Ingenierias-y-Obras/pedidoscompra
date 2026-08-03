@@ -2,6 +2,7 @@ const express = require("express");
 const Usuario = require("../models/Usuario");
 
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
+const { responderErrorInterno } = require("../utils/httpErrors");
 
 const router = express.Router();
 
@@ -18,9 +19,7 @@ router.get("/", permitirRoles("Admin", "Comprador"), async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
-      error: error.message
-    });
+    responderErrorInterno(res, error, "Error interno en ruta:");
 
   }
 
@@ -39,9 +38,7 @@ router.post("/", permitirRoles("Admin"), async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
-      error: error.message
-    });
+    responderErrorInterno(res, error, "Error interno en ruta:");
 
   }
 
@@ -62,9 +59,7 @@ router.put("/:id", permitirRoles("Admin"), async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
-      error: error.message
-    });
+    responderErrorInterno(res, error, "Error interno en ruta:");
 
   }
 
@@ -85,12 +80,11 @@ router.delete("/:id", permitirRoles("Admin"), async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
-      error: error.message
-    });
+    responderErrorInterno(res, error, "Error interno en ruta:");
 
   }
 
 });
 
 module.exports = router;
+

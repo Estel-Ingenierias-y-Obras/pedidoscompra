@@ -1,6 +1,7 @@
 const express = require("express");
 
 const { obtenerUsuarioActual } = require("../middleware/auth");
+const { responderErrorInterno } = require("../utils/httpErrors");
 
 const router = express.Router();
 
@@ -25,12 +26,11 @@ router.get("/", async (req, res) => {
 
     console.error(error);
 
-    res.status(500).json({
-      error: error.message
-    });
+    responderErrorInterno(res, error, "Error interno en ruta:");
 
   }
 
 });
 
 module.exports = router;
+

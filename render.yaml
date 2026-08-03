@@ -11,6 +11,10 @@ services:
         value: production
       - key: MONGO_URI
         sync: false
+      - key: ENTRA_TENANT_ID
+        sync: false
+      - key: ENTRA_CLIENT_ID
+        sync: false
       - key: TENANT_ID
         sync: false
       - key: CLIENT_ID

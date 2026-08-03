@@ -4,6 +4,7 @@ const SolicitudAcceso = require("../models/SolicitudAcceso");
 const Usuario = require("../models/Usuario");
 const DestinatarioAcceso = require("../models/DestinatarioAcceso");
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
+const { responderErrorInterno } = require("../utils/httpErrors");
 const {
   sendAccessApprovedNotification,
   sendAccessRequestNotification
@@ -40,7 +41,13 @@ router.post("/", async (req, res) => {
     if (usuario) {
       return res.json({
         autorizado: true,
-        usuario
+        usuario: {
+          _id: usuario._id,
+          nombre: usuario.nombre,
+          email: usuario.email,
+          rol: usuario.rol,
+          activo: usuario.activo
+        }
       });
     }
 
@@ -97,7 +104,7 @@ router.post("/", async (req, res) => {
       solicitud
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error gestionando solicitud de acceso:");
   }
 });
 
@@ -109,7 +116,7 @@ router.get("/", obtenerUsuarioActual, permitirRoles("Admin"), async (req, res) =
 
     res.json(solicitudes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error gestionando solicitud de acceso:");
   }
 });
 
@@ -173,7 +180,11 @@ router.patch("/:id/aprobar", obtenerUsuarioActual, permitirRoles("Admin"), async
     res.json({ solicitud, usuario });
   } catch (error) {
     const status = error.code === 11000 ? 409 : 500;
-    res.status(status).json({ error: error.message });
+    if (status === 409) {
+      return res.status(status).json({ error: error.message });
+    }
+
+    responderErrorInterno(res, error, "Error aprobando solicitud de acceso:");
   }
 });
 
@@ -200,8 +211,10 @@ router.patch("/:id/rechazar", obtenerUsuarioActual, permitirRoles("Admin"), asyn
 
     res.json(solicitud);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error gestionando solicitud de acceso:");
   }
 });
 
 module.exports = router;
+
+

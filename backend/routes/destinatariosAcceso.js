@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const DestinatarioAcceso = require("../models/DestinatarioAcceso");
 
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
+const { responderErrorInterno } = require("../utils/httpErrors");
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/", async (req, res) => {
 
     res.json(destinatarios);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
@@ -39,7 +40,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
@@ -59,8 +60,9 @@ router.delete("/:id", async (req, res) => {
 
     res.json({ mensaje: "Destinatario eliminado correctamente" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
 module.exports = router;
+

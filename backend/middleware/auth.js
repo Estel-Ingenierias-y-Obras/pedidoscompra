@@ -19,6 +19,21 @@ const decodificarBase64Url = (value) =>
 const decodificarJsonBase64Url = (value) =>
   JSON.parse(decodificarBase64Url(value).toString("utf8"));
 
+const obtenerConfiguracionEntra = () => {
+  const tenantId = process.env.ENTRA_TENANT_ID;
+  const clientId = process.env.ENTRA_CLIENT_ID;
+
+  if (!tenantId) {
+    throw new Error("ENTRA_TENANT_ID no está configurado");
+  }
+
+  if (!clientId) {
+    throw new Error("ENTRA_CLIENT_ID no está configurado");
+  }
+
+  return { tenantId, clientId };
+};
+
 const obtenerJwks = async () => {
   const ahora = Date.now();
 
@@ -26,11 +41,7 @@ const obtenerJwks = async () => {
     return jwksCache.keys;
   }
 
-  const tenantId = process.env.TENANT_ID;
-
-  if (!tenantId) {
-    throw new Error("TENANT_ID no está configurado");
-  }
+  const { tenantId } = obtenerConfiguracionEntra();
 
   const response = await fetch(
     `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`
@@ -82,8 +93,7 @@ const validarTokenMicrosoft = async (token) => {
     throw new Error("Firma del token no válida");
   }
 
-  const tenantId = process.env.TENANT_ID;
-  const clientId = process.env.CLIENT_ID;
+  const { tenantId, clientId } = obtenerConfiguracionEntra();
   const issuerEsperado = `https://login.microsoftonline.com/${tenantId}/v2.0`;
   const ahora = Math.floor(Date.now() / 1000);
 
@@ -138,28 +148,16 @@ const buscarUsuarioAutorizado = async (email) =>
 const obtenerUsuarioActual = async (req, res, next) => {
   const authorization = String(req.get("authorization") || "").trim();
   const bearerPrefix = "Bearer ";
-  let email = "";
-  let metodoAutenticacion = "";
+
+  if (!authorization.startsWith(bearerPrefix)) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
   try {
-    if (authorization.startsWith(bearerPrefix)) {
-      const token = authorization.slice(bearerPrefix.length).trim();
-      const identidad = await validarTokenMicrosoft(token);
-      email = identidad.email;
-      metodoAutenticacion = "token";
-      console.log(`[AUTH] Usuario autenticado mediante token Microsoft: ${email}`);
-    } else {
-      email = String(req.get("x-user-email") || "").trim().toLowerCase();
-      metodoAutenticacion = "compatibilidad";
-
-      if (email) {
-        console.warn(`[AUTH] Usuario autenticado mediante compatibilidad temporal x-user-email: ${email}`);
-      }
-    }
-
-    if (!email) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
+    const token = authorization.slice(bearerPrefix.length).trim();
+    const identidad = await validarTokenMicrosoft(token);
+    const email = identidad.email;
+    console.log(`[AUTH] Usuario autenticado mediante token Microsoft: ${email}`);
 
     const usuario = await buscarUsuarioAutorizado(email);
 
@@ -168,7 +166,7 @@ const obtenerUsuarioActual = async (req, res, next) => {
     }
 
     req.usuarioActual = usuario;
-    req.metodoAutenticacion = metodoAutenticacion;
+    req.metodoAutenticacion = "token";
     next();
   } catch (error) {
     console.error("[AUTH] Token Microsoft rechazado:", error.message);
@@ -189,3 +187,4 @@ module.exports = {
   permitirRoles,
   validarTokenMicrosoft
 };
+
