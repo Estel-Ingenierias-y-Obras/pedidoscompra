@@ -23,6 +23,12 @@ import {
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
+import {
+  crearElementoVacio,
+  elementosATexto,
+  normalizarElementos,
+  RequestItemsEditor
+} from "../components/RequestItems";
 
 function NuevaSolicitud() {
   const { setSolicitudes } = useContext(SolicitudesContext);
@@ -30,8 +36,9 @@ function NuevaSolicitud() {
 
   const [proyecto, setProyecto] = useState("");
   const [urgente, setUrgente] = useState("No");
-  const [motivoUrgencia, setMotivoUrgencia] = useState("");
-  const [descripcion, setDescripcion] = useState("");
+  const [elementos, setElementos] = useState([crearElementoVacio()]);
+  const [elementosUrgentes, setElementosUrgentes] = useState([crearElementoVacio()]);
+  const [elementosNoUrgentes, setElementosNoUrgentes] = useState([]);
   const [archivosDescripcion, setArchivosDescripcion] = useState([]);
   const [archivosUrgente, setArchivosUrgente] = useState([]);
   const [archivosNoUrgente, setArchivosNoUrgente] = useState([]);
@@ -163,6 +170,14 @@ function NuevaSolicitud() {
   );
 
   const handleSubmit = async () => {
+    const elementosNormales = normalizarElementos(elementos);
+    const urgentesNormalizados = normalizarElementos(elementosUrgentes);
+    const noUrgentesNormalizados = normalizarElementos(elementosNoUrgentes);
+
+    if (!proyecto) return;
+    if (urgente === "Sí" && urgentesNormalizados.length === 0) return;
+    if (urgente !== "Sí" && elementosNormales.length === 0) return;
+
     const nuevaSolicitud = new FormData();
 
     nuevaSolicitud.append("solicitante", user.nombre);
@@ -170,8 +185,14 @@ function NuevaSolicitud() {
     nuevaSolicitud.append("email", user.email);
     nuevaSolicitud.append("proyecto", proyecto);
     nuevaSolicitud.append("urgente", urgente === "Sí");
-    nuevaSolicitud.append("motivoUrgencia", urgente === "Sí" ? motivoUrgencia : "");
-    nuevaSolicitud.append("descripcion", descripcion);
+    nuevaSolicitud.append("elementos", JSON.stringify(urgente === "Sí" ? [] : elementosNormales));
+    nuevaSolicitud.append("elementosUrgentes", JSON.stringify(urgente === "Sí" ? urgentesNormalizados : []));
+    nuevaSolicitud.append("elementosNoUrgentes", JSON.stringify(urgente === "Sí" ? noUrgentesNormalizados : []));
+    nuevaSolicitud.append("motivoUrgencia", urgente === "Sí" ? elementosATexto(urgentesNormalizados) : "");
+    nuevaSolicitud.append(
+      "descripcion",
+      urgente === "Sí" ? elementosATexto(noUrgentesNormalizados) : elementosATexto(elementosNormales)
+    );
     nuevaSolicitud.append("estado", "Pendiente");
 
     if (urgente === "Sí") {
@@ -199,8 +220,9 @@ function NuevaSolicitud() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setProyecto("");
     setUrgente("No");
-    setMotivoUrgencia("");
-    setDescripcion("");
+    setElementos([crearElementoVacio()]);
+    setElementosUrgentes([crearElementoVacio()]);
+    setElementosNoUrgentes([]);
     limpiarArchivos();
     setMensaje("Pedido enviado correctamente");
     setTimeout(() => setMensaje(""), 3000);
@@ -309,11 +331,10 @@ function NuevaSolicitud() {
                       <p>Indica únicamente aquello que debe comprarse con prioridad inmediata.</p>
                     </div>
                   </div>
-                  <textarea
-                    id="necesidades-urgentes"
-                    value={motivoUrgencia}
-                    placeholder="Ej. Material necesario para mañana, unidades críticas, fecha límite..."
-                    onChange={(event) => setMotivoUrgencia(event.target.value)}
+                  <RequestItemsEditor
+                    value={elementosUrgentes}
+                    onChange={setElementosUrgentes}
+                    label="Elementos urgentes"
                   />
                   {renderAdjuntosBloque({
                     archivos: archivosUrgente,
@@ -331,11 +352,10 @@ function NuevaSolicitud() {
                       <p>Incluye lo que puede gestionarse sin prioridad inmediata.</p>
                     </div>
                   </div>
-                  <textarea
-                    id="necesidades-planificables"
-                    value={descripcion}
-                    placeholder="Ej. Material previsto para próximos trabajos, compras no críticas..."
-                    onChange={(event) => setDescripcion(event.target.value)}
+                  <RequestItemsEditor
+                    value={elementosNoUrgentes}
+                    onChange={setElementosNoUrgentes}
+                    label="Elementos planificables"
                   />
                   {renderAdjuntosBloque({
                     archivos: archivosNoUrgente,
@@ -354,11 +374,10 @@ function NuevaSolicitud() {
                     <p>Describe los elementos, cantidades o referencias que debe revisar Compras.</p>
                   </div>
                 </div>
-                <textarea
-                  id="necesidad-normal"
-                  value={descripcion}
-                  placeholder="Ej. Elementos solicitados, cantidades, referencias, proveedor sugerido..."
-                  onChange={(event) => setDescripcion(event.target.value)}
+                <RequestItemsEditor
+                  value={elementos}
+                  onChange={setElementos}
+                  label="Elementos solicitados"
                 />
                 {renderAdjuntosBloque({
                   archivos: archivosDescripcion,

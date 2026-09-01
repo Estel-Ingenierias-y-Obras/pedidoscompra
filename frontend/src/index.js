@@ -8,6 +8,7 @@ import { UsuariosProvider } from "./context/UsuariosContext";
 import { MsalProvider } from "@azure/msal-react";
 import { broadcastResponseToMainFrame } from "@azure/msal-browser/redirect-bridge";
 import { msalInstance } from "./authConfig";
+import { MaterialesProvider } from "./context/MaterialesContext";
 
 if (window.location.pathname === "/redirect") {
   broadcastResponseToMainFrame().catch((error) => {
@@ -29,8 +30,9 @@ if (window.location.pathname === "/redirect") {
           <UsuariosProvider>
 
             <SolicitudesProvider>
-
-              <App />
+              <MaterialesProvider>
+                <App />
+              </MaterialesProvider>
 
             </SolicitudesProvider>
 
@@ -44,5 +46,4 @@ if (window.location.pathname === "/redirect") {
 
   );
 }
-
 

@@ -113,6 +113,20 @@ const eliminarArchivo = async (fileId) => {
 const normalizarBooleano = (value) =>
   value === true || value === "true" || value === "Sí";
 
+const parsearElementos = value => {
+  if (!value) return [];
+  const elementos = Array.isArray(value) ? value : JSON.parse(value);
+  if (!Array.isArray(elementos)) return [];
+
+  return elementos
+    .map(item => ({
+      elemento: String(item?.elemento || "").trim(),
+      cantidad: Math.max(1, Number(item?.cantidad) || 1),
+      descripcion: String(item?.descripcion || "").trim()
+    }))
+    .filter(item => item.elemento);
+};
+
 const parsearArchivosExistentes = (value) => {
   if (!value) {
     return [];
@@ -254,6 +268,9 @@ router.post("/", recibirArchivos, async (req, res) => {
       ...req.body,
       solicitante: req.usuarioActual.nombre,
       email: req.usuarioActual.email,
+      elementos: parsearElementos(req.body.elementos),
+      elementosUrgentes: parsearElementos(req.body.elementosUrgentes),
+      elementosNoUrgentes: parsearElementos(req.body.elementosNoUrgentes),
       archivos: archivosLegacy,
       archivosDescripcion,
       archivosUrgente,
@@ -444,7 +461,10 @@ router.put("/:id", recibirArchivos, async (req, res) => {
               proyecto: req.body.proyecto,
               urgente: normalizarBooleano(req.body.urgente),
               motivoUrgencia: req.body.motivoUrgencia,
-              descripcion: req.body.descripcion
+              descripcion: req.body.descripcion,
+              elementos: parsearElementos(req.body.elementos),
+              elementosUrgentes: parsearElementos(req.body.elementosUrgentes),
+              elementosNoUrgentes: parsearElementos(req.body.elementosNoUrgentes)
             };
 
     const debeActualizarArchivos =

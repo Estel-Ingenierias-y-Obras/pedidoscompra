@@ -231,6 +231,16 @@ const buildPurchaseRequestBody = (pedido, frontendUrl) =>
           ? BADGE_COLORS.pending
           : BADGE_COLORS.assigned
       },
+      {
+        label: "Elementos",
+        value: [
+          ...(pedido.elementosUrgentes || []),
+          ...(pedido.elementosNoUrgentes || []),
+          ...(pedido.elementos || [])
+        ].map(item =>
+          `${item.elemento} (${item.cantidad})${item.descripcion ? ` - ${item.descripcion}` : ""}`
+        ).join(" · ") || pedido.motivoUrgencia || pedido.descripcion || ""
+      },
       { label: "Fecha", value: formatDate(pedido.fechaCreacion) }
     ],
     frontendUrl

@@ -9,6 +9,7 @@ const usuariosRoutes = require("./routes/usuarios");
 const pedidosRoutes = require("./routes/pedidos");
 const proyectosRoutes = require("./routes/proyectos");
 const solicitudesAccesoRoutes = require("./routes/solicitudesAcceso");
+const materialesRoutes = require("./routes/materiales");
 const destinatariosAccesoRoutes = require("./routes/destinatariosAcceso");
 const destinatariosCompraRoutes = require("./routes/destinatariosCompra");
 const Pedido = require("./models/Pedido");
@@ -86,6 +87,7 @@ app.get("/healthz", (req, res) => {
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/pedidos", pedidosRoutes);
 app.use("/api/proyectos", proyectosRoutes);
+app.use("/api/materiales", materialesRoutes);
 app.use("/api/solicitudes-acceso", solicitudesAccesoRoutes);
 app.use(
   "/api/configuracion/notificaciones-acceso",

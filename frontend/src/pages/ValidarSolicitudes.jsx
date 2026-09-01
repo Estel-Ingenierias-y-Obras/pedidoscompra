@@ -13,6 +13,7 @@ import { UsuariosContext } from "../context/UsuariosContext";
 import api from "../api";
 import { Navigate } from "react-router-dom";
 import ModalShell from "../components/ModalShell";
+import { RequestItemsList } from "../components/RequestItems";
 
 function ValidarSolicitudes() {
   const { user } = useContext(AuthContext);
@@ -253,11 +254,11 @@ function ValidarSolicitudes() {
         ? pedido.archivos || []
         : [];
 
-  const renderBloqueDetalle = ({ titulo, texto, archivos, pedido }) => (
+  const renderBloqueDetalle = ({ titulo, texto, elementos, archivos, pedido }) => (
     <div className="compras-info-readonly">
       <h3>{titulo}</h3>
       <div className="compras-info-block">
-        <p>{texto || "Sin contenido"}</p>
+        <RequestItemsList elementos={elementos} textoLegacy={texto} />
       </div>
       <div className="compras-info-block">
         <strong>Archivos:</strong>
@@ -476,12 +477,14 @@ function ValidarSolicitudes() {
                     {renderBloqueDetalle({
                       titulo: "Urgente",
                       texto: pedidoSeleccionado.motivoUrgencia,
+                      elementos: pedidoSeleccionado.elementosUrgentes,
                       archivos: obtenerAdjuntosUrgente(pedidoSeleccionado),
                       pedido: pedidoSeleccionado
                     })}
                     {renderBloqueDetalle({
                       titulo: "No urgente",
                       texto: pedidoSeleccionado.descripcion,
+                      elementos: pedidoSeleccionado.elementosNoUrgentes,
                       archivos: obtenerAdjuntosNoUrgente(pedidoSeleccionado),
                       pedido: pedidoSeleccionado
                     })}
@@ -490,6 +493,7 @@ function ValidarSolicitudes() {
                   renderBloqueDetalle({
                     titulo: "Descripción",
                     texto: pedidoSeleccionado.descripcion,
+                    elementos: pedidoSeleccionado.elementos,
                     archivos: obtenerAdjuntosDescripcion(pedidoSeleccionado),
                     pedido: pedidoSeleccionado
                   })

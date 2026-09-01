@@ -1,5 +1,6 @@
 import AttachmentList from "./AttachmentList";
 import ModalShell from "./ModalShell";
+import { RequestItemsList } from "./RequestItems";
 
 const obtenerAdjuntosDescripcion = pedido =>
   Array.isArray(pedido.archivosDescripcion) && pedido.archivosDescripcion.length > 0
@@ -18,11 +19,11 @@ const obtenerAdjuntosNoUrgente = pedido =>
       ? pedido.archivos || []
       : [];
 
-function RequestBlock({ titulo, texto, archivos, pedido, urgente = false }) {
+function RequestBlock({ titulo, texto, elementos, archivos, pedido, urgente = false }) {
   return (
     <section className={`original-request-block${urgente ? " is-urgent" : ""}`}>
       <h3>{titulo}</h3>
-      <p>{texto || "Sin contenido"}</p>
+      <RequestItemsList elementos={elementos} textoLegacy={texto} />
       <div className="original-request-attachments">
         <strong>Adjuntos originales</strong>
         <AttachmentList pedido={pedido} archivos={archivos} />
@@ -45,6 +46,7 @@ function OriginalRequestModal({ pedido, onClose }) {
               <RequestBlock
                 titulo="Necesidades urgentes"
                 texto={pedido.motivoUrgencia}
+                elementos={pedido.elementosUrgentes}
                 archivos={obtenerAdjuntosUrgente(pedido)}
                 pedido={pedido}
                 urgente
@@ -52,6 +54,7 @@ function OriginalRequestModal({ pedido, onClose }) {
               <RequestBlock
                 titulo="Necesidades planificables / no urgentes"
                 texto={pedido.descripcion}
+                elementos={pedido.elementosNoUrgentes}
                 archivos={obtenerAdjuntosNoUrgente(pedido)}
                 pedido={pedido}
               />
@@ -60,6 +63,7 @@ function OriginalRequestModal({ pedido, onClose }) {
             <RequestBlock
               titulo="Descripción del pedido"
               texto={pedido.descripcion}
+              elementos={pedido.elementos}
               archivos={obtenerAdjuntosDescripcion(pedido)}
               pedido={pedido}
             />

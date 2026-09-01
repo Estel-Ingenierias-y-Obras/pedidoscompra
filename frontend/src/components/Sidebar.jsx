@@ -44,6 +44,11 @@ function Sidebar({ onNavigate }) {
         {user?.rol === "Comprador" && (
           <>
          <li>
+            <NavLink to="/material" className={navClassName} onClick={onNavigate}>
+              Material
+            </NavLink>
+        </li>
+         <li>
             <NavLink to="/validar-solicitudes" className={navClassName} onClick={onNavigate}>
               Gestión de Pedidos
             </NavLink>
@@ -58,6 +63,11 @@ function Sidebar({ onNavigate }) {
 
         {user?.rol === "Admin" && (
           <>
+            <li>
+              <NavLink to="/material" className={navClassName} onClick={onNavigate}>
+                Material
+              </NavLink>
+            </li>
             <li>
               <NavLink to="/usuarios" className={navClassName} onClick={onNavigate}>
                 Usuarios

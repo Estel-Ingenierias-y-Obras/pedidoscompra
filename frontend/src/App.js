@@ -8,6 +8,7 @@ import ValidarSolicitudes from "./pages/ValidarSolicitudes";
 import Configuracion from "./pages/Configuracion";
 import "./App.css";
 import HistoricoPedidos from "./pages/HistoricoPedidos";
+import Materiales from "./pages/Materiales";
 import "./business-central-theme.css";
 
 function App() {
@@ -51,6 +52,12 @@ function App() {
             <HistoricoPedidos />
             </ProtectedRoute>
           }/>
+        <Route path="/material"
+          element={
+            <ProtectedRoute>
+              <Materiales />
+            </ProtectedRoute>
+          } />
       </Routes>
     </BrowserRouter>
   );

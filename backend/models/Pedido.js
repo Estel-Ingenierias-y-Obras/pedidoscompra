@@ -19,6 +19,12 @@ const archivoSchema = {
   }
 };
 
+const elementoPedidoSchema = new mongoose.Schema({
+  elemento: { type: String, required: true, trim: true },
+  cantidad: { type: Number, required: true, min: 1, default: 1 },
+  descripcion: { type: String, default: "", trim: true }
+}, { _id: false });
+
 const pedidoSchema = new mongoose.Schema({
 
   solicitante: {
@@ -44,6 +50,10 @@ const pedidoSchema = new mongoose.Schema({
     type: String,
     default: ""
   },
+
+  elementos: { type: [elementoPedidoSchema], default: [] },
+  elementosUrgentes: { type: [elementoPedidoSchema], default: [] },
+  elementosNoUrgentes: { type: [elementoPedidoSchema], default: [] },
 
   urgente: {
     type: Boolean,

@@ -23,6 +23,12 @@ import ProjectSelector from "../components/ProjectSelector";
 import ProjectOrderCard from "../components/ProjectOrderCard";
 import OriginalRequestModal from "../components/OriginalRequestModal";
 import ModalShell from "../components/ModalShell";
+import {
+  elementosATexto,
+  normalizarElementos,
+  obtenerElementosCompatibles,
+  RequestItemsEditor
+} from "../components/RequestItems";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
@@ -69,7 +75,10 @@ function MisSolicitudes() {
     proyecto: "",
     urgente: "No",
     motivoUrgencia: "",
-    descripcion: ""
+    descripcion: "",
+    elementos: [],
+    elementosUrgentes: [],
+    elementosNoUrgentes: []
   });
   const [adjuntosDescripcionExistentes, setAdjuntosDescripcionExistentes] = useState([]);
   const [adjuntosDescripcionNuevos, setAdjuntosDescripcionNuevos] = useState([]);
@@ -184,7 +193,10 @@ function MisSolicitudes() {
       proyecto: pedido.proyecto || "",
       urgente: pedido.urgente ? "Sí" : "No",
       motivoUrgencia: pedido.motivoUrgencia || "",
-      descripcion: pedido.descripcion || ""
+      descripcion: pedido.descripcion || "",
+      elementos: obtenerElementosCompatibles(pedido.elementos, pedido.urgente ? "" : pedido.descripcion),
+      elementosUrgentes: obtenerElementosCompatibles(pedido.elementosUrgentes, pedido.urgente ? pedido.motivoUrgencia : ""),
+      elementosNoUrgentes: obtenerElementosCompatibles(pedido.elementosNoUrgentes, pedido.urgente ? pedido.descripcion : "")
     });
     setAdjuntosDescripcionExistentes(obtenerAdjuntosDescripcion(pedido));
     setAdjuntosDescripcionNuevos([]);
@@ -296,11 +308,20 @@ function MisSolicitudes() {
       const datosEdicion = new FormData();
       datosEdicion.append("proyecto", formEdicion.proyecto);
       datosEdicion.append("urgente", formEdicion.urgente === "Sí");
+      const elementosNormales = normalizarElementos(formEdicion.elementos);
+      const elementosUrgentes = normalizarElementos(formEdicion.elementosUrgentes);
+      const elementosNoUrgentes = normalizarElementos(formEdicion.elementosNoUrgentes);
+      datosEdicion.append("elementos", JSON.stringify(formEdicion.urgente === "Sí" ? [] : elementosNormales));
+      datosEdicion.append("elementosUrgentes", JSON.stringify(formEdicion.urgente === "Sí" ? elementosUrgentes : []));
+      datosEdicion.append("elementosNoUrgentes", JSON.stringify(formEdicion.urgente === "Sí" ? elementosNoUrgentes : []));
       datosEdicion.append(
         "motivoUrgencia",
-        formEdicion.urgente === "Sí" ? formEdicion.motivoUrgencia : ""
+        formEdicion.urgente === "Sí" ? elementosATexto(elementosUrgentes) : ""
       );
-      datosEdicion.append("descripcion", formEdicion.descripcion);
+      datosEdicion.append(
+        "descripcion",
+        formEdicion.urgente === "Sí" ? elementosATexto(elementosNoUrgentes) : elementosATexto(elementosNormales)
+      );
 
       if (formEdicion.urgente === "Sí") {
         appendBloqueAdjuntos({
@@ -702,10 +723,10 @@ function MisSolicitudes() {
                     <>
                       <div className="edit-order-field-block request-block-card request-block-urgent edit-urgent-block">
                         <label>Urgente</label>
-                        <textarea
-                          value={formEdicion.motivoUrgencia}
-                          placeholder="Elementos urgentes"
-                          onChange={(event) => actualizarCampoEdicion("motivoUrgencia", event.target.value)}
+                        <RequestItemsEditor
+                          value={formEdicion.elementosUrgentes}
+                          onChange={valor => actualizarCampoEdicion("elementosUrgentes", valor)}
+                          label="Elementos urgentes"
                         />
                         {renderAdjuntosEditables({
                           existentes: adjuntosUrgenteExistentes,
@@ -719,10 +740,10 @@ function MisSolicitudes() {
 
                       <div className="edit-order-field-block request-block-card">
                         <label>No urgente</label>
-                        <textarea
-                          value={formEdicion.descripcion}
-                          placeholder="Elementos no urgentes"
-                          onChange={(event) => actualizarCampoEdicion("descripcion", event.target.value)}
+                        <RequestItemsEditor
+                          value={formEdicion.elementosNoUrgentes}
+                          onChange={valor => actualizarCampoEdicion("elementosNoUrgentes", valor)}
+                          label="Elementos planificables"
                         />
                         {renderAdjuntosEditables({
                           existentes: adjuntosNoUrgenteExistentes,
@@ -737,10 +758,10 @@ function MisSolicitudes() {
                   ) : (
                     <div className="edit-order-field-block request-block-card">
                       <label>Descripción</label>
-                      <textarea
-                        value={formEdicion.descripcion}
-                        placeholder="Elementos solicitados"
-                        onChange={(event) => actualizarCampoEdicion("descripcion", event.target.value)}
+                      <RequestItemsEditor
+                        value={formEdicion.elementos}
+                        onChange={valor => actualizarCampoEdicion("elementos", valor)}
+                        label="Elementos solicitados"
                       />
                       {renderAdjuntosEditables({
                         existentes: adjuntosDescripcionExistentes,
