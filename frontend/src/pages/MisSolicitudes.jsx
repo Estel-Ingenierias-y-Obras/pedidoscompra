@@ -13,7 +13,11 @@ import {
   faMagnifyingGlass
 } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
-import AttachmentList, { formatearTamanoArchivo } from "../components/AttachmentList";
+import AttachmentList, {
+  descargarAdjunto,
+  formatearTamanoArchivo,
+  visualizarAdjunto
+} from "../components/AttachmentList";
 import DeleteIconButton from "../components/DeleteIconButton";
 import ProjectSelector from "../components/ProjectSelector";
 import ProjectOrderCard from "../components/ProjectOrderCard";
@@ -264,11 +268,6 @@ function MisSolicitudes() {
     return faFile;
   };
 
-  const obtenerUrlAdjunto = (archivo) => {
-    const ruta = `/api/pedidos/${pedidoAEditar._id}/archivos/${archivo.fileId}`;
-    return `${api.defaults.baseURL || ""}${ruta}`;
-  };
-
   const appendBloqueAdjuntos = ({
     formData,
     campoExistentes,
@@ -397,8 +396,6 @@ function MisSolicitudes() {
       {(existentes.length > 0 || nuevos.length > 0) && (
         <div className="edit-attachments-list new-attachments-list">
           {existentes.map(archivo => {
-            const url = obtenerUrlAdjunto(archivo);
-
             return (
               <div className="edit-attachment-item" key={archivo.fileId}>
                 <FontAwesomeIcon
@@ -412,7 +409,12 @@ function MisSolicitudes() {
                 <div className="edit-attachment-actions">
                   <button
                     type="button"
-                    onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                    onClick={() =>
+                      visualizarAdjunto(pedidoAEditar, archivo).catch(err => {
+                        console.error("Error visualizando adjunto:", err);
+                        mostrarError("No se pudo visualizar el adjunto");
+                      })
+                    }
                     title="Visualizar adjunto"
                     aria-label={`Visualizar ${archivo.nombre}`}
                   >
@@ -420,7 +422,12 @@ function MisSolicitudes() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.open(`${url}?download=1`, "_blank", "noopener,noreferrer")}
+                    onClick={() =>
+                      descargarAdjunto(pedidoAEditar, archivo).catch(err => {
+                        console.error("Error descargando adjunto:", err);
+                        mostrarError("No se pudo descargar el adjunto");
+                      })
+                    }
                     title="Descargar adjunto"
                     aria-label={`Descargar ${archivo.nombre}`}
                   >

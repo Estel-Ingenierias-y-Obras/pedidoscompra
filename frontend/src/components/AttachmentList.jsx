@@ -32,9 +32,43 @@ export const obtenerIconoArchivo = (tipoMime = "") => {
   return faFile;
 };
 
-export const obtenerUrlAdjunto = (pedido, archivo) => {
+const obtenerBlobAdjunto = async (pedido, archivo, descargar = false) => {
   const ruta = `/api/pedidos/${pedido._id}/archivos/${archivo.fileId}`;
-  return `${api.defaults.baseURL || ""}${ruta}`;
+  const response = await api.get(ruta, {
+    params: descargar ? { download: 1 } : undefined,
+    responseType: "blob"
+  });
+
+  return response.data;
+};
+
+const abrirBlobEnNuevaPestana = (blob) => {
+  const blobUrl = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = blobUrl;
+  enlace.target = "_blank";
+  enlace.rel = "noopener noreferrer";
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+};
+
+export const visualizarAdjunto = async (pedido, archivo) => {
+  const blob = await obtenerBlobAdjunto(pedido, archivo);
+  abrirBlobEnNuevaPestana(blob);
+};
+
+export const descargarAdjunto = async (pedido, archivo) => {
+  const blob = await obtenerBlobAdjunto(pedido, archivo, true);
+  const blobUrl = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = blobUrl;
+  enlace.download = archivo.nombre || "adjunto";
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1_000);
 };
 
 function AttachmentList({
@@ -49,6 +83,14 @@ function AttachmentList({
       ? pedido.archivos
       : [];
 
+  const ejecutarAccionAdjunto = async (accion, archivo) => {
+    try {
+      await accion(pedido, archivo);
+    } catch (error) {
+      console.error("Error accediendo al adjunto:", error);
+    }
+  };
+
   if (archivos.length === 0) {
     return (
       <div className="edit-attachments-empty">
@@ -60,8 +102,6 @@ function AttachmentList({
   return (
     <div className="edit-attachments-list">
       {archivos.map(archivo => {
-        const url = obtenerUrlAdjunto(pedido, archivo);
-
         return (
           <div className="edit-attachment-item" key={archivo.fileId}>
             <FontAwesomeIcon
@@ -75,7 +115,7 @@ function AttachmentList({
             <div className="edit-attachment-actions">
               <button
                 type="button"
-                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                onClick={() => ejecutarAccionAdjunto(visualizarAdjunto, archivo)}
                 title="Visualizar adjunto"
                 aria-label={`Visualizar ${archivo.nombre}`}
               >
@@ -83,9 +123,7 @@ function AttachmentList({
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  window.open(`${url}?download=1`, "_blank", "noopener,noreferrer")
-                }
+                onClick={() => ejecutarAccionAdjunto(descargarAdjunto, archivo)}
                 title="Descargar adjunto"
                 aria-label={`Descargar ${archivo.nombre}`}
               >
