@@ -2462,9 +2462,13 @@ table .delete-icon-button {
 .project-order-card-metrics {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   padding: 0 16px 12px;
+}
+
+.project-order-card .project-order-card-metrics {
+  justify-content: flex-end;
 }
 
 .project-order-total {
@@ -4671,7 +4675,7 @@ table .delete-icon-button {
   .gestion-pedidos-table td:nth-child(4)::before { content: "Estado"; }
   .gestion-pedidos-table td:nth-child(5)::before { content: "Eliminar"; }
 
-  .mis-pedidos-table td:nth-child(1)::before { content: "Proyecto"; }
+  .mis-pedidos-table td:nth-child(1)::before { content: "Solicitante"; }
   .mis-pedidos-table td:nth-child(2)::before { content: "Estado"; }
   .mis-pedidos-table td:nth-child(3)::before { content: "Comentarios"; }
   .mis-pedidos-table td:nth-child(4)::before { content: "Acciones"; }
@@ -5389,6 +5393,55 @@ table .delete-icon-button {
 }
 
 /* Buscador corporativo: se declara al final para compartir comportamiento en todos los tamaños. */
+.modal-standard {
+  position: relative;
+}
+
+.modal-standard > h2:first-of-type {
+  padding-right: 42px;
+}
+
+.modal-close-button {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  float: right;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  margin: 0 0 -34px 12px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.16s ease, background-color 0.16s ease,
+    border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.modal-close-button:hover {
+  border-color: var(--border-soft);
+  background: #eef2f5;
+  box-shadow: none;
+  color: var(--brand-navy);
+}
+
+.modal-close-button:focus-visible {
+  outline: 2px solid rgba(23, 50, 77, 0.24);
+  outline-offset: 1px;
+}
+
+.modal-close-button:active {
+  background: #e3e8ed;
+}
+
 .profile-info-panel {
   gap: 10px;
   padding: 15px;

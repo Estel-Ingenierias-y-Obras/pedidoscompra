@@ -4,6 +4,7 @@ import Layout from "../components/Layout";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
+import ModalShell from "../components/ModalShell";
 
 function HistoricoPedidos() {
   const { user } = useContext(AuthContext);
@@ -108,8 +109,7 @@ function HistoricoPedidos() {
       </div>
 
       {pedidoARecuperar && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <ModalShell onClose={() => setPedidoARecuperar(null)} ariaLabel="Recuperar pedido">
             <h2>Recuperar pedido</h2>
             <p>
               El pedido volverá a Gestión de Pedidos con estado
@@ -131,8 +131,7 @@ function HistoricoPedidos() {
                 Recuperar pedido
               </button>
             </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </Layout>
   );

@@ -5,6 +5,7 @@ import { useContext, useEffect, useState } from "react";
 import { UsuariosContext } from "../context/UsuariosContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
+import ModalShell from "../components/ModalShell";
 import { Navigate } from "react-router-dom";
 
 function Usuarios() {
@@ -416,9 +417,7 @@ const formatearFecha = (fecha) =>
 
     {mostrarModal && (
 
-  <div className="modal-overlay">
-
-    <div className="modal">
+  <ModalShell onClose={() => setMostrarModal(false)} ariaLabel="Añadir usuario">
 
       <h2>Añadir usuario</h2>
 
@@ -458,14 +457,6 @@ const formatearFecha = (fecha) =>
       <div className="modal-buttons">
 
         <button
-          onClick={() =>
-            setMostrarModal(false)
-          }
-        >
-          Cancelar
-        </button>
-
-        <button
           onClick={agregarUsuario}
         >
           Guardar
@@ -473,17 +464,13 @@ const formatearFecha = (fecha) =>
 
       </div>
 
-    </div>
-
-  </div>
+  </ModalShell>
 
 )}
 
     {usuarioAEliminar && (
 
-  <div className="modal-overlay">
-
-    <div className="modal">
+  <ModalShell onClose={() => setUsuarioAEliminar(null)} ariaLabel="Eliminar usuario">
 
       <h2>Eliminar usuario</h2>
 
@@ -521,15 +508,12 @@ const formatearFecha = (fecha) =>
 
       </div>
 
-    </div>
-
-  </div>
+  </ModalShell>
 
 )}
 
     {solicitudSeleccionada && (
-      <div className="modal-overlay">
-        <div className="modal">
+      <ModalShell onClose={() => setSolicitudSeleccionada(null)} ariaLabel="Solicitud de acceso">
           <h2>Solicitud de acceso</h2>
 
           <p>
@@ -555,9 +539,6 @@ const formatearFecha = (fecha) =>
           </select>
 
           <div className="modal-buttons solicitud-buttons">
-            <button onClick={() => setSolicitudSeleccionada(null)}>
-              Cancelar
-            </button>
             <button
               className="button-danger"
               onClick={() => rechazarSolicitud(solicitudSeleccionada)}
@@ -568,8 +549,7 @@ const formatearFecha = (fecha) =>
               Aprobar y crear usuario
             </button>
           </div>
-        </div>
-      </div>
+      </ModalShell>
     )}
 
     </Layout>

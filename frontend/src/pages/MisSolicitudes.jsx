@@ -18,6 +18,7 @@ import DeleteIconButton from "../components/DeleteIconButton";
 import ProjectSelector from "../components/ProjectSelector";
 import ProjectOrderCard from "../components/ProjectOrderCard";
 import OriginalRequestModal from "../components/OriginalRequestModal";
+import ModalShell from "../components/ModalShell";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
@@ -548,7 +549,7 @@ function MisSolicitudes() {
           <table className="mis-pedidos-table acciones-centradas-table">
             <thead>
               <tr>
-                <th>Proyecto</th>
+                <th>Solicitante</th>
                 <th>Estado</th>
                 <th>Comentarios</th>
                 <th>Acciones</th>
@@ -572,9 +573,7 @@ function MisSolicitudes() {
                     }
                   }}
                 >
-                  <td className="project-name-cell">
-                    <span title={solicitud.proyecto}>{solicitud.proyecto}</span>
-                  </td>
+                  <td>{solicitud.solicitante}</td>
                   <td>
                     <span className={`estado estado-${solicitud.estado.toLowerCase()}`}>
                       {solicitud.estado}
@@ -625,8 +624,7 @@ function MisSolicitudes() {
       </div>
 
       {pedidoAdjuntosLectura && (
-        <div className="modal-overlay">
-          <div className="modal edit-order-modal">
+        <ModalShell onClose={() => setPedidoAdjuntosLectura(null)} className="edit-order-modal" ariaLabel="Comentarios de Compras">
             <h2>Comentarios de Compras</h2>
             <p><strong>Proyecto:</strong> {pedidoAdjuntosLectura.proyecto}</p>
 
@@ -644,13 +642,7 @@ function MisSolicitudes() {
               </div>
             </div>
 
-            <div className="modal-buttons">
-              <button type="button" onClick={() => setPedidoAdjuntosLectura(null)}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
 
       <OriginalRequestModal
@@ -658,8 +650,7 @@ function MisSolicitudes() {
         onClose={() => setPedidoDetalleOriginal(null)}
       />
       {pedidoAEditar && (
-        <div className="modal-overlay">
-          <div className="modal edit-order-modal">
+        <ModalShell onClose={cerrarEdicion} className="edit-order-modal" ariaLabel="Editar pedido">
             <h2>Editar pedido</h2>
 
             <form className="edit-order-form" onSubmit={guardarEdicion}>
@@ -758,17 +749,14 @@ function MisSolicitudes() {
               </div>
 
               <div className="modal-buttons edit-order-actions">
-                <button type="button" onClick={cerrarEdicion}>Cancelar</button>
                 <button type="submit">Guardar cambios</button>
               </div>
             </form>
-          </div>
-        </div>
+        </ModalShell>
       )}
 
       {pedidoAEliminar && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <ModalShell onClose={() => setPedidoAEliminar(null)} ariaLabel="Eliminar pedido">
             <h2>Eliminar pedido</h2>
             <p>¿Seguro que quieres eliminar este pedido?</p>
             <p><strong>Proyecto:</strong> {pedidoAEliminar.proyecto}</p>
@@ -779,8 +767,7 @@ function MisSolicitudes() {
                 Eliminar
               </button>
             </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </Layout>
   );

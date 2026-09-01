@@ -1,4 +1,5 @@
 import AttachmentList from "./AttachmentList";
+import ModalShell from "./ModalShell";
 
 const obtenerAdjuntosDescripcion = pedido =>
   Array.isArray(pedido.archivosDescripcion) && pedido.archivosDescripcion.length > 0
@@ -34,18 +35,7 @@ function OriginalRequestModal({ pedido, onClose }) {
   if (!pedido) return null;
 
   return (
-    <div
-      className="modal-overlay"
-      onMouseDown={event => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="modal original-request-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="original-request-title"
-      >
+    <ModalShell onClose={onClose} className="original-request-modal" ariaLabel="Solicitud original">
         <h2 id="original-request-title">Solicitud original</h2>
         <p className="original-request-project">{pedido.proyecto}</p>
 
@@ -76,11 +66,7 @@ function OriginalRequestModal({ pedido, onClose }) {
           )}
         </div>
 
-        <div className="modal-buttons">
-          <button type="button" onClick={onClose}>Cerrar</button>
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 

@@ -12,6 +12,7 @@ import { SolicitudesContext } from "../context/SolicitudesContext";
 import { UsuariosContext } from "../context/UsuariosContext";
 import api from "../api";
 import { Navigate } from "react-router-dom";
+import ModalShell from "../components/ModalShell";
 
 function ValidarSolicitudes() {
   const { user } = useContext(AuthContext);
@@ -398,8 +399,7 @@ function ValidarSolicitudes() {
       </div>
 
       {pedidoAArchivar && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <ModalShell onClose={() => setPedidoAArchivar(null)} ariaLabel="Archivar pedido">
             <h2>Archivar pedido</h2>
             <p>¿Desea archivar este pedido?</p>
 
@@ -411,13 +411,11 @@ function ValidarSolicitudes() {
                 Confirmar
               </button>
             </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
 
       {pedidoAEliminar && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <ModalShell onClose={() => setPedidoAEliminar(null)} ariaLabel="Eliminar pedido">
             <h2>Eliminar pedido</h2>
             <p>¿Deseas eliminar este pedido?</p>
             <p>Esta acción eliminará también sus archivos asociados.</p>
@@ -438,12 +436,10 @@ function ValidarSolicitudes() {
                 Eliminar
               </button>
             </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
       {pedidoSeleccionado && (
-        <div className="modal-overlay">
-          <div className="modal order-detail-modal">
+        <ModalShell onClose={cerrarDetallePedido} className="order-detail-modal" ariaLabel="Detalles del pedido">
             <h2>Detalles del pedido</h2>
 
             <div className="order-detail-meta">
@@ -587,13 +583,7 @@ function ValidarSolicitudes() {
               </section>
             </div>
 
-            <div className="modal-buttons order-detail-sticky-footer">
-              <button type="button" onClick={cerrarDetallePedido}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </Layout>
   );

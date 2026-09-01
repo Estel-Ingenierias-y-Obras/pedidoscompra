@@ -19,10 +19,6 @@ function ProjectOrderCard({ proyecto, onOpen }) {
       </span>
 
       <span className="project-order-card-metrics">
-        <span className="project-order-total">
-          <strong>{proyecto.total}</strong>
-          {proyecto.total === 1 ? "pedido" : "pedidos"}
-        </span>
         <span className={`estado estado-${proyecto.estadoGeneral.clase}`}>
           {proyecto.estadoGeneral.etiqueta}
         </span>
