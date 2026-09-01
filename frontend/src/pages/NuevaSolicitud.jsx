@@ -386,10 +386,6 @@ function NuevaSolicitud() {
                 <span><FontAwesomeIcon className="summary-label-icon" icon={faFolderOpen} aria-hidden="true" />Proyecto seleccionado</span>
                 <strong>{proyecto || "Pendiente de seleccionar"}</strong>
               </div>
-              <div>
-                <span><FontAwesomeIcon className="summary-label-icon" icon={faClipboardList} aria-hidden="true" />Tipo</span>
-                <strong>{urgente === "Sí" ? "Solicitud urgente" : "Solicitud normal"}</strong>
-              </div>
               <div className={urgente === "Sí" ? "summary-urgency-highlight" : ""}>
                 <span><FontAwesomeIcon className="summary-label-icon" icon={urgente === "Sí" ? faBolt : faCalendarCheck} aria-hidden="true" />Urgencia</span>
                 <strong>{urgente === "Sí" ? "Urgente" : "Normal"}</strong>

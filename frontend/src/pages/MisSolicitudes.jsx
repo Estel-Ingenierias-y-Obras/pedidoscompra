@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faDownload,
@@ -8,17 +8,44 @@ import {
   faFileLines,
   faFilePdf,
   faPaperclip,
-  faPen
+  faPen,
+  faArrowLeft,
+  faMagnifyingGlass
 } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
-import AttachmentList, {
-  formatearTamanoArchivo
-} from "../components/AttachmentList";
+import AttachmentList, { formatearTamanoArchivo } from "../components/AttachmentList";
 import DeleteIconButton from "../components/DeleteIconButton";
 import ProjectSelector from "../components/ProjectSelector";
+import ProjectOrderCard from "../components/ProjectOrderCard";
+import OriginalRequestModal from "../components/OriginalRequestModal";
 import { SolicitudesContext } from "../context/SolicitudesContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
+
+const ESTADOS_PROYECTO = {
+  pendiente: { etiqueta: "Pendiente", plural: "pendientes", prioridad: 1, clase: "pendiente" },
+  "en gestion": { etiqueta: "En gestión", plural: "en gestión", prioridad: 2, clase: "en-curso" },
+  pedido: { etiqueta: "Pedido", plural: "pedidos", prioridad: 3, clase: "pedido" },
+  recibido: { etiqueta: "Recibido", plural: "recibidos", prioridad: 4, clase: "recibido" },
+  archivar: { etiqueta: "Completado", plural: "completados", prioridad: 5, clase: "completado", final: true },
+  completado: { etiqueta: "Completado", plural: "completados", prioridad: 5, clase: "completado", final: true }
+};
+
+const normalizarEstado = estado =>
+  String(estado || "Sin estado")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+const obtenerDefinicionEstado = estado => {
+  const clave = normalizarEstado(estado);
+  return ESTADOS_PROYECTO[clave] || {
+    etiqueta: estado || "Sin estado",
+    plural: String(estado || "sin estado").toLowerCase(),
+    prioridad: 3,
+    clase: "pedido"
+  };
+};
 
 function MisSolicitudes() {
   const { solicitudes, setSolicitudes } = useContext(SolicitudesContext);
@@ -27,9 +54,12 @@ function MisSolicitudes() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [busquedaProyecto, setBusquedaProyecto] = useState("");
+  const [filtroProyectos, setFiltroProyectos] = useState("todos");
+  const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
   const [pedidoAEliminar, setPedidoAEliminar] = useState(null);
   const [pedidoAEditar, setPedidoAEditar] = useState(null);
   const [pedidoAdjuntosLectura, setPedidoAdjuntosLectura] = useState(null);
+  const [pedidoDetalleOriginal, setPedidoDetalleOriginal] = useState(null);
   const [formEdicion, setFormEdicion] = useState({
     proyecto: "",
     urgente: "No",
@@ -46,15 +76,74 @@ function MisSolicitudes() {
   const urgenteInputRef = useRef(null);
   const noUrgenteInputRef = useRef(null);
 
-  const misPedidos = solicitudes.filter(
-    solicitud => solicitud.email === user.email
+  const esGestor = ["Comprador", "Admin"].includes(user?.rol);
+  const pedidosVisibles = esGestor
+    ? solicitudes
+    : solicitudes.filter(
+        solicitud =>
+          String(solicitud.email || "").toLowerCase() ===
+          String(user?.email || "").toLowerCase()
+      );
+
+  const proyectos = useMemo(() => {
+    const agrupados = pedidosVisibles.reduce((resultado, pedido) => {
+      const nombre = (pedido.proyecto || "Sin proyecto").trim();
+
+      if (!resultado.has(nombre)) {
+        resultado.set(nombre, { nombre, total: 0, estados: new Map() });
+      }
+
+      const proyecto = resultado.get(nombre);
+      proyecto.total += 1;
+      const estado = pedido.estado || "Sin estado";
+      proyecto.estados.set(estado, (proyecto.estados.get(estado) || 0) + 1);
+      return resultado;
+    }, new Map());
+
+    return Array.from(agrupados.values())
+      .map(proyecto => {
+        const estados = Array.from(proyecto.estados, ([estado, cantidad]) => ({
+          ...obtenerDefinicionEstado(estado),
+          estado,
+          cantidad
+        })).sort((a, b) => a.prioridad - b.prioridad);
+        const estadosActivos = estados.filter(estado => !estado.final);
+        const estadoGeneral = estadosActivos[0] || {
+          etiqueta: "Completado",
+          clase: "completado",
+          final: true
+        };
+
+        return { ...proyecto, estados, estadoGeneral };
+      })
+      .sort((a, b) =>
+        a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+      );
+  }, [pedidosVisibles]);
+
+  const proyectosFiltrados = proyectos.filter(proyecto => {
+    const coincideBusqueda = proyecto.nombre
+      .toLowerCase()
+      .includes(busquedaProyecto.trim().toLowerCase());
+    const coincideEstado =
+      filtroProyectos === "todos" ||
+      (filtroProyectos === "pendientes" &&
+        proyecto.estados.some(estado => normalizarEstado(estado.estado) === "pendiente")) ||
+      (filtroProyectos === "completados" && proyecto.estadoGeneral.final);
+
+    return coincideBusqueda && coincideEstado;
+  });
+
+  const pedidosProyectoSeleccionado = pedidosVisibles.filter(
+    pedido => (pedido.proyecto || "Sin proyecto").trim() === proyectoSeleccionado
   );
 
-  const misPedidosFiltrados = misPedidos.filter(solicitud =>
-    (solicitud.proyecto || "")
-      .toLowerCase()
-      .includes(busquedaProyecto.toLowerCase())
-  );
+  const puedeEditarPedido = pedido =>
+    pedido.estado === "Pendiente" &&
+    String(pedido.email || "").toLowerCase() === String(user?.email || "").toLowerCase();
+
+  const puedeEliminarPedido = pedido =>
+    user?.rol === "Admin" || puedeEditarPedido(pedido);
 
   const mostrarMensaje = (texto) => {
     setMensaje(texto);
@@ -261,7 +350,10 @@ function MisSolicitudes() {
 
   const confirmarEliminacion = async () => {
     try {
-      await api.delete(`/api/pedidos/${pedidoAEliminar._id}`);
+      const ruta = user?.rol === "Admin"
+        ? `/api/pedidos/admin/${pedidoAEliminar._id}`
+        : `/api/pedidos/${pedidoAEliminar._id}`;
+      await api.delete(ruta);
       setSolicitudes(solicitudesActuales =>
         solicitudesActuales.filter(solicitud => solicitud._id !== pedidoAEliminar._id)
       );
@@ -371,7 +463,7 @@ function MisSolicitudes() {
   return (
     <Layout>
       <div className="page-header">
-        <h1>Mis Pedidos</h1>
+        <h1>Pedidos</h1>
       </div>
 
       {mensaje && <div className="mensaje-exito">{mensaje}</div>}
@@ -383,36 +475,105 @@ function MisSolicitudes() {
       )}
 
       <div className="page-content">
-        <div className="barra-busqueda">
-          <label>Buscar por proyecto:</label>
-          <input
-            type="search"
-            placeholder="Buscar proyecto..."
-            value={busquedaProyecto}
-            onChange={(event) => setBusquedaProyecto(event.target.value)}
-          />
-        </div>
+        {!proyectoSeleccionado ? (
+          <section className="projects-view" aria-labelledby="projects-heading">
+            <div className="projects-toolbar">
+              <label className="projects-search">
+                <FontAwesomeIcon icon={faMagnifyingGlass} aria-hidden="true" />
+                <span className="sr-only">Buscar proyectos</span>
+                <input
+                  type="search"
+                  placeholder="Buscar proyectos..."
+                  value={busquedaProyecto}
+                  onChange={(event) => setBusquedaProyecto(event.target.value)}
+                />
+              </label>
+              <div className="projects-filter" role="group" aria-label="Filtrar proyectos">
+                {[
+                  ["todos", "Todos"],
+                  ["pendientes", "Pendientes"],
+                  ["completados", "Completados"]
+                ].map(([valor, etiqueta]) => (
+                  <button
+                    type="button"
+                    key={valor}
+                    className={filtroProyectos === valor ? "is-active" : ""}
+                    onClick={() => setFiltroProyectos(valor)}
+                    aria-pressed={filtroProyectos === valor}
+                  >
+                    {etiqueta}
+                  </button>
+                ))}
+              </div>
+              <span className="projects-count" id="projects-heading">
+                {proyectos.length} proyectos
+              </span>
+            </div>
 
-        {misPedidosFiltrados.length === 0 ? (
-          <p>No existen pedidos.</p>
+            {proyectosFiltrados.length === 0 ? (
+              <div className="projects-empty">
+                <h3>No hay proyectos que coincidan</h3>
+                <p>Prueba con otra búsqueda o cambia el filtro seleccionado.</p>
+              </div>
+            ) : (
+              <div className="projects-grid">
+                {proyectosFiltrados.map(proyecto => (
+                  <ProjectOrderCard
+                    key={proyecto.nombre}
+                    proyecto={proyecto}
+                    onOpen={setProyectoSeleccionado}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
         ) : (
+          <section className="project-orders-view" aria-labelledby="project-orders-heading">
+            <button
+              type="button"
+              className="back-to-projects"
+              onClick={() => setProyectoSeleccionado(null)}
+            >
+              <FontAwesomeIcon icon={faArrowLeft} />
+              Todos los proyectos
+            </button>
+            <div className="project-orders-heading">
+              <div>
+                <span>Proyecto</span>
+                <h2 id="project-orders-heading">{proyectoSeleccionado}</h2>
+              </div>
+              <span>{pedidosProyectoSeleccionado.length} pedidos</span>
+            </div>
+
           <table className="mis-pedidos-table acciones-centradas-table">
             <thead>
               <tr>
                 <th>Proyecto</th>
                 <th>Estado</th>
-                <th>Detalles</th>
+                <th>Comentarios</th>
                 <th>Acciones</th>
               </tr>
             </thead>
 
             <tbody>
-              {misPedidosFiltrados.map(solicitud => (
-                <tr key={solicitud._id}>
+              {pedidosProyectoSeleccionado.map(solicitud => (
+                <tr
+                  key={solicitud._id}
+                  className="clickable-order-row"
+                  tabIndex="0"
+                  role="button"
+                  aria-label={`Ver detalles del pedido de ${solicitud.proyecto}`}
+                  onClick={() => setPedidoDetalleOriginal(solicitud)}
+                  onKeyDown={event => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setPedidoDetalleOriginal(solicitud);
+                    }
+                  }}
+                >
                   <td className="project-name-cell">
-                    <span title={solicitud.proyecto}>
-                      {solicitud.proyecto}
-                    </span>
+                    <span title={solicitud.proyecto}>{solicitud.proyecto}</span>
                   </td>
                   <td>
                     <span className={`estado estado-${solicitud.estado.toLowerCase()}`}>
@@ -423,28 +584,35 @@ function MisSolicitudes() {
                     <button
                       type="button"
                       className="attachments-summary-button"
-                      onClick={() => setPedidoAdjuntosLectura(solicitud)}
-                      title="Ver pedido"
+                      onClick={event => {
+                        event.stopPropagation();
+                        setPedidoAdjuntosLectura(solicitud);
+                      }}
+                      title="Ver comentarios de Compras"
                     >
                       Ver
                     </button>
                   </td>
                   <td>
-                    {solicitud.estado === "Pendiente" && (
+                    {(puedeEditarPedido(solicitud) || puedeEliminarPedido(solicitud)) && (
                       <div className="mis-pedidos-actions">
-                        <button
-                          type="button"
-                          className="mis-pedidos-action-button mis-pedidos-edit-button"
-                          onClick={() => abrirEdicion(solicitud)}
-                          title="Editar pedido"
-                          aria-label="Editar pedido"
-                        >
-                          <FontAwesomeIcon icon={faPen} />
-                        </button>
-                        <DeleteIconButton
-                          label="Eliminar pedido"
-                          onClick={() => setPedidoAEliminar(solicitud)}
-                        />
+                        {puedeEditarPedido(solicitud) && (
+                          <button
+                            type="button"
+                            className="mis-pedidos-action-button mis-pedidos-edit-button"
+                            onClick={event => { event.stopPropagation(); abrirEdicion(solicitud); }}
+                            title="Editar pedido"
+                            aria-label="Editar pedido"
+                          >
+                            <FontAwesomeIcon icon={faPen} />
+                          </button>
+                        )}
+                        {puedeEliminarPedido(solicitud) && (
+                          <DeleteIconButton
+                            label="Eliminar pedido"
+                            onClick={event => { event.stopPropagation(); setPedidoAEliminar(solicitud); }}
+                          />
+                        )}
                       </div>
                     )}
                   </td>
@@ -452,33 +620,27 @@ function MisSolicitudes() {
               ))}
             </tbody>
           </table>
+          </section>
         )}
       </div>
 
       {pedidoAdjuntosLectura && (
         <div className="modal-overlay">
           <div className="modal edit-order-modal">
-            <h2>Detalles del pedido</h2>
+            <h2>Comentarios de Compras</h2>
             <p><strong>Proyecto:</strong> {pedidoAdjuntosLectura.proyecto}</p>
 
             <div className="compras-info-readonly">
-              <h3>Información de Compras</h3>
               <div className="compras-info-block">
                 <strong>Comentario:</strong>
                 <p>{pedidoAdjuntosLectura.comentarioCompras || "Sin comentario de Compras"}</p>
               </div>
               <div className="compras-info-block">
                 <strong>Archivos:</strong>
-                {(pedidoAdjuntosLectura.adjuntosCompras || []).length > 0 ? (
-                  <AttachmentList
-                    pedido={pedidoAdjuntosLectura}
-                    archivos={pedidoAdjuntosLectura.adjuntosCompras || []}
-                  />
-                ) : (
-                  <div className="edit-attachments-empty">
-                    Sin archivos adjuntos de Compras
-                  </div>
-                )}
+                <AttachmentList
+                  pedido={pedidoAdjuntosLectura}
+                  archivos={pedidoAdjuntosLectura.adjuntosCompras || []}
+                />
               </div>
             </div>
 
@@ -490,6 +652,11 @@ function MisSolicitudes() {
           </div>
         </div>
       )}
+
+      <OriginalRequestModal
+        pedido={pedidoDetalleOriginal}
+        onClose={() => setPedidoDetalleOriginal(null)}
+      />
       {pedidoAEditar && (
         <div className="modal-overlay">
           <div className="modal edit-order-modal">

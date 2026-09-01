@@ -37,7 +37,7 @@ function Sidebar({ onNavigate }) {
         </li>
         <li>
           <NavLink to="/missolicitudes" className={navClassName} onClick={onNavigate}>
-            Mis Pedidos
+            Pedidos
           </NavLink>
         </li>
 

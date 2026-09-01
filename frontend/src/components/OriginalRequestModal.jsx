@@ -1,0 +1,87 @@
+import AttachmentList from "./AttachmentList";
+
+const obtenerAdjuntosDescripcion = pedido =>
+  Array.isArray(pedido.archivosDescripcion) && pedido.archivosDescripcion.length > 0
+    ? pedido.archivosDescripcion
+    : !pedido.urgente
+      ? pedido.archivos || []
+      : [];
+
+const obtenerAdjuntosUrgente = pedido =>
+  Array.isArray(pedido.archivosUrgente) ? pedido.archivosUrgente : [];
+
+const obtenerAdjuntosNoUrgente = pedido =>
+  Array.isArray(pedido.archivosNoUrgente) && pedido.archivosNoUrgente.length > 0
+    ? pedido.archivosNoUrgente
+    : pedido.urgente
+      ? pedido.archivos || []
+      : [];
+
+function RequestBlock({ titulo, texto, archivos, pedido, urgente = false }) {
+  return (
+    <section className={`original-request-block${urgente ? " is-urgent" : ""}`}>
+      <h3>{titulo}</h3>
+      <p>{texto || "Sin contenido"}</p>
+      <div className="original-request-attachments">
+        <strong>Adjuntos originales</strong>
+        <AttachmentList pedido={pedido} archivos={archivos} />
+      </div>
+    </section>
+  );
+}
+
+function OriginalRequestModal({ pedido, onClose }) {
+  if (!pedido) return null;
+
+  return (
+    <div
+      className="modal-overlay"
+      onMouseDown={event => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="modal original-request-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="original-request-title"
+      >
+        <h2 id="original-request-title">Solicitud original</h2>
+        <p className="original-request-project">{pedido.proyecto}</p>
+
+        <div className="original-request-content">
+          {pedido.urgente ? (
+            <>
+              <RequestBlock
+                titulo="Necesidades urgentes"
+                texto={pedido.motivoUrgencia}
+                archivos={obtenerAdjuntosUrgente(pedido)}
+                pedido={pedido}
+                urgente
+              />
+              <RequestBlock
+                titulo="Necesidades planificables / no urgentes"
+                texto={pedido.descripcion}
+                archivos={obtenerAdjuntosNoUrgente(pedido)}
+                pedido={pedido}
+              />
+            </>
+          ) : (
+            <RequestBlock
+              titulo="Descripción del pedido"
+              texto={pedido.descripcion}
+              archivos={obtenerAdjuntosDescripcion(pedido)}
+              pedido={pedido}
+            />
+          )}
+        </div>
+
+        <div className="modal-buttons">
+          <button type="button" onClick={onClose}>Cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default OriginalRequestModal;
