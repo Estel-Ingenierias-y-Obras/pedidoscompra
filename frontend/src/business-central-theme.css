@@ -5746,3 +5746,44 @@ table .delete-icon-button {
   color: #748191;
   opacity: 1;
 }
+
+/* Nuevo pedido: cada bloque conserva el espacio que necesita antes de compartir fila. */
+@media (min-width: 900px) {
+  .new-request-page {
+    width: min(100%, 1280px);
+  }
+
+  .new-request-page .request-blocks-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr));
+    align-items: start;
+  }
+}
+
+.new-request-page .request-blocks-grid,
+.new-request-page .request-block-card,
+.new-request-page .request-items-editor,
+.new-request-page .request-items-editor-list,
+.new-request-page .request-item-row,
+.new-request-page .block-attachments,
+.new-request-page .attachments-dropzone,
+.new-request-page .attachments-dropzone-copy {
+  min-width: 0;
+}
+
+.new-request-page .request-block-card {
+  align-content: start;
+  overflow: hidden;
+}
+
+.new-request-page .request-block-title > div,
+.new-request-page .request-item-row label,
+.new-request-page .attachments-dropzone-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .new-request-page .request-item-row {
+    grid-template-columns: 24px minmax(0, 1fr) minmax(62px, 72px) 34px;
+  }
+}
