@@ -1,7 +1,27 @@
+import { useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
 function ModalShell({ children, onClose, className = "", ariaLabel = "Modal" }) {
+  const closeButtonRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const elementoAnterior = document.activeElement;
+    const cerrarConEscape = event => {
+      if (event.key === "Escape") onCloseRef.current();
+    };
+
+    document.addEventListener("keydown", cerrarConEscape);
+    closeButtonRef.current?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", cerrarConEscape);
+      elementoAnterior?.focus?.();
+    };
+  }, []);
+
   return (
     <div
       className="modal-overlay"
@@ -17,6 +37,7 @@ function ModalShell({ children, onClose, className = "", ariaLabel = "Modal" }) 
         onMouseDown={event => event.stopPropagation()}
       >
         <button
+          ref={closeButtonRef}
           type="button"
           className="modal-close-button"
           onClick={onClose}

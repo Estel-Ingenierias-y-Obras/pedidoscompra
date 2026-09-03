@@ -68,7 +68,7 @@ function HistoricoPedidos() {
             No hay pedidos en el histórico.
           </div>
         ) : (
-          <table>
+          <table className="historico-pedidos-table">
             <thead>
               <tr>
                 <th>ID</th>

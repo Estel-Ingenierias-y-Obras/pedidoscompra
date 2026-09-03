@@ -43,10 +43,22 @@ function NuevaSolicitud() {
   const [archivosUrgente, setArchivosUrgente] = useState([]);
   const [archivosNoUrgente, setArchivosNoUrgente] = useState([]);
   const [mensaje, setMensaje] = useState("");
+  const [modoWizard, setModoWizard] = useState(() =>
+    window.matchMedia("(max-width: 900px)").matches
+  );
+  const [pasoActual, setPasoActual] = useState(0);
+  const [direccionPaso, setDireccionPaso] = useState("adelante");
   const descripcionInputRef = useRef(null);
   const urgenteBlockRef = useRef(null);
   const urgenteInputRef = useRef(null);
   const noUrgenteInputRef = useRef(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const actualizarModo = event => setModoWizard(event.matches);
+    mediaQuery.addEventListener("change", actualizarModo);
+    return () => mediaQuery.removeEventListener("change", actualizarModo);
+  }, []);
 
   const obtenerClaveArchivo = (archivo) =>
     `${archivo.name}-${archivo.size}-${archivo.lastModified}`;
@@ -224,9 +236,173 @@ function NuevaSolicitud() {
     setElementosUrgentes([crearElementoVacio()]);
     setElementosNoUrgentes([]);
     limpiarArchivos();
+    setPasoActual(0);
     setMensaje("Pedido enviado correctamente");
     setTimeout(() => setMensaje(""), 3000);
   };
+
+  const pasosWizard = ["Proyecto", "Tipo", "Materiales", "Adjuntos", "Resumen"];
+  const elementosPasoActual = urgente === "Sí" ? elementosUrgentes : elementos;
+  const pasoValido =
+    pasoActual === 0
+      ? Boolean(proyecto)
+      : pasoActual === 2
+        ? normalizarElementos(elementosPasoActual).length > 0
+        : true;
+
+  const cambiarPaso = nuevoPaso => {
+    setDireccionPaso(nuevoPaso > pasoActual ? "adelante" : "atras");
+    setPasoActual(nuevoPaso);
+  };
+
+  const renderNavegacionWizard = () => (
+    <div className="mobile-wizard-navigation">
+      <button
+        type="button"
+        className="secondary-button"
+        disabled={pasoActual === 0}
+        onClick={() => cambiarPaso(pasoActual - 1)}
+      >
+        Atrás
+      </button>
+      {pasoActual < pasosWizard.length - 1 ? (
+        <button
+          type="button"
+          disabled={!pasoValido}
+          onClick={() => cambiarPaso(pasoActual + 1)}
+        >
+          Continuar
+        </button>
+      ) : (
+        <button type="button" onClick={handleSubmit} disabled={!proyecto || !pasoValido}>
+          Crear pedido
+        </button>
+      )}
+    </div>
+  );
+
+  const renderWizardMovil = () => (
+    <div className="mobile-request-wizard">
+      <div className="mobile-wizard-progress" aria-label={`Paso ${pasoActual + 1} de ${pasosWizard.length}`}>
+        <div className="mobile-wizard-progress-copy">
+          <span>Paso {pasoActual + 1} de {pasosWizard.length}</span>
+          <strong>{pasosWizard[pasoActual]}</strong>
+        </div>
+        <div className="mobile-wizard-progress-track" aria-hidden="true">
+          <span style={{ width: `${((pasoActual + 1) / pasosWizard.length) * 100}%` }} />
+        </div>
+        <div className="mobile-wizard-dots" aria-hidden="true">
+          {pasosWizard.map((paso, indice) => (
+            <span key={paso} className={indice <= pasoActual ? "is-complete" : ""} />
+          ))}
+        </div>
+      </div>
+
+      <section
+        key={`${pasoActual}-${direccionPaso}`}
+        className={`mobile-wizard-step slide-${direccionPaso}`}
+        aria-labelledby={`mobile-step-title-${pasoActual}`}
+      >
+        {pasoActual === 0 && (
+          <>
+            <p className="section-kicker">Paso 1</p>
+            <h2 id="mobile-step-title-0">Selecciona el proyecto</h2>
+            <div className="mobile-identity-card">
+              <span>Solicitante</span>
+              <strong>{user?.nombre}</strong>
+              <small>{user?.email}</small>
+            </div>
+            <div className="guided-field">
+              <div className="guided-field-header">
+                <label htmlFor="buscador-proyecto-mobile"><FontAwesomeIcon className="field-label-icon" icon={faScrewdriverWrench} aria-hidden="true" />Proyecto</label>
+                <span>Obligatorio</span>
+              </div>
+              <ProjectSelector value={proyecto} onChange={setProyecto} inputId="buscador-proyecto-mobile" />
+            </div>
+          </>
+        )}
+
+        {pasoActual === 1 && (
+          <>
+            <p className="section-kicker">Paso 2</p>
+            <h2 id="mobile-step-title-1">Tipo de pedido</h2>
+            <div className="urgency-choice-grid" role="radiogroup" aria-label="Prioridad de la solicitud">
+              <label className={`urgency-choice-card${urgente === "No" ? " selected" : ""}`}>
+                <input type="radio" value="No" checked={urgente === "No"} onChange={event => setUrgente(event.target.value)} />
+                <FontAwesomeIcon icon={faCalendarCheck} aria-hidden="true" />
+                <strong>Normal</strong>
+              </label>
+              <label className={`urgency-choice-card${urgente === "Sí" ? " selected" : ""}`}>
+                <input type="radio" value="Sí" checked={urgente === "Sí"} onChange={event => setUrgente(event.target.value)} />
+                <FontAwesomeIcon icon={faBolt} aria-hidden="true" />
+                <strong>Urgente</strong>
+              </label>
+            </div>
+          </>
+        )}
+
+        {pasoActual === 2 && (
+          <>
+            <p className="section-kicker">Paso 3</p>
+            <h2 id="mobile-step-title-2">Materiales</h2>
+            {urgente === "Sí" ? (
+              <div className="mobile-material-groups">
+                <div className="request-block-card request-block-urgent">
+                  <h3>Urgentes</h3>
+                  <RequestItemsEditor value={elementosUrgentes} onChange={setElementosUrgentes} label="Materiales urgentes" />
+                </div>
+                <div className="request-block-card">
+                  <h3>Planificables</h3>
+                  <RequestItemsEditor value={elementosNoUrgentes} onChange={setElementosNoUrgentes} label="Materiales planificables" />
+                </div>
+              </div>
+            ) : (
+              <RequestItemsEditor value={elementos} onChange={setElementos} label="Materiales solicitados" />
+            )}
+          </>
+        )}
+
+        {pasoActual === 3 && (
+          <>
+            <p className="section-kicker">Paso 4</p>
+            <h2 id="mobile-step-title-3"><FontAwesomeIcon icon={faPaperclip} aria-hidden="true" /> Adjuntos</h2>
+            {urgente === "Sí" ? (
+              <div className="mobile-attachment-groups">
+                <div className="request-block-card request-block-urgent">
+                  <h3>Necesidades urgentes</h3>
+                  {renderAdjuntosBloque({ archivos: archivosUrgente, setter: setArchivosUrgente, inputRef: urgenteInputRef, inputId: "archivos-urgente-mobile" })}
+                </div>
+                <div className="request-block-card">
+                  <h3>Necesidades planificables</h3>
+                  {renderAdjuntosBloque({ archivos: archivosNoUrgente, setter: setArchivosNoUrgente, inputRef: noUrgenteInputRef, inputId: "archivos-no-urgente-mobile" })}
+                </div>
+              </div>
+            ) : renderAdjuntosBloque({
+              archivos: archivosDescripcion,
+              setter: setArchivosDescripcion,
+              inputRef: descripcionInputRef,
+              inputId: "archivos-descripcion-mobile"
+            })}
+          </>
+        )}
+
+        {pasoActual === 4 && (
+          <>
+            <p className="section-kicker">Paso 5</p>
+            <h2 id="mobile-step-title-4">Revisa y crea el pedido</h2>
+            <div className="summary-grid">
+              <div><span>Proyecto</span><strong>{proyecto}</strong></div>
+              <div><span>Tipo</span><strong>{urgente === "Sí" ? "Urgente" : "Normal"}</strong></div>
+              <div><span>Materiales</span><strong>{urgente === "Sí" ? normalizarElementos(elementosUrgentes).length + normalizarElementos(elementosNoUrgentes).length : normalizarElementos(elementos).length}</strong></div>
+              <div><span>Archivos</span><strong>{contarArchivos()}</strong></div>
+            </div>
+          </>
+        )}
+      </section>
+
+      {renderNavegacionWizard()}
+    </div>
+  );
 
   return (
     <Layout>
@@ -244,7 +420,7 @@ function NuevaSolicitud() {
           </div>
         )}
 
-        <div className="new-request-shell">
+        {modoWizard ? renderWizardMovil() : <div className="new-request-shell">
           <section className="new-request-card new-request-section">
             <div className="section-heading">
               <span className="section-icon">
@@ -425,7 +601,7 @@ function NuevaSolicitud() {
               Crear solicitud
             </button>
           </section>
-        </div>
+        </div>}
       </div>
     </Layout>
   );

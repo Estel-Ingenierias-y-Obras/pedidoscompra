@@ -1,7 +1,5 @@
 import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPen } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import ModalShell from "../components/ModalShell";
 import DeleteIconButton from "../components/DeleteIconButton";
@@ -103,23 +101,31 @@ function Materiales() {
         <table className="materials-table">
           <thead><tr><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody>{filtrados.map(material => (
-            <tr key={material._id}>
+            <tr
+              key={material._id}
+              className="material-clickable-row"
+              role="button"
+              tabIndex="0"
+              aria-label={`Editar material ${material.nombre}`}
+              onClick={() => setMaterialEditando({ ...material })}
+              onKeyDown={event => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setMaterialEditando({ ...material });
+                }
+              }}
+            >
               <td><strong>{material.nombre}</strong></td>
               <td><span className={`estado ${material.activo ? "estado-completado" : "estado-rechazado"}`}>{material.activo ? "Activo" : "Inactivo"}</span></td>
               <td>
                 <div className="materials-actions">
-                  <button
-                    type="button"
-                    className="material-edit-icon-button"
-                    onClick={() => setMaterialEditando({ ...material })}
-                    title="Editar"
-                    aria-label="Editar"
-                  >
-                    <FontAwesomeIcon icon={faPen} aria-hidden="true" />
-                  </button>
                   <DeleteIconButton
                     label={`Eliminar ${material.nombre}`}
-                    onClick={() => setMaterialAEliminar(material)}
+                    onClick={event => {
+                      event.stopPropagation();
+                      setMaterialAEliminar(material);
+                    }}
                   />
                 </div>
               </td>
