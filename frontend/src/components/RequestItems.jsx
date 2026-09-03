@@ -63,7 +63,6 @@ function MaterialAutocomplete({ value, onChange, materiales }) {
               onClick={() => { onChange(material.nombre); setAbierto(false); }}
             >
               <strong>{material.nombre}</strong>
-              {material.categoria && <span>{material.categoria}</span>}
             </button>
           ))}
         </div>

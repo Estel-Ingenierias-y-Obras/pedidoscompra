@@ -5439,7 +5439,7 @@ table .delete-icon-button {
 .materials-page { display: grid; gap: 22px; }
 .materials-create-form {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(160px, 1fr) auto;
+  grid-template-columns: minmax(180px, 1fr) auto;
   align-items: end;
   gap: 12px;
   padding: 16px;
@@ -5458,6 +5458,11 @@ table .delete-icon-button {
 .materials-table td:last-child { width: 210px; text-align: center; }
 .materials-actions { display: flex; justify-content: center; gap: 7px; }
 .materials-actions button { min-height: 30px; padding: 5px 10px; }
+.materials-actions .material-edit-icon-button {
+  width: 32px;
+  min-width: 32px;
+  padding: 5px;
+}
 .material-edit-form { display: grid; gap: 16px; }
 .material-active-field { display: flex !important; align-items: center; grid-template-columns: none; }
 .material-active-field input { width: 16px; min-height: 16px; accent-color: var(--brand-navy); }
@@ -5466,9 +5471,8 @@ table .delete-icon-button {
   .materials-create-form { grid-template-columns: 1fr; }
   .materials-toolbar { align-items: stretch; flex-direction: column; }
   .materials-table td:nth-child(1)::before { content: "Nombre"; }
-  .materials-table td:nth-child(2)::before { content: "Categoría"; }
-  .materials-table td:nth-child(3)::before { content: "Estado"; }
-  .materials-table td:nth-child(4)::before { content: "Acciones"; }
+  .materials-table td:nth-child(2)::before { content: "Estado"; }
+  .materials-table td:nth-child(3)::before { content: "Acciones"; }
   .materials-table th:last-child,
   .materials-table td:last-child { width: auto; text-align: left; }
   .materials-actions { justify-content: flex-end; }

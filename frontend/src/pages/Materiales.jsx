@@ -1,12 +1,15 @@
 import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPen } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import ModalShell from "../components/ModalShell";
+import DeleteIconButton from "../components/DeleteIconButton";
 import { AuthContext } from "../context/AuthContext";
 import { MaterialesContext } from "../context/MaterialesContext";
 import api from "../api";
 
-const formularioVacio = { nombre: "", categoria: "", activo: true };
+const formularioVacio = { nombre: "" };
 
 function Materiales() {
   const { user } = useContext(AuthContext);
@@ -15,6 +18,7 @@ function Materiales() {
   const [busqueda, setBusqueda] = useState("");
   const [formulario, setFormulario] = useState(formularioVacio);
   const [materialEditando, setMaterialEditando] = useState(null);
+  const [materialAEliminar, setMaterialAEliminar] = useState(null);
   const [mensaje, setMensaje] = useState(null);
   const puedeGestionar = ["Admin", "Comprador"].includes(user?.rol);
 
@@ -56,21 +60,28 @@ function Materiales() {
     }
   };
 
-  const desactivar = async material => {
+  const confirmarEliminacion = async () => {
+    if (!materialAEliminar) return;
+
     try {
-      const response = await api.patch(`/api/materiales/${material._id}/desactivar`);
-      setMateriales(actuales => actuales.map(item => item._id === response.data._id ? response.data : item));
+      await api.delete(`/api/materiales/${materialAEliminar._id}`);
+      setMateriales(actuales =>
+        actuales.filter(item => item._id !== materialAEliminar._id)
+      );
+      setMaterialAEliminar(null);
       await recargarMateriales();
-      setMensaje({ tipo: "exito", texto: "Material desactivado" });
+      setMensaje({ tipo: "exito", texto: "Material eliminado correctamente" });
     } catch (error) {
-      setMensaje({ tipo: "error", texto: "No se pudo desactivar el material" });
+      setMensaje({
+        tipo: "error",
+        texto: error.response?.data?.error || "No se pudo eliminar el material"
+      });
     }
   };
 
   const termino = busqueda.trim().toLocaleLowerCase("es");
   const filtrados = materiales.filter(material =>
-    !termino || material.nombre.toLocaleLowerCase("es").includes(termino) ||
-    material.categoria.toLocaleLowerCase("es").includes(termino)
+    !termino || material.nombre.toLocaleLowerCase("es").includes(termino)
   );
 
   return (
@@ -83,7 +94,6 @@ function Materiales() {
         {mensaje && <div className={`settings-feedback settings-feedback-${mensaje.tipo}`}>{mensaje.texto}</div>}
         <form className="materials-create-form" onSubmit={guardarNuevo}>
           <label>Nombre<input value={formulario.nombre} onChange={e => setFormulario(actual => ({ ...actual, nombre: e.target.value }))} placeholder="Ej. Monitor" required /></label>
-          <label>Categoría <span>(opcional)</span><input value={formulario.categoria} onChange={e => setFormulario(actual => ({ ...actual, categoria: e.target.value }))} placeholder="Ej. Informática" /></label>
           <button type="submit">Crear material</button>
         </form>
         <div className="materials-toolbar">
@@ -91,13 +101,28 @@ function Materiales() {
           <span>{filtrados.length} materiales</span>
         </div>
         <table className="materials-table">
-          <thead><tr><th>Nombre</th><th>Categoría</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody>{filtrados.map(material => (
             <tr key={material._id}>
               <td><strong>{material.nombre}</strong></td>
-              <td>{material.categoria || "—"}</td>
               <td><span className={`estado ${material.activo ? "estado-completado" : "estado-rechazado"}`}>{material.activo ? "Activo" : "Inactivo"}</span></td>
-              <td><div className="materials-actions"><button type="button" onClick={() => setMaterialEditando({ ...material })}>Editar</button>{material.activo && <button type="button" className="secondary-button" onClick={() => desactivar(material)}>Desactivar</button>}</div></td>
+              <td>
+                <div className="materials-actions">
+                  <button
+                    type="button"
+                    className="material-edit-icon-button"
+                    onClick={() => setMaterialEditando({ ...material })}
+                    title="Editar"
+                    aria-label="Editar"
+                  >
+                    <FontAwesomeIcon icon={faPen} aria-hidden="true" />
+                  </button>
+                  <DeleteIconButton
+                    label={`Eliminar ${material.nombre}`}
+                    onClick={() => setMaterialAEliminar(material)}
+                  />
+                </div>
+              </td>
             </tr>
           ))}</tbody>
         </table>
@@ -107,10 +132,22 @@ function Materiales() {
           <h2>Editar material</h2>
           <form className="material-edit-form" onSubmit={guardarEdicion}>
             <label>Nombre<input value={materialEditando.nombre} onChange={e => setMaterialEditando(actual => ({ ...actual, nombre: e.target.value }))} required /></label>
-            <label>Categoría <span>(opcional)</span><input value={materialEditando.categoria} onChange={e => setMaterialEditando(actual => ({ ...actual, categoria: e.target.value }))} /></label>
             <label className="material-active-field"><input type="checkbox" checked={materialEditando.activo} onChange={e => setMaterialEditando(actual => ({ ...actual, activo: e.target.checked }))} /> Material activo</label>
             <div className="modal-buttons"><button type="submit">Guardar cambios</button></div>
           </form>
+        </ModalShell>
+      )}
+      {materialAEliminar && (
+        <ModalShell onClose={() => setMaterialAEliminar(null)} ariaLabel="Eliminar material">
+          <h2>Eliminar material</h2>
+          <p>
+            ¿Estás seguro de que deseas eliminar este material? Esta acción no se puede deshacer.
+          </p>
+          <p><strong>Material:</strong> {materialAEliminar.nombre}</p>
+          <div className="modal-buttons">
+            <button type="button" onClick={() => setMaterialAEliminar(null)}>Cancelar</button>
+            <button type="button" className="button-danger" onClick={confirmarEliminacion}>Eliminar</button>
+          </div>
         </ModalShell>
       )}
     </Layout>
