@@ -574,79 +574,82 @@ function MisSolicitudes() {
               <span>{pedidosProyectoSeleccionado.length} pedidos</span>
             </div>
 
-          <table className="mis-pedidos-table acciones-centradas-table">
-            <thead>
-              <tr>
-                <th>Solicitante</th>
-                <th>Estado</th>
-                <th>Comentarios</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
+          <div className="project-request-cards" role="list">
+            {pedidosProyectoSeleccionado.map(solicitud => (
+              <article
+                key={solicitud._id}
+                className="project-request-card"
+                role="listitem"
+                tabIndex="0"
+                aria-label={`Ver solicitud original de ${solicitud.solicitante}`}
+                onClick={() => setPedidoDetalleOriginal(solicitud)}
+                onKeyDown={event => {
+                  if (event.target !== event.currentTarget) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setPedidoDetalleOriginal(solicitud);
+                  }
+                }}
+              >
+                <div className="project-request-card-field">
+                  <span>Solicitante</span>
+                  <strong>{solicitud.solicitante}</strong>
+                </div>
 
-            <tbody>
-              {pedidosProyectoSeleccionado.map(solicitud => (
-                <tr
-                  key={solicitud._id}
-                  className="clickable-order-row"
-                  tabIndex="0"
-                  role="button"
-                  aria-label={`Ver detalles del pedido de ${solicitud.proyecto}`}
-                  onClick={() => setPedidoDetalleOriginal(solicitud)}
-                  onKeyDown={event => {
-                    if (event.target !== event.currentTarget) return;
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setPedidoDetalleOriginal(solicitud);
-                    }
-                  }}
-                >
-                  <td>{solicitud.solicitante}</td>
-                  <td>
-                    <span className={`estado estado-${solicitud.estado.toLowerCase()}`}>
-                      {solicitud.estado}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="attachments-summary-button"
-                      onClick={event => {
-                        event.stopPropagation();
-                        setPedidoAdjuntosLectura(solicitud);
-                      }}
-                      title="Ver comentarios de Compras"
-                    >
-                      Ver
-                    </button>
-                  </td>
-                  <td>
-                    {(puedeEditarPedido(solicitud) || puedeEliminarPedido(solicitud)) && (
-                      <div className="mis-pedidos-actions">
-                        {puedeEditarPedido(solicitud) && (
-                          <button
-                            type="button"
-                            className="mis-pedidos-action-button mis-pedidos-edit-button"
-                            onClick={event => { event.stopPropagation(); abrirEdicion(solicitud); }}
-                            title="Editar pedido"
-                            aria-label="Editar pedido"
-                          >
-                            <FontAwesomeIcon icon={faPen} />
-                          </button>
-                        )}
-                        {puedeEliminarPedido(solicitud) && (
-                          <DeleteIconButton
-                            label="Eliminar pedido"
-                            onClick={event => { event.stopPropagation(); setPedidoAEliminar(solicitud); }}
-                          />
-                        )}
-                      </div>
+                <div className="project-request-card-field">
+                  <span>Estado</span>
+                  <span className={`estado estado-${solicitud.estado.toLowerCase()}`}>
+                    {solicitud.estado}
+                  </span>
+                </div>
+
+                <div className="project-request-card-field">
+                  <span>Comprador</span>
+                  <strong>{solicitud.compradorAsignado || "Sin asignar"}</strong>
+                </div>
+
+                <div className="project-request-card-field project-request-comments">
+                  <span>Comentarios</span>
+                  <button
+                    type="button"
+                    className="attachments-summary-button"
+                    onClick={event => {
+                      event.stopPropagation();
+                      setPedidoAdjuntosLectura(solicitud);
+                    }}
+                  >
+                    Ver comentarios
+                  </button>
+                </div>
+
+                <div className="project-request-card-field project-request-actions">
+                  <span>Acciones</span>
+                  <div className="mis-pedidos-actions">
+                    {puedeEditarPedido(solicitud) && (
+                      <button
+                        type="button"
+                        className="mis-pedidos-action-button mis-pedidos-edit-button"
+                        onClick={event => { event.stopPropagation(); abrirEdicion(solicitud); }}
+                        title="Editar pedido"
+                        aria-label="Editar pedido"
+                      >
+                        <FontAwesomeIcon icon={faPen} />
+                      </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {puedeEliminarPedido(solicitud) && (
+                      <DeleteIconButton
+                        label="Eliminar pedido"
+                        onClick={event => { event.stopPropagation(); setPedidoAEliminar(solicitud); }}
+                      />
+                    )}
+                    {!puedeEditarPedido(solicitud) && !puedeEliminarPedido(solicitud) && (
+                      <span className="project-request-no-actions">Sin acciones disponibles</span>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
           </section>
         )}
       </div>
