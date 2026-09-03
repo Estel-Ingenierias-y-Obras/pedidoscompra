@@ -15,6 +15,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import DeleteIconButton from "../components/DeleteIconButton";
+import NotificationToast from "../components/NotificationToast";
 import ProjectSelector from "../components/ProjectSelector";
 import {
   formatearTamanoArchivo,
@@ -238,7 +239,6 @@ function NuevaSolicitud() {
     limpiarArchivos();
     setPasoActual(0);
     setMensaje("Pedido enviado correctamente");
-    setTimeout(() => setMensaje(""), 3000);
   };
 
   const pasosWizard = ["Proyecto", "Tipo", "Materiales", "Adjuntos", "Resumen"];
@@ -414,11 +414,7 @@ function NuevaSolicitud() {
       </div>
 
       <div className="new-request-page">
-        {mensaje && (
-          <div className="mensaje-exito new-request-success" role="status">
-            {mensaje}
-          </div>
-        )}
+        <NotificationToast message={mensaje} onClose={() => setMensaje("")} />
 
         {modoWizard ? renderWizardMovil() : <div className="new-request-shell">
           <section className="new-request-card new-request-section">

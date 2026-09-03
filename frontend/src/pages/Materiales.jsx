@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ModalShell from "../components/ModalShell";
 import DeleteIconButton from "../components/DeleteIconButton";
+import NotificationToast from "../components/NotificationToast";
 import { AuthContext } from "../context/AuthContext";
 import { MaterialesContext } from "../context/MaterialesContext";
 import api from "../api";
@@ -89,7 +90,7 @@ function Materiales() {
         <p className="page-subtitle">Catálogo de materiales frecuentes para agilizar las solicitudes.</p>
       </div>
       <div className="page-content materials-page">
-        {mensaje && <div className={`settings-feedback settings-feedback-${mensaje.tipo}`}>{mensaje.texto}</div>}
+        <NotificationToast message={mensaje} onClose={() => setMensaje(null)} />
         <form className="materials-create-form" onSubmit={guardarNuevo}>
           <label>Nombre<input value={formulario.nombre} onChange={e => setFormulario(actual => ({ ...actual, nombre: e.target.value }))} placeholder="Ej. Monitor" required /></label>
           <button type="submit">Crear material</button>
@@ -99,7 +100,7 @@ function Materiales() {
           <span>{filtrados.length} materiales</span>
         </div>
         <table className="materials-table">
-          <thead><tr><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Acciones</th></tr></thead>
           <tbody>{filtrados.map(material => (
             <tr
               key={material._id}
@@ -117,7 +118,6 @@ function Materiales() {
               }}
             >
               <td><strong>{material.nombre}</strong></td>
-              <td><span className={`estado ${material.activo ? "estado-completado" : "estado-rechazado"}`}>{material.activo ? "Activo" : "Inactivo"}</span></td>
               <td>
                 <div className="materials-actions">
                   <DeleteIconButton

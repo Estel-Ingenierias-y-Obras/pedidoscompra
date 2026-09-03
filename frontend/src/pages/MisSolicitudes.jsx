@@ -23,6 +23,7 @@ import ProjectSelector from "../components/ProjectSelector";
 import ProjectOrderCard from "../components/ProjectOrderCard";
 import OriginalRequestModal from "../components/OriginalRequestModal";
 import ModalShell from "../components/ModalShell";
+import NotificationToast from "../components/NotificationToast";
 import {
   elementosATexto,
   normalizarElementos,
@@ -162,7 +163,6 @@ function MisSolicitudes() {
   const mostrarMensaje = (texto) => {
     setMensaje(texto);
     setError("");
-    setTimeout(() => setMensaje(""), 3000);
   };
 
   const mostrarError = (texto) => {
@@ -495,13 +495,14 @@ function MisSolicitudes() {
         <h1>Pedidos</h1>
       </div>
 
-      {mensaje && <div className="mensaje-exito">{mensaje}</div>}
-
-      {error && (
-        <div className="settings-feedback settings-feedback-error" role="alert">
-          {error}
-        </div>
-      )}
+      <NotificationToast
+        message={error || mensaje}
+        type={error ? "error" : "exito"}
+        onClose={() => {
+          setError("");
+          setMensaje("");
+        }}
+      />
 
       <div className="page-content">
         {!proyectoSeleccionado ? (

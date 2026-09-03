@@ -6,6 +6,7 @@ import { UsuariosContext } from "../context/UsuariosContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 import ModalShell from "../components/ModalShell";
+import NotificationToast from "../components/NotificationToast";
 import { Navigate } from "react-router-dom";
 
 function Usuarios() {
@@ -136,18 +137,15 @@ const agregarUsuario = async () => {
 
 };
 
-const mostrarNotificacion = (texto) => {
-  setMensaje(texto);
-
-  setTimeout(() => {
-    setMensaje("");
-  }, 3000);
+const mostrarNotificacion = (texto, tipo = "exito") => {
+  setMensaje({ texto, tipo });
 };
 
 const solicitarEliminacion = (usuario) => {
   if (usuario.email === user?.email) {
     mostrarNotificacion(
-      "No puedes eliminar tu propio usuario"
+      "No puedes eliminar tu propio usuario",
+      "aviso"
     );
     return;
   }
@@ -199,7 +197,7 @@ const abrirSolicitud = (solicitud) => {
 
 const aprobarSolicitud = async () => {
   if (!solicitudSeleccionada || !nombreAprobacion.trim()) {
-    mostrarNotificacion("El nombre es obligatorio");
+    mostrarNotificacion("El nombre es obligatorio", "aviso");
     return;
   }
 
@@ -223,7 +221,8 @@ const aprobarSolicitud = async () => {
   } catch (error) {
     console.error("Error aprobando solicitud de acceso:", error);
     mostrarNotificacion(
-      error.response?.data?.error || "No se pudo aprobar la solicitud"
+      error.response?.data?.error || "No se pudo aprobar la solicitud",
+      "error"
     );
   }
 };
@@ -239,7 +238,8 @@ const rechazarSolicitud = async (solicitud) => {
   } catch (error) {
     console.error("Error rechazando solicitud de acceso:", error);
     mostrarNotificacion(
-      error.response?.data?.error || "No se pudo rechazar la solicitud"
+      error.response?.data?.error || "No se pudo rechazar la solicitud",
+      "error"
     );
   }
 };
@@ -256,11 +256,7 @@ const formatearFecha = (fecha) =>
         <h1>Gestión de Usuarios</h1>
       </div>
 
-      {mensaje && (
-        <div className="mensaje-exito">
-          {mensaje}
-        </div>
-      )}
+      <NotificationToast message={mensaje} onClose={() => setMensaje(null)} />
 
       <div className="page-content">
 

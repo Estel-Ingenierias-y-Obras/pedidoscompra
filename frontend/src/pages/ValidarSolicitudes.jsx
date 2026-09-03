@@ -13,6 +13,7 @@ import { UsuariosContext } from "../context/UsuariosContext";
 import api from "../api";
 import { Navigate } from "react-router-dom";
 import ModalShell from "../components/ModalShell";
+import NotificationToast from "../components/NotificationToast";
 import { RequestItemsList } from "../components/RequestItems";
 
 function ValidarSolicitudes() {
@@ -127,7 +128,6 @@ function ValidarSolicitudes() {
       );
       setPedidoAEliminar(null);
       setMensaje("Pedido eliminado correctamente");
-      setTimeout(() => setMensaje(""), 3000);
     } catch (error) {
       console.error("Error eliminando pedido:", error);
     }
@@ -221,7 +221,6 @@ function ValidarSolicitudes() {
     }
 
     setMensaje("Adjuntado con éxito");
-    setTimeout(() => setMensaje(""), 3000);
   };
 
   const guardarInformacionCompras = async () => {
@@ -282,11 +281,7 @@ function ValidarSolicitudes() {
         <h1>Gestión de Pedidos</h1>
       </div>
 
-      {mensaje && (
-        <div className="mensaje-exito">
-          {mensaje}
-        </div>
-      )}
+      <NotificationToast message={mensaje} onClose={() => setMensaje("")} />
 
       <div className="page-content">
         <div className="barra-busqueda">

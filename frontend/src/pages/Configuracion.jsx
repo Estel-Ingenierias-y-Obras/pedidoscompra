@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import DeleteIconButton from "../components/DeleteIconButton";
+import NotificationToast from "../components/NotificationToast";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 
@@ -218,14 +219,7 @@ function Configuracion() {
       </div>
 
       <div className="page-content settings-grid">
-        {mensaje && (
-          <div
-            className={`settings-feedback settings-feedback-${mensaje.tipo}`}
-            role={mensaje.tipo === "error" ? "alert" : "status"}
-          >
-            {mensaje.texto}
-          </div>
-        )}
+        <NotificationToast message={mensaje} onClose={() => setMensaje(null)} />
 
         {renderSeccionDestinatarios({
           config: CONFIGURACIONES.compras,

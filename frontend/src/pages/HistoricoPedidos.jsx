@@ -5,6 +5,7 @@ import { SolicitudesContext } from "../context/SolicitudesContext";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 import ModalShell from "../components/ModalShell";
+import NotificationToast from "../components/NotificationToast";
 
 function HistoricoPedidos() {
   const { user } = useContext(AuthContext);
@@ -44,7 +45,6 @@ function HistoricoPedidos() {
         "Pedido recuperado y devuelto a Gestión de Pedidos"
       );
 
-      setTimeout(() => setMensaje(""), 3000);
     } catch (error) {
       console.error("Error recuperando pedido histórico:", error);
     }
@@ -56,11 +56,7 @@ function HistoricoPedidos() {
         <h1>Histórico de Pedidos</h1>
       </div>
 
-      {mensaje && (
-        <div className="mensaje-exito">
-          {mensaje}
-        </div>
-      )}
+      <NotificationToast message={mensaje} onClose={() => setMensaje("")} />
 
       <div className="page-content">
         {pedidosArchivados.length === 0 ? (
