@@ -9,6 +9,7 @@ import { MsalProvider } from "@azure/msal-react";
 import { broadcastResponseToMainFrame } from "@azure/msal-browser/redirect-bridge";
 import { msalInstance } from "./authConfig";
 import { MaterialesProvider } from "./context/MaterialesContext";
+import { registerServiceWorker } from "./serviceWorkerRegistration";
 
 if (window.location.pathname === "/redirect") {
   broadcastResponseToMainFrame().catch((error) => {
@@ -46,4 +47,6 @@ if (window.location.pathname === "/redirect") {
 
   );
 }
+
+registerServiceWorker();
 
