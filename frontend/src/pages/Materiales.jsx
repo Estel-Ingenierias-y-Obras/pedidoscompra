@@ -8,14 +8,27 @@ import { AuthContext } from "../context/AuthContext";
 import { MaterialesContext } from "../context/MaterialesContext";
 import api from "../api";
 
-const formularioVacio = { nombre: "" };
+const crearFormularioVacio = () => ({
+  nombre: "",
+  descripcion: "",
+  referencia: "",
+  unidadMedida: ""
+});
+
+const prepararPayload = formulario => ({
+  nombre: formulario.nombre.trim(),
+  descripcion: formulario.descripcion.trim(),
+  referencia: formulario.referencia.trim(),
+  unidadMedida: formulario.unidadMedida.trim(),
+  ...(Object.prototype.hasOwnProperty.call(formulario, "activo") ? { activo: formulario.activo } : {})
+});
 
 function Materiales() {
   const { user } = useContext(AuthContext);
   const { recargarMateriales } = useContext(MaterialesContext);
   const [materiales, setMateriales] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [formulario, setFormulario] = useState(formularioVacio);
+  const [formulario, setFormulario] = useState(crearFormularioVacio);
   const [materialEditando, setMaterialEditando] = useState(null);
   const [materialAEliminar, setMaterialAEliminar] = useState(null);
   const [mensaje, setMensaje] = useState(null);
@@ -34,12 +47,10 @@ function Materiales() {
 
   const guardarNuevo = async event => {
     event.preventDefault();
-    if (!formulario.nombre.trim()) return;
     try {
-      const response = await api.post("/api/materiales", formulario);
-      setMateriales(actuales => [...actuales, response.data].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
-      setFormulario(formularioVacio);
-      await recargarMateriales();
+      await api.post("/api/materiales", prepararPayload(formulario));
+      setFormulario(crearFormularioVacio());
+      await Promise.all([cargar(), recargarMateriales()]);
       setMensaje({ tipo: "exito", texto: "Material creado correctamente" });
     } catch (error) {
       setMensaje({ tipo: "error", texto: error.response?.data?.error || "No se pudo crear el material" });
@@ -49,10 +60,9 @@ function Materiales() {
   const guardarEdicion = async event => {
     event.preventDefault();
     try {
-      const response = await api.put(`/api/materiales/${materialEditando._id}`, materialEditando);
-      setMateriales(actuales => actuales.map(item => item._id === response.data._id ? response.data : item));
+      await api.put(`/api/materiales/${materialEditando._id}`, prepararPayload(materialEditando));
       setMaterialEditando(null);
-      await recargarMateriales();
+      await Promise.all([cargar(), recargarMateriales()]);
       setMensaje({ tipo: "exito", texto: "Material actualizado correctamente" });
     } catch (error) {
       setMensaje({ tipo: "error", texto: error.response?.data?.error || "No se pudo actualizar el material" });
@@ -80,7 +90,8 @@ function Materiales() {
 
   const termino = busqueda.trim().toLocaleLowerCase("es");
   const filtrados = materiales.filter(material =>
-    !termino || material.nombre.toLocaleLowerCase("es").includes(termino)
+    !termino || [material.nombre, material.descripcion, material.referencia, material.unidadMedida]
+      .some(valor => String(valor || "").toLocaleLowerCase("es").includes(termino))
   );
 
   return (
@@ -92,15 +103,18 @@ function Materiales() {
       <div className="page-content materials-page">
         <NotificationToast message={mensaje} onClose={() => setMensaje(null)} />
         <form className="materials-create-form" onSubmit={guardarNuevo}>
-          <label>Nombre<input value={formulario.nombre} onChange={e => setFormulario(actual => ({ ...actual, nombre: e.target.value }))} placeholder="Ej. Monitor" required /></label>
+          <label><span>Material *</span><input value={formulario.nombre} onChange={e => setFormulario(actual => ({ ...actual, nombre: e.target.value }))} placeholder="Ej. Cable UTP Cat6" required /></label>
+          <label><span>Descripción</span><input value={formulario.descripcion} onChange={e => setFormulario(actual => ({ ...actual, descripcion: e.target.value }))} placeholder="Cable de red categoría 6" required /></label>
+          <label><span>Referencia</span><input value={formulario.referencia} onChange={e => setFormulario(actual => ({ ...actual, referencia: e.target.value }))} placeholder="CAB-001" required /></label>
+          <label><span>Unidades</span><input value={formulario.unidadMedida} onChange={e => setFormulario(actual => ({ ...actual, unidadMedida: e.target.value }))} placeholder="Ej. Metros" required /></label>
           <button type="submit">Crear material</button>
         </form>
         <div className="materials-toolbar">
-          <input type="search" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar materiales..." />
+          <input type="search" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar por nombre, referencia, descripción o unidad..." />
           <span>{filtrados.length} materiales</span>
         </div>
         <table className="materials-table">
-          <thead><tr><th>Nombre</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Descripción</th><th>Referencia</th><th>Unidad</th><th>Acciones</th></tr></thead>
           <tbody>{filtrados.map(material => (
             <tr
               key={material._id}
@@ -118,6 +132,9 @@ function Materiales() {
               }}
             >
               <td><strong>{material.nombre}</strong></td>
+              <td>{material.descripcion}</td>
+              <td><span className="material-reference">{material.referencia}</span></td>
+              <td>{material.unidadMedida}</td>
               <td>
                 <div className="materials-actions">
                   <DeleteIconButton
@@ -137,7 +154,10 @@ function Materiales() {
         <ModalShell onClose={() => setMaterialEditando(null)} ariaLabel="Editar material">
           <h2>Editar material</h2>
           <form className="material-edit-form" onSubmit={guardarEdicion}>
-            <label>Nombre<input value={materialEditando.nombre} onChange={e => setMaterialEditando(actual => ({ ...actual, nombre: e.target.value }))} required /></label>
+            <label><span>Material *</span><input value={materialEditando.nombre} onChange={e => setMaterialEditando(actual => ({ ...actual, nombre: e.target.value }))} required /></label>
+            <label><span>Descripción</span><textarea value={materialEditando.descripcion} onChange={e => setMaterialEditando(actual => ({ ...actual, descripcion: e.target.value }))} rows="3" required /></label>
+            <label><span>Referencia</span><input value={materialEditando.referencia} onChange={e => setMaterialEditando(actual => ({ ...actual, referencia: e.target.value }))} required /></label>
+            <label><span>Unidades</span><input value={materialEditando.unidadMedida} onChange={e => setMaterialEditando(actual => ({ ...actual, unidadMedida: e.target.value }))} required /></label>
             <label className="material-active-field"><input type="checkbox" checked={materialEditando.activo} onChange={e => setMaterialEditando(actual => ({ ...actual, activo: e.target.checked }))} /> Material activo</label>
             <div className="modal-buttons"><button type="submit">Guardar cambios</button></div>
           </form>

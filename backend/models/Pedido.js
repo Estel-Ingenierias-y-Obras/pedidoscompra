@@ -20,9 +20,13 @@ const archivoSchema = {
 };
 
 const elementoPedidoSchema = new mongoose.Schema({
+  materialId: { type: mongoose.Schema.Types.ObjectId, ref: "Material", default: null },
   elemento: { type: String, required: true, trim: true },
-  cantidad: { type: Number, required: true, min: 1, default: 1 },
-  descripcion: { type: String, default: "", trim: true }
+  cantidad: { type: Number, required: true, min: 0.01, default: 1 },
+  descripcion: { type: String, default: "", trim: true },
+  referencia: { type: String, default: "", trim: true },
+  unidadMedida: { type: String, default: "", trim: true },
+  descripcionMaterial: { type: String, default: "", trim: true }
 }, { _id: false });
 
 const pedidoSchema = new mongoose.Schema({

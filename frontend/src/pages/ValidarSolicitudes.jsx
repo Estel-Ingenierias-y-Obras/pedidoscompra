@@ -455,9 +455,13 @@ function ValidarSolicitudes() {
                 <span>Estado</span>
                 <strong>{pedidoSeleccionado.estado}</strong>
               </div>
+              <div>
+                <span>Fecha</span>
+                <strong>{pedidoSeleccionado.fechaCreacion ? new Date(pedidoSeleccionado.fechaCreacion).toLocaleDateString("es-ES") : "Sin fecha"}</strong>
+              </div>
             </div>
 
-            <div className="profile-info-grid">
+            <div className="order-detail-layout">
               <section className="profile-info-panel obra-panel">
                 <div className="profile-panel-header">
                   <span className="profile-panel-icon"><FontAwesomeIcon icon={faClipboardList} /></span>
@@ -470,14 +474,14 @@ function ValidarSolicitudes() {
                 {pedidoSeleccionado.urgente ? (
                   <>
                     {renderBloqueDetalle({
-                      titulo: "Urgente",
+                      titulo: "Necesidades urgentes",
                       texto: pedidoSeleccionado.motivoUrgencia,
                       elementos: pedidoSeleccionado.elementosUrgentes,
                       archivos: obtenerAdjuntosUrgente(pedidoSeleccionado),
                       pedido: pedidoSeleccionado
                     })}
                     {renderBloqueDetalle({
-                      titulo: "No urgente",
+                      titulo: "Necesidades planificables",
                       texto: pedidoSeleccionado.descripcion,
                       elementos: pedidoSeleccionado.elementosNoUrgentes,
                       archivos: obtenerAdjuntosNoUrgente(pedidoSeleccionado),
@@ -486,7 +490,7 @@ function ValidarSolicitudes() {
                   </>
                 ) : (
                   renderBloqueDetalle({
-                    titulo: "Descripción",
+                    titulo: "Materiales solicitados",
                     texto: pedidoSeleccionado.descripcion,
                     elementos: pedidoSeleccionado.elementos,
                     archivos: obtenerAdjuntosDescripcion(pedidoSeleccionado),
@@ -499,7 +503,7 @@ function ValidarSolicitudes() {
                 <div className="profile-panel-header">
                   <span className="profile-panel-icon"><FontAwesomeIcon icon={faCirclePlus} /></span>
                   <div>
-                    <h3>Añadir información</h3>
+                    <h3>Información de Compras</h3>
                     <p>Comentario y archivos que verá el solicitante.</p>
                   </div>
                 </div>

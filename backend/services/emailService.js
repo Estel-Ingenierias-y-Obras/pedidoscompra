@@ -238,7 +238,7 @@ const buildPurchaseRequestBody = (pedido, frontendUrl) =>
           ...(pedido.elementosNoUrgentes || []),
           ...(pedido.elementos || [])
         ].map(item =>
-          `${item.elemento} (${item.cantidad})${item.descripcion ? ` - ${item.descripcion}` : ""}`
+          `${item.elemento}${item.referencia ? ` (${item.referencia})` : ""}: ${item.cantidad}${item.unidadMedida ? ` ${item.unidadMedida}` : ""}${item.descripcion ? ` - ${item.descripcion}` : ""}`
         ).join(" · ") || pedido.motivoUrgencia || pedido.descripcion || ""
       },
       { label: "Fecha", value: formatDate(pedido.fechaCreacion) }

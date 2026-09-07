@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const Pedido = require("../models/Pedido");
+const Material = require("../models/Material");
 const DestinatarioCompra = require("../models/DestinatarioCompra");
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const { responderErrorInterno } = require("../utils/httpErrors");
@@ -120,11 +121,54 @@ const parsearElementos = value => {
 
   return elementos
     .map(item => ({
+      materialId: mongoose.isValidObjectId(item?.materialId) ? item.materialId : null,
       elemento: String(item?.elemento || "").trim(),
-      cantidad: Math.max(1, Number(item?.cantidad) || 1),
-      descripcion: String(item?.descripcion || "").trim()
+      cantidad: Math.max(0.01, Number(item?.cantidad) || 1),
+      descripcion: String(item?.descripcion || "").trim(),
+      referencia: String(item?.referencia || "").trim(),
+      unidadMedida: String(item?.unidadMedida || "").trim(),
+      descripcionMaterial: String(item?.descripcionMaterial || "").trim()
     }))
     .filter(item => item.elemento);
+};
+
+const completarDatosMateriales = async value => {
+  const elementos = parsearElementos(value);
+  const ids = [...new Set(elementos.map(item => item.materialId?.toString()).filter(Boolean))];
+
+  if (ids.length === 0) return elementos;
+
+  const materiales = await Material.find({ _id: { $in: ids } })
+    .select("nombre descripcion referencia unidadMedida")
+    .lean();
+  const porId = new Map(materiales.map(material => [material._id.toString(), material]));
+
+  return elementos.map(item => {
+    if (!item.materialId) return item;
+    const material = porId.get(item.materialId.toString());
+    if (!material) {
+      const error = new Error(`El material seleccionado (${item.elemento}) ya no existe`);
+      error.status = 400;
+      throw error;
+    }
+    if (material.referencia.toLocaleUpperCase("es") !== item.referencia.toLocaleUpperCase("es")) {
+      const error = new Error(`Selecciona una referencia válida para ${material.nombre}`);
+      error.status = 400;
+      throw error;
+    }
+    if (material.unidadMedida.toLocaleLowerCase("es") !== item.unidadMedida.toLocaleLowerCase("es")) {
+      const error = new Error(`Selecciona una unidad válida para ${material.nombre} (${material.referencia})`);
+      error.status = 400;
+      throw error;
+    }
+    return {
+      ...item,
+      elemento: material.nombre,
+      descripcionMaterial: material.descripcion,
+      referencia: material.referencia,
+      unidadMedida: material.unidadMedida
+    };
+  });
 };
 
 const parsearArchivosExistentes = (value) => {
@@ -264,13 +308,18 @@ router.post("/", recibirArchivos, async (req, res) => {
       archivosNoUrgente.push(archivoGuardado);
     }
 
+    const [elementos, elementosUrgentes, elementosNoUrgentes] = await Promise.all([
+      completarDatosMateriales(req.body.elementos),
+      completarDatosMateriales(req.body.elementosUrgentes),
+      completarDatosMateriales(req.body.elementosNoUrgentes)
+    ]);
     const pedido = new Pedido({
       ...req.body,
       solicitante: req.usuarioActual.nombre,
       email: req.usuarioActual.email,
-      elementos: parsearElementos(req.body.elementos),
-      elementosUrgentes: parsearElementos(req.body.elementosUrgentes),
-      elementosNoUrgentes: parsearElementos(req.body.elementosNoUrgentes),
+      elementos,
+      elementosUrgentes,
+      elementosNoUrgentes,
       archivos: archivosLegacy,
       archivosDescripcion,
       archivosUrgente,
@@ -308,6 +357,7 @@ router.post("/", recibirArchivos, async (req, res) => {
       }
     }
 
+    if (error.status === 400) return res.status(400).json({ error: error.message });
     responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
@@ -451,6 +501,15 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       });
     }
 
+    const elementosActualizados =
+      !esActualizacionGestion && !esActualizacionAdjuntos && !esActualizacionInfoCompras
+        ? await Promise.all([
+            completarDatosMateriales(req.body.elementos),
+            completarDatosMateriales(req.body.elementosUrgentes),
+            completarDatosMateriales(req.body.elementosNoUrgentes)
+          ])
+        : [[], [], []];
+
     let datosActualizacion = esActualizacionGestion
       ? req.body
       : esActualizacionAdjuntos
@@ -462,9 +521,9 @@ router.put("/:id", recibirArchivos, async (req, res) => {
               urgente: normalizarBooleano(req.body.urgente),
               motivoUrgencia: req.body.motivoUrgencia,
               descripcion: req.body.descripcion,
-              elementos: parsearElementos(req.body.elementos),
-              elementosUrgentes: parsearElementos(req.body.elementosUrgentes),
-              elementosNoUrgentes: parsearElementos(req.body.elementosNoUrgentes)
+              elementos: elementosActualizados[0],
+              elementosUrgentes: elementosActualizados[1],
+              elementosNoUrgentes: elementosActualizados[2]
             };
 
     const debeActualizarArchivos =
@@ -611,6 +670,7 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       }
     }
 
+    if (error.status === 400) return res.status(400).json({ error: error.message });
     responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });

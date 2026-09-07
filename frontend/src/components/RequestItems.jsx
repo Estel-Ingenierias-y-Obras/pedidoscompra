@@ -4,21 +4,38 @@ import DeleteIconButton from "./DeleteIconButton";
 import { useContext, useId, useState } from "react";
 import { MaterialesContext } from "../context/MaterialesContext";
 
-export const crearElementoVacio = () => ({ elemento: "", cantidad: 1, descripcion: "" });
+export const crearElementoVacio = () => ({
+  materialId: null,
+  elemento: "",
+  cantidad: 1,
+  descripcion: "",
+  referencia: "",
+  unidadMedida: "",
+  descripcionMaterial: ""
+});
 
 export const normalizarElementos = elementos =>
   (Array.isArray(elementos) ? elementos : [])
     .map(item => ({
+      materialId: item?.materialId || null,
       elemento: String(item?.elemento || "").trim(),
-      cantidad: Math.max(1, Number(item?.cantidad) || 1),
-      descripcion: String(item?.descripcion || "").trim()
+      cantidad: Math.max(0.01, Number(item?.cantidad) || 1),
+      descripcion: String(item?.descripcion || "").trim(),
+      referencia: String(item?.referencia || "").trim(),
+      unidadMedida: String(item?.unidadMedida || "").trim(),
+      descripcionMaterial: String(item?.descripcionMaterial || "").trim()
     }))
     .filter(item => item.elemento);
 
 export const elementosATexto = elementos =>
   normalizarElementos(elementos)
-    .map(item => `${item.elemento} (${item.cantidad})${item.descripcion ? ` - ${item.descripcion}` : ""}`)
+    .map(item => `${item.elemento}${item.referencia ? ` (${item.referencia})` : ""}: ${item.cantidad}${item.unidadMedida ? ` ${item.unidadMedida}` : ""}${item.descripcion ? ` - ${item.descripcion}` : ""}`)
     .join("\n");
+
+export const elementosTienenVariantesValidas = elementos =>
+  normalizarElementos(elementos).every(item =>
+    Boolean(item.materialId) && Boolean(item.referencia) && Boolean(item.unidadMedida)
+  );
 
 export const obtenerElementosCompatibles = (elementos, textoLegacy) => {
   const normalizados = normalizarElementos(elementos);
@@ -28,24 +45,52 @@ export const obtenerElementosCompatibles = (elementos, textoLegacy) => {
   return [{ elemento: "Solicitud original", cantidad: 1, descripcion: textoLegacy }];
 };
 
-function MaterialAutocomplete({ value, onChange, materiales }) {
+function MaterialAutocomplete({ item, onChange, materiales }) {
   const [abierto, setAbierto] = useState(false);
   const suggestionsId = useId();
-  const termino = String(value || "").trim().toLocaleLowerCase("es");
+  const normalizar = valor => String(valor || "").trim().toLocaleLowerCase("es");
+  const termino = normalizar(item.elemento);
+  const nombresUnicos = [...new Map(
+    materiales.map(material => [normalizar(material.nombre), material.nombre])
+  ).values()];
   const sugerencias = termino
-    ? materiales.filter(material => material.nombre.toLocaleLowerCase("es").includes(termino)).slice(0, 6)
-    : materiales.slice(0, 6);
+    ? nombresUnicos.filter(nombre => normalizar(nombre).includes(termino)).slice(0, 8)
+    : nombresUnicos.slice(0, 8);
+
+  const seleccionar = nombre => {
+    const registros = materiales.filter(material => normalizar(material.nombre) === normalizar(nombre));
+    const registroUnico = registros.length === 1 ? registros[0] : null;
+    onChange({
+      ...item,
+      materialId: registroUnico?._id || null,
+      elemento: nombre,
+      referencia: registroUnico?.referencia || "",
+      unidadMedida: registroUnico?.unidadMedida || "",
+      descripcionMaterial: registroUnico?.descripcion || ""
+    });
+    setAbierto(false);
+  };
 
   return (
     <div className="material-autocomplete">
       <input
         type="text"
-        value={value}
-        placeholder="Ej. Monitor"
+        value={item.elemento}
+        placeholder="Buscar material"
         autoComplete="off"
         onFocus={() => setAbierto(true)}
         onBlur={() => window.setTimeout(() => setAbierto(false), 120)}
-        onChange={event => { onChange(event.target.value); setAbierto(true); }}
+        onChange={event => {
+          onChange({
+            ...item,
+            materialId: null,
+            elemento: event.target.value,
+            referencia: "",
+            unidadMedida: "",
+            descripcionMaterial: ""
+          });
+          setAbierto(true);
+        }}
         role="combobox"
         aria-expanded={abierto && sugerencias.length > 0}
         aria-controls={suggestionsId}
@@ -53,16 +98,16 @@ function MaterialAutocomplete({ value, onChange, materiales }) {
       />
       {abierto && sugerencias.length > 0 && (
         <div className="material-suggestions" id={suggestionsId} role="listbox">
-          {sugerencias.map(material => (
+          {sugerencias.map(nombre => (
             <button
               type="button"
               role="option"
-              aria-selected={material.nombre === value}
-              key={material._id}
+              aria-selected={normalizar(nombre) === normalizar(item.elemento)}
+              key={normalizar(nombre)}
               onMouseDown={event => event.preventDefault()}
-              onClick={() => { onChange(material.nombre); setAbierto(false); }}
+              onClick={() => seleccionar(nombre)}
             >
-              <strong>{material.nombre}</strong>
+              <strong>{nombre}</strong>
             </button>
           ))}
         </div>
@@ -83,6 +128,21 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
 
   const eliminar = indice => onChange(elementos.filter((_, index) => index !== indice));
 
+  const seleccionarReferencia = (indice, referencia) => {
+    const elemento = elementos[indice];
+    const registro = materiales.find(material =>
+      material.nombre.toLocaleLowerCase("es") === elemento.elemento.toLocaleLowerCase("es") &&
+      material.referencia === referencia
+    );
+    onChange(elementos.map((item, index) => index === indice ? {
+      ...item,
+      materialId: registro?._id || null,
+      referencia: registro?.referencia || "",
+      unidadMedida: registro?.unidadMedida || "",
+      descripcionMaterial: registro?.descripcion || ""
+    } : item));
+  };
+
   return (
     <div className="request-items-editor">
       <div className="request-items-editor-heading">
@@ -90,40 +150,67 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
         <span>{elementos.length} {elementos.length === 1 ? "elemento" : "elementos"}</span>
       </div>
 
-      <div className="request-items-editor-list">
-        {elementos.map((item, indice) => (
-          <div className="request-item-row" key={item._id || indice}>
-            <span className="request-item-index">{indice + 1}</span>
-            <label>
-              <span>Elemento</span>
+      <div className="request-lines-grid" role="table" aria-label={label}>
+        <div className="request-lines-header" role="row">
+          <span>Material</span>
+          <span>Referencia</span>
+          <span>U. medida</span>
+          <span>Cantidad</span>
+          <span>Observación</span>
+          <span className="sr-only">Eliminar</span>
+        </div>
+        {elementos.map((item, indice) => {
+          const registrosMaterial = materiales.filter(material =>
+            material.nombre.toLocaleLowerCase("es") === item.elemento.trim().toLocaleLowerCase("es")
+          );
+          const referencias = [...new Set(registrosMaterial.map(material => material.referencia))];
+          const registroExacto = registrosMaterial.find(material => material.referencia === item.referencia);
+          const unidadSeleccionada = registroExacto?.unidadMedida || item.unidadMedida;
+          return <div className="request-line" role="row" key={item._id || indice}>
+            <label className="request-line-material">
+              <span>Material</span>
               <MaterialAutocomplete
-                value={item.elemento}
+                item={item}
                 materiales={materiales}
-                onChange={valor => actualizar(indice, "elemento", valor)}
+                onChange={valor => onChange(elementos.map((actual, index) => index === indice ? valor : actual))}
               />
             </label>
-            <label className="request-item-quantity">
+            <label className="request-line-reference">
+              <span>Referencia</span>
+              <select value={item.referencia} disabled={referencias.length === 0} onChange={event => seleccionarReferencia(indice, event.target.value)} required>
+                {!item.referencia && <option value="">Seleccionar</option>}
+                {referencias.map(referencia => <option value={referencia} key={referencia}>{referencia}</option>)}
+              </select>
+            </label>
+            <label className="request-line-unit">
+              <span>U. medida</span>
+              <select value={unidadSeleccionada} disabled required>
+                {!unidadSeleccionada && <option value="">—</option>}
+                {unidadSeleccionada && <option value={unidadSeleccionada}>{unidadSeleccionada}</option>}
+              </select>
+            </label>
+            <label className="request-line-quantity">
               <span>Cantidad</span>
               <input
                 type="number"
-                min="1"
-                step="1"
+                min="0.01"
+                step="any"
                 value={item.cantidad}
                 onChange={event => actualizar(indice, "cantidad", event.target.value)}
               />
             </label>
-            <label>
-              <span>Descripción breve (opcional)</span>
+            <label className="request-line-observation">
+              <span>Observación</span>
               <input
                 type="text"
                 value={item.descripcion}
-                placeholder="Ej. 24 pulgadas"
+                placeholder="Opcional"
                 onChange={event => actualizar(indice, "descripcion", event.target.value)}
               />
             </label>
             <DeleteIconButton label={`Eliminar elemento ${indice + 1}`} onClick={() => eliminar(indice)} />
-          </div>
-        ))}
+          </div>;
+        })}
       </div>
 
       {elementos.length === 0 && (
@@ -155,13 +242,14 @@ export function RequestItemsList({ elementos, textoLegacy }) {
   return (
     <div className="request-items-table" role="table" aria-label="Elementos solicitados">
       <div className="request-items-table-header" role="row">
-        <span>Elemento</span><span>Cantidad</span><span>Descripción</span>
+        <span>Material</span><span>Referencia</span><span>Cantidad</span><span>Unidad</span>
       </div>
       {items.map((item, indice) => (
         <div className="request-items-table-row" role="row" key={`${item.elemento}-${indice}`}>
-          <strong>{item.elemento}</strong>
+          <div><strong>{item.elemento}</strong>{item.descripcion && <small>{item.descripcion}</small>}</div>
+          <span>{item.referencia || "—"}</span>
           <span>{item.cantidad}</span>
-          <span>{item.descripcion || "—"}</span>
+          <span>{item.unidadMedida || "—"}</span>
         </div>
       ))}
     </div>

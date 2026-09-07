@@ -27,6 +27,7 @@ import api from "../api";
 import {
   crearElementoVacio,
   elementosATexto,
+  elementosTienenVariantesValidas,
   normalizarElementos,
   RequestItemsEditor
 } from "../components/RequestItems";
@@ -190,6 +191,11 @@ function NuevaSolicitud() {
     if (!proyecto) return;
     if (urgente === "Sí" && urgentesNormalizados.length === 0) return;
     if (urgente !== "Sí" && elementosNormales.length === 0) return;
+    const bloquesActivos = urgente === "Sí" ? [elementosUrgentes, elementosNoUrgentes] : [elementos];
+    if (!bloquesActivos.every(elementosTienenVariantesValidas)) {
+      setMensaje("Selecciona la referencia y la unidad de medida de todos los materiales");
+      return;
+    }
 
     const nuevaSolicitud = new FormData();
 
@@ -247,7 +253,8 @@ function NuevaSolicitud() {
     pasoActual === 0
       ? Boolean(proyecto)
       : pasoActual === 2
-        ? normalizarElementos(elementosPasoActual).length > 0
+        ? normalizarElementos(elementosPasoActual).length > 0 &&
+          elementosTienenVariantesValidas(elementosPasoActual)
         : true;
 
   const cambiarPaso = nuevoPaso => {

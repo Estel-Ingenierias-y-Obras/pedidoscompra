@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "npm --prefix ../frontend ci && npm --prefix ../frontend run build",
+    "migrate:materials": "node migrations/20260904-ampliar-materiales.js",
+    "prestart": "npm run migrate:materials",
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
