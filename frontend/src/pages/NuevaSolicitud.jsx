@@ -193,7 +193,7 @@ function NuevaSolicitud() {
     if (urgente !== "Sí" && elementosNormales.length === 0) return;
     const bloquesActivos = urgente === "Sí" ? [elementosUrgentes, elementosNoUrgentes] : [elementos];
     if (!bloquesActivos.every(elementosTienenVariantesValidas)) {
-      setMensaje("Selecciona la referencia y la unidad de medida de todos los materiales");
+      setMensaje("Completa la referencia y la unidad de medida de todos los materiales");
       return;
     }
 

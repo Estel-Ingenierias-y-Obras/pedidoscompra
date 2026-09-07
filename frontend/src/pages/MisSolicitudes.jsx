@@ -682,7 +682,7 @@ function MisSolicitudes() {
         onClose={() => setPedidoDetalleOriginal(null)}
       />
       {pedidoAEditar && (
-        <ModalShell onClose={cerrarEdicion} className="edit-order-modal" ariaLabel="Editar pedido">
+        <ModalShell onClose={cerrarEdicion} className="edit-order-modal edit-order-modal-wide" ariaLabel="Editar pedido">
             <h2>Editar pedido</h2>
 
             <form className="edit-order-form" onSubmit={guardarEdicion}>

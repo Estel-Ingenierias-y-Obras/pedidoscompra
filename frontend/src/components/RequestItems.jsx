@@ -34,7 +34,7 @@ export const elementosATexto = elementos =>
 
 export const elementosTienenVariantesValidas = elementos =>
   normalizarElementos(elementos).every(item =>
-    Boolean(item.materialId) && Boolean(item.referencia) && Boolean(item.unidadMedida)
+    Boolean(item.referencia) && Boolean(item.unidadMedida)
   );
 
 export const obtenerElementosCompatibles = (elementos, textoLegacy) => {
@@ -63,6 +63,7 @@ function MaterialAutocomplete({ item, onChange, materiales }) {
     onChange({
       ...item,
       materialId: registroUnico?._id || null,
+      catalogoSeleccionado: true,
       elemento: nombre,
       referencia: registroUnico?.referencia || "",
       unidadMedida: registroUnico?.unidadMedida || "",
@@ -84,9 +85,10 @@ function MaterialAutocomplete({ item, onChange, materiales }) {
           onChange({
             ...item,
             materialId: null,
+            catalogoSeleccionado: false,
             elemento: event.target.value,
-            referencia: "",
-            unidadMedida: "",
+            referencia: item.materialId || item.catalogoSeleccionado ? "" : item.referencia,
+            unidadMedida: item.materialId || item.catalogoSeleccionado ? "" : item.unidadMedida,
             descripcionMaterial: ""
           });
           setAbierto(true);
@@ -160,6 +162,8 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
           <span className="sr-only">Eliminar</span>
         </div>
         {elementos.map((item, indice) => {
+          // El ID persiste al guardar; la marca cubre la selección pendiente de referencia.
+          const esCatalogo = Boolean(item.materialId || item.catalogoSeleccionado);
           const registrosMaterial = materiales.filter(material =>
             material.nombre.toLocaleLowerCase("es") === item.elemento.trim().toLocaleLowerCase("es")
           );
@@ -177,17 +181,18 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
             </label>
             <label className="request-line-reference">
               <span>Referencia</span>
-              <select value={item.referencia} disabled={referencias.length === 0} onChange={event => seleccionarReferencia(indice, event.target.value)} required>
+              {esCatalogo ? <select value={item.referencia} disabled={referencias.length === 0} onChange={event => seleccionarReferencia(indice, event.target.value)} required>
                 {!item.referencia && <option value="">Seleccionar</option>}
+                {item.referencia && !referencias.includes(item.referencia) && <option value={item.referencia}>{item.referencia}</option>}
                 {referencias.map(referencia => <option value={referencia} key={referencia}>{referencia}</option>)}
-              </select>
+              </select> : <input type="text" value={item.referencia || ""} onChange={event => actualizar(indice, "referencia", event.target.value)} placeholder="Referencia" required />}
             </label>
             <label className="request-line-unit">
               <span>U. medida</span>
-              <select value={unidadSeleccionada} disabled required>
+              {esCatalogo ? <select value={unidadSeleccionada} disabled required>
                 {!unidadSeleccionada && <option value="">—</option>}
                 {unidadSeleccionada && <option value={unidadSeleccionada}>{unidadSeleccionada}</option>}
-              </select>
+              </select> : <input type="text" value={item.unidadMedida || ""} onChange={event => actualizar(indice, "unidadMedida", event.target.value)} placeholder="Unidad de medida" required />}
             </label>
             <label className="request-line-quantity">
               <span>Cantidad</span>

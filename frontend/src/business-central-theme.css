@@ -920,6 +920,27 @@ table select {
   margin-top: 12px;
 }
 
+@media (min-width: 761px) {
+  .edit-order-modal-wide {
+    width: min(100%, 1440px);
+    max-width: 1440px;
+  }
+
+  .edit-order-modal-wide .request-lines-header,
+  .edit-order-modal-wide .request-line {
+    grid-template-columns: minmax(150px, 1.5fr) minmax(100px, 0.8fr) minmax(85px, 0.65fr) 80px minmax(110px, 1fr) 38px;
+  }
+
+  .edit-order-modal-wide .request-line > label {
+    margin-top: 0;
+  }
+
+  .edit-order-modal-wide .request-line input,
+  .edit-order-modal-wide .request-line select {
+    min-width: 0;
+  }
+}
+
 .edit-order-card {
   display: grid;
   gap: 14px;
