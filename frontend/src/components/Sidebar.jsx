@@ -2,6 +2,7 @@ import "./Sidebar.css";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { NavLink } from "react-router-dom";
+import { paginas } from "../routes/permissions";
 import logo from "../assets/ESTEL_LOGO_RGB_GRANDE_NEGATIVO.png";
 
 function Sidebar({ onNavigate }) {
@@ -30,68 +31,13 @@ function Sidebar({ onNavigate }) {
       <hr />
 
       <ul>
-        <li>
-          <NavLink to="/nuevasolicitud" className={navClassName} onClick={onNavigate}>
-            Nuevo Pedido
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/missolicitudes" className={navClassName} onClick={onNavigate}>
-            Pedidos
-          </NavLink>
-        </li>
-
-        {user?.rol === "Comprador" && (
-          <>
-         <li>
-            <NavLink to="/material" className={navClassName} onClick={onNavigate}>
-              Material
+        {paginas.filter(pagina => pagina.roles.includes(user?.rol)).map(pagina => (
+          <li key={pagina.path}>
+            <NavLink to={pagina.path} className={navClassName} onClick={onNavigate}>
+              {pagina.label}
             </NavLink>
-        </li>
-         <li>
-            <NavLink to="/validar-solicitudes" className={navClassName} onClick={onNavigate}>
-              Gestión de Pedidos
-            </NavLink>
-        </li>
-        <li>
-          <NavLink to="/historico-pedidos" className={navClassName} onClick={onNavigate}>
-            Histórico de Pedidos
-          </NavLink>
-        </li>
-            </>
-        )}
-
-        {user?.rol === "Admin" && (
-          <>
-            <li>
-              <NavLink to="/material" className={navClassName} onClick={onNavigate}>
-                Material
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/usuarios" className={navClassName} onClick={onNavigate}>
-                Usuarios
-              </NavLink>
-            </li>
-
-            <li>
-              <NavLink to="/configuracion" className={navClassName} onClick={onNavigate}>
-                Configuración
-              </NavLink>
-            </li>
-
-            <li>
-              <NavLink to="/validar-solicitudes" className={navClassName} onClick={onNavigate}>
-                Gestión de Pedidos
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/historico-pedidos" className={navClassName} onClick={onNavigate}>
-                Histórico de Pedidos
-              </NavLink>
           </li>
-          </>
-        )}
+        ))}
       </ul>
     </div>
 

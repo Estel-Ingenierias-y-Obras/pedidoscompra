@@ -14,6 +14,7 @@ const {
 const router = express.Router();
 
 router.use(obtenerUsuarioActual);
+router.use(permitirRoles("Usuario", "Comprador", "Admin"));
 
 const TIPOS_PERMITIDOS = new Set([
   "application/pdf",
@@ -265,17 +266,14 @@ const esPropietarioPedido = (pedido, usuario) =>
 
 router.get("/", async (req, res) => {
   try {
-    const filtro = puedeGestionarPedidos(req.usuarioActual)
-      ? {}
-      : { email: req.usuarioActual.email };
-    const pedidos = await Pedido.find(filtro);
+    const pedidos = await Pedido.find({});
     res.json(pedidos);
   } catch (error) {
     responderErrorInterno(res, error, "Error interno en ruta:");
   }
 });
 
-router.post("/", recibirArchivos, async (req, res) => {
+router.post("/", permitirRoles("Usuario", "Admin"), recibirArchivos, async (req, res) => {
   const archivosGuardados = [];
 
   try {
@@ -388,10 +386,6 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
       return res.status(404).json({
         error: "Archivo no encontrado"
       });
-    }
-
-    if (!puedeGestionarPedidos(req.usuarioActual) && !esPropietarioPedido(pedido, req.usuarioActual)) {
-      return res.status(403).json({ error: "Forbidden" });
     }
 
     const archivo = [

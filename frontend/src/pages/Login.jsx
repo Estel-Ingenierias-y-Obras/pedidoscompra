@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
+import { rutaInicio } from "../routes/permissions";
 import { useMsal } from "@azure/msal-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faShieldHalved } from "@fortawesome/free-solid-svg-icons";
@@ -75,7 +76,7 @@ const { instance } = useMsal();
       JSON.stringify(acceso.data.usuario)
     );
 
-    navigate("/nuevasolicitud");
+    navigate(rutaInicio(acceso.data.usuario.rol), { replace: true });
 
   } catch (error) {
 

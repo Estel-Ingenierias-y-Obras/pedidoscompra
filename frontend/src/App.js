@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Usuarios from "./pages/Usuarios";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -16,6 +16,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/pedidos" element={<ProtectedRoute><MisSolicitudes /></ProtectedRoute>} />
+        <Route path="*" element={<ProtectedRoute><Navigate to="/" replace /></ProtectedRoute>} />
         <Route path="/usuarios"
         element={
           <ProtectedRoute>

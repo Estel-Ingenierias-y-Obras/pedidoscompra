@@ -14,23 +14,25 @@ export function UsuariosProvider({ children }) {
   const { user } = useContext(AuthContext);
   const [usuarios, setUsuarios] = useState([]);
 
-  const cargarUsuarios = async () => {
-    try {
-      const response = await api.get("/api/usuarios");
-      setUsuarios(response.data);
-    } catch (error) {
-      console.error("Error cargando usuarios:", error);
-    }
-  };
-
   useEffect(() => {
+    let cancelado = false;
+    setUsuarios([]);
     if (!["Admin", "Comprador"].includes(user?.rol)) {
-      setUsuarios([]);
       return;
     }
 
+    const cargarUsuarios = async () => {
+      try {
+        const endpoint = user.rol === "Comprador" ? "/api/usuarios/compradores" : "/api/usuarios";
+        const response = await api.get(endpoint);
+        if (!cancelado) setUsuarios(response.data);
+      } catch (error) {
+        if (!cancelado) console.error("Error cargando usuarios:", error);
+      }
+    };
     cargarUsuarios();
-  }, [user?.rol]);
+    return () => { cancelado = true; };
+  }, [user]);
 
   return (
     <UsuariosContext.Provider value={{ usuarios, setUsuarios }}>

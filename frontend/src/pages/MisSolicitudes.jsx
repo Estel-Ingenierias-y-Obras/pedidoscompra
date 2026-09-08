@@ -91,14 +91,7 @@ function MisSolicitudes() {
   const urgenteInputRef = useRef(null);
   const noUrgenteInputRef = useRef(null);
 
-  const esGestor = ["Comprador", "Admin"].includes(user?.rol);
-  const pedidosVisibles = esGestor
-    ? solicitudes
-    : solicitudes.filter(
-        solicitud =>
-          String(solicitud.email || "").toLowerCase() ===
-          String(user?.email || "").toLowerCase()
-      );
+  const pedidosVisibles = solicitudes;
 
   const proyectos = useMemo(() => {
     const agrupados = pedidosVisibles.reduce((resultado, pedido) => {
@@ -188,6 +181,7 @@ function MisSolicitudes() {
         : [];
 
   const abrirEdicion = (pedido) => {
+    if (!puedeEditarPedido(pedido)) return;
     setPedidoAEditar(pedido);
     setFormEdicion({
       proyecto: pedido.proyecto || "",
@@ -300,7 +294,7 @@ function MisSolicitudes() {
   const guardarEdicion = async (event) => {
     event.preventDefault();
 
-    if (!pedidoAEditar) {
+    if (!pedidoAEditar || !puedeEditarPedido(pedidoAEditar)) {
       return;
     }
 
@@ -370,6 +364,7 @@ function MisSolicitudes() {
   };
 
   const confirmarEliminacion = async () => {
+    if (!pedidoAEliminar || !puedeEliminarPedido(pedidoAEliminar)) return;
     try {
       const ruta = user?.rol === "Admin"
         ? `/api/pedidos/admin/${pedidoAEliminar._id}`
@@ -644,7 +639,7 @@ function MisSolicitudes() {
                       />
                     )}
                     {!puedeEditarPedido(solicitud) && !puedeEliminarPedido(solicitud) && (
-                      <span className="project-request-no-actions">Sin acciones disponibles</span>
+                      <span className="project-request-no-actions">Solo lectura</span>
                     )}
                   </div>
                 </div>

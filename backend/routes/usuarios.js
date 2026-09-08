@@ -8,7 +8,18 @@ const router = express.Router();
 
 router.use(obtenerUsuarioActual);
 
-router.get("/", permitirRoles("Admin", "Comprador"), async (req, res) => {
+router.get("/compradores", permitirRoles("Admin", "Comprador"), async (req, res) => {
+  try {
+    const compradores = await Usuario.find({ rol: "Comprador", activo: { $ne: false } })
+      .select("nombre rol")
+      .lean();
+    res.json(compradores);
+  } catch (error) {
+    responderErrorInterno(res, error, "Error consultando compradores:");
+  }
+});
+
+router.get("/", permitirRoles("Admin"), async (req, res) => {
 
   try {
 
