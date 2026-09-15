@@ -195,6 +195,21 @@ const obtenerArchivosRecibidos = (req, campo = "archivos") => {
   return Array.isArray(req.files?.[campo]) ? req.files[campo] : [];
 };
 
+const MENSAJE_PEDIDO_VACIO =
+  "Debes añadir al menos un material o un archivo adjunto para crear la solicitud.";
+
+const tieneContenidoPedido = pedido => {
+  const camposMateriales = pedido.urgente
+    ? ["elementosUrgentes", "elementosNoUrgentes"]
+    : ["elementos"];
+  const camposArchivos = pedido.urgente
+    ? ["archivosUrgente", "archivosNoUrgente", "archivos"]
+    : ["archivosDescripcion", "archivos"];
+  return [...camposMateriales, ...camposArchivos].some(
+    campo => Array.isArray(pedido[campo]) && pedido[campo].length > 0
+  );
+};
+
 const obtenerTodosLosArchivosPedido = (pedido) => [
   ...(pedido.archivos || []),
   ...(pedido.archivosDescripcion || []),
@@ -323,6 +338,10 @@ router.post("/", permitirRoles("Usuario", "Admin"), recibirArchivos, async (req,
       archivosUrgente,
       archivosNoUrgente
     });
+
+    if (!tieneContenidoPedido(pedido)) {
+      return res.status(400).json({ error: MENSAJE_PEDIDO_VACIO });
+    }
 
     await pedido.save();
 
@@ -621,6 +640,25 @@ router.put("/:id", recibirArchivos, async (req, res) => {
         ...datosActualizacion,
         adjuntosCompras: [...adjuntosComprasConservados, ...archivosGuardados]
       };
+    }
+
+    if (!esActualizacionGestion && !esActualizacionInfoCompras) {
+      const pedidoActualizado = {
+        urgente: pedidoAnterior.urgente,
+        elementos: pedidoAnterior.elementos,
+        elementosUrgentes: pedidoAnterior.elementosUrgentes,
+        elementosNoUrgentes: pedidoAnterior.elementosNoUrgentes,
+        archivos: pedidoAnterior.archivos,
+        archivosDescripcion: pedidoAnterior.archivosDescripcion,
+        archivosUrgente: pedidoAnterior.archivosUrgente,
+        archivosNoUrgente: pedidoAnterior.archivosNoUrgente,
+        ...datosActualizacion
+      };
+      if (!tieneContenidoPedido(pedidoActualizado)) {
+        const error = new Error(MENSAJE_PEDIDO_VACIO);
+        error.status = 400;
+        throw error;
+      }
     }
 
     const pedido = await Pedido.findByIdAndUpdate(

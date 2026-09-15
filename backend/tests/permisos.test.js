@@ -83,10 +83,30 @@ test("Usuario no puede editar, sustituir adjuntos ni eliminar pedidos ajenos", a
 test("propietario puede editar y eliminar su pedido pendiente", async () => {
   pedido.email = "OWNER@example.com";
   assert.equal((await request("Usuario", "PUT", `/api/pedidos/${id}`, {
-    proyecto: "Obra", descripcion: "Material", archivosDescripcionExistentes: []
+    proyecto: "Obra", descripcion: "Material", elementos: [{ elemento: "Material", cantidad: 1 }],
+    archivosDescripcionExistentes: []
   })).status, 200);
   assert.equal((await request("Usuario", "DELETE", `/api/pedidos/${id}`)).status, 200);
   assert.equal(writes, 2);
+});
+test("propietario no puede guardar un pedido sin materiales ni adjuntos", async () => {
+  const response = await request("Usuario", "PUT", `/api/pedidos/${id}`, {
+    proyecto: "Obra", urgente: false, elementos: [], archivosDescripcionExistentes: []
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error,
+    "Debes añadir al menos un material o un archivo adjunto para crear la solicitud.");
+  assert.equal(writes, 0);
+});
+test("propietario puede guardar un pedido urgente solo con un adjunto planificable", async () => {
+  pedido.urgente = true;
+  pedido.archivosNoUrgente = [{ fileId: new mongoose.Types.ObjectId(fileId), nombre: "plano.pdf", tamano: 1, tipoMime: "application/pdf" }];
+  const response = await request("Usuario", "PUT", `/api/pedidos/${id}`, {
+    proyecto: "Obra", urgente: true, elementosUrgentes: [], elementosNoUrgentes: [],
+    archivosNoUrgenteExistentes: [fileId]
+  });
+  assert.equal(response.status, 200);
+  assert.equal(writes, 1);
 });
 test("propietario conserva restricciones por estado y campos de compras", async () => {
   pedido.estado = "Pedido";

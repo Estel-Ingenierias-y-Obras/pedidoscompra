@@ -189,8 +189,13 @@ function NuevaSolicitud() {
     const noUrgentesNormalizados = normalizarElementos(elementosNoUrgentes);
 
     if (!proyecto) return;
-    if (urgente === "Sí" && urgentesNormalizados.length === 0) return;
-    if (urgente !== "Sí" && elementosNormales.length === 0) return;
+    const tieneMateriales = urgente === "Sí"
+      ? urgentesNormalizados.length + noUrgentesNormalizados.length > 0
+      : elementosNormales.length > 0;
+    if (!tieneMateriales && contarArchivos() === 0) {
+      setMensaje("Debes añadir al menos un material o un archivo adjunto para crear la solicitud.");
+      return;
+    }
     const bloquesActivos = urgente === "Sí" ? [elementosUrgentes, elementosNoUrgentes] : [elementos];
     if (!bloquesActivos.every(elementosTienenVariantesValidas)) {
       setMensaje("Completa la referencia y la unidad de medida de todos los materiales");
@@ -248,13 +253,12 @@ function NuevaSolicitud() {
   };
 
   const pasosWizard = ["Proyecto", "Tipo", "Materiales", "Adjuntos", "Resumen"];
-  const elementosPasoActual = urgente === "Sí" ? elementosUrgentes : elementos;
   const pasoValido =
     pasoActual === 0
       ? Boolean(proyecto)
       : pasoActual === 2
-        ? normalizarElementos(elementosPasoActual).length > 0 &&
-          elementosTienenVariantesValidas(elementosPasoActual)
+        ? elementosTienenVariantesValidas(urgente === "Sí" ? elementosUrgentes : elementos) &&
+          (urgente !== "Sí" || elementosTienenVariantesValidas(elementosNoUrgentes))
         : true;
 
   const cambiarPaso = nuevoPaso => {

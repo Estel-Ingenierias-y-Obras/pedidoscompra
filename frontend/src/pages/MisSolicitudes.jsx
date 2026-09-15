@@ -305,6 +305,18 @@ function MisSolicitudes() {
       const elementosNormales = normalizarElementos(formEdicion.elementos);
       const elementosUrgentes = normalizarElementos(formEdicion.elementosUrgentes);
       const elementosNoUrgentes = normalizarElementos(formEdicion.elementosNoUrgentes);
+      const esUrgente = formEdicion.urgente === "Sí";
+      const tieneMateriales = esUrgente
+        ? elementosUrgentes.length + elementosNoUrgentes.length > 0
+        : elementosNormales.length > 0;
+      const tieneAdjuntos = esUrgente
+        ? adjuntosUrgenteExistentes.length + adjuntosUrgenteNuevos.length +
+          adjuntosNoUrgenteExistentes.length + adjuntosNoUrgenteNuevos.length > 0
+        : adjuntosDescripcionExistentes.length + adjuntosDescripcionNuevos.length > 0;
+      if (!tieneMateriales && !tieneAdjuntos) {
+        mostrarError("Debes añadir al menos un material o un archivo adjunto para crear la solicitud.");
+        return;
+      }
       datosEdicion.append("elementos", JSON.stringify(formEdicion.urgente === "Sí" ? [] : elementosNormales));
       datosEdicion.append("elementosUrgentes", JSON.stringify(formEdicion.urgente === "Sí" ? elementosUrgentes : []));
       datosEdicion.append("elementosNoUrgentes", JSON.stringify(formEdicion.urgente === "Sí" ? elementosNoUrgentes : []));
