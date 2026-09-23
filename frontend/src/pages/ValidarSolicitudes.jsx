@@ -266,6 +266,7 @@ function ValidarSolicitudes() {
     </div>
   );
   const solicitudesVisibles = solicitudes
+    .filter(solicitud => solicitud.estado !== "Archivar")
     .filter(solicitud =>
       filtroEstado === "Todas" || solicitud.estado === filtroEstado
     )
@@ -302,7 +303,6 @@ function ValidarSolicitudes() {
           <option>Todas</option>
           <option>Pendiente</option>
           <option>Pedido</option>
-          <option>Archivar</option>
         </select>
 
         <br />

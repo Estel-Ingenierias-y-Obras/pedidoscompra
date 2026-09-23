@@ -47,9 +47,9 @@ const request = (role, method = "GET", path = "/api/pedidos", body) => fetch(bas
 });
 
 for (const role of ["Usuario", "Comprador", "Admin"]) {
-  test(`${role} puede leer todos los pedidos sin filtro de propietario`, async () => {
+  test(`${role} puede leer los pedidos activos sin filtro de propietario`, async () => {
     mock.method(Pedido, "find", async filtro => {
-      assert.deepEqual(filtro, {});
+      assert.deepEqual(filtro, { estado: { $ne: "Archivar" } });
       return [pedido, { ...pedido, email: "other@example.com" }];
     });
     const response = await request(role);
@@ -61,6 +61,18 @@ test("lectura requiere autenticación y un rol conocido", async () => {
   assert.equal((await request(null)).status, 401);
   assert.equal((await request("Desconocido")).status, 403);
 });
+
+for (const role of ["Comprador", "Admin"]) {
+  test(`${role} consulta exclusivamente archivados en histórico`, async () => {
+    mock.method(Pedido, "find", async filtro => {
+      assert.deepEqual(filtro, { estado: "Archivar" });
+      return [{ ...pedido, estado: "Archivar" }];
+    });
+    const response = await request(role, "GET", "/api/pedidos?estado=Archivar");
+    assert.equal(response.status, 200);
+    assert.equal((await response.json())[0].estado, "Archivar");
+  });
+}
 test("Usuario no puede editar, sustituir adjuntos ni eliminar pedidos ajenos", async () => {
   pedido.email = "other@example.com";
   for (const body of [

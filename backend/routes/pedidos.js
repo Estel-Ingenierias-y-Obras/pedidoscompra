@@ -281,7 +281,10 @@ const esPropietarioPedido = (pedido, usuario) =>
 
 router.get("/", async (req, res) => {
   try {
-    const pedidos = await Pedido.find({});
+    const filtro = req.query.estado === "Archivar"
+      ? { estado: "Archivar" }
+      : { estado: { $ne: "Archivar" } };
+    const pedidos = await Pedido.find(filtro);
     res.json(pedidos);
   } catch (error) {
     responderErrorInterno(res, error, "Error interno en ruta:");

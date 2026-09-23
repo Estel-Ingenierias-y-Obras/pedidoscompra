@@ -59,7 +59,7 @@ const obtenerDefinicionEstado = estado => {
   };
 };
 
-function MisSolicitudes() {
+function MisSolicitudes({ historico = false, onRecuperar, cargando = false, errorCarga = "" }) {
   const { solicitudes, setSolicitudes } = useContext(SolicitudesContext);
   const { user } = useContext(AuthContext);
 
@@ -91,7 +91,9 @@ function MisSolicitudes() {
   const urgenteInputRef = useRef(null);
   const noUrgenteInputRef = useRef(null);
 
-  const pedidosVisibles = solicitudes;
+  const pedidosVisibles = useMemo(() => solicitudes.filter(pedido =>
+    historico ? pedido.estado === "Archivar" : pedido.estado !== "Archivar"
+  ), [solicitudes, historico]);
 
   const proyectos = useMemo(() => {
     const agrupados = pedidosVisibles.reduce((resultado, pedido) => {
@@ -147,11 +149,11 @@ function MisSolicitudes() {
   );
 
   const puedeEditarPedido = pedido =>
-    pedido.estado === "Pendiente" &&
+    !historico && pedido.estado === "Pendiente" &&
     String(pedido.email || "").toLowerCase() === String(user?.email || "").toLowerCase();
 
   const puedeEliminarPedido = pedido =>
-    user?.rol === "Admin" || puedeEditarPedido(pedido);
+    !historico && (user?.rol === "Admin" || puedeEditarPedido(pedido));
 
   const mostrarMensaje = (texto) => {
     setMensaje(texto);
@@ -499,7 +501,7 @@ function MisSolicitudes() {
   return (
     <Layout>
       <div className="page-header">
-        <h1>Pedidos</h1>
+        <h1>{historico ? "Histórico de Pedidos" : "Pedidos"}</h1>
       </div>
 
       <NotificationToast
@@ -526,11 +528,11 @@ function MisSolicitudes() {
                 />
               </label>
               <div className="projects-filter" role="group" aria-label="Filtrar proyectos">
-                {[
+                {(historico ? [["todos", "Archivados"]] : [
                   ["todos", "Todos"],
                   ["pendientes", "Pendientes"],
                   ["completados", "Completados"]
-                ].map(([valor, etiqueta]) => (
+                ]).map(([valor, etiqueta]) => (
                   <button
                     type="button"
                     key={valor}
@@ -549,8 +551,8 @@ function MisSolicitudes() {
 
             {proyectosFiltrados.length === 0 ? (
               <div className="projects-empty">
-                <h3>No hay proyectos que coincidan</h3>
-                <p>Prueba con otra búsqueda o cambia el filtro seleccionado.</p>
+                <h3>{cargando ? "Cargando pedidos..." : errorCarga || (historico && proyectos.length === 0 ? "No hay pedidos en el histórico." : "No hay proyectos que coincidan")}</h3>
+                {!cargando && !errorCarga && proyectos.length > 0 && <p>Prueba con otra búsqueda o cambia el filtro seleccionado.</p>}
               </div>
             ) : (
               <div className="projects-grid">
@@ -633,6 +635,12 @@ function MisSolicitudes() {
                 <div className="project-request-card-field project-request-actions">
                   <span>Acciones</span>
                   <div className="mis-pedidos-actions">
+                    {historico && (
+                      <button type="button" onClick={event => {
+                        event.stopPropagation();
+                        onRecuperar(solicitud);
+                      }}>Recuperar</button>
+                    )}
                     {puedeEditarPedido(solicitud) && (
                       <button
                         type="button"
@@ -650,7 +658,7 @@ function MisSolicitudes() {
                         onClick={event => { event.stopPropagation(); setPedidoAEliminar(solicitud); }}
                       />
                     )}
-                    {!puedeEditarPedido(solicitud) && !puedeEliminarPedido(solicitud) && (
+                    {!historico && !puedeEditarPedido(solicitud) && !puedeEliminarPedido(solicitud) && (
                       <span className="project-request-no-actions">Solo lectura</span>
                     )}
                   </div>
