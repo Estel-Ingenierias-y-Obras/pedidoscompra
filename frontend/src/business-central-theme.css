@@ -6975,3 +6975,30 @@ table .delete-icon-button {
     animation: none;
   }
 }
+
+.order-search { width: min(100%, 420px); min-width: 0; margin-bottom: 20px; }
+.order-search > label { display: block; margin-bottom: 8px; }
+.order-search-input { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.order-search-field { position: relative; min-width: 0; flex: 1 1 260px; }
+.order-search-field input,
+.order-search-ghost {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: normal;
+}
+.order-search-field input { position: relative; z-index: 1; margin: 0; background: transparent; border-color: var(--border); }
+.order-search-field input:focus { background: transparent; }
+.order-search-ghost { position: absolute; inset: 0; overflow: hidden; white-space: pre; pointer-events: none; color: #8793a1; }
+.order-search-ghost > span { display: block; }
+.order-search-written { color: transparent; }
+@media (max-width: 600px) {
+  .order-search-field { flex-basis: 100%; }
+  .order-search-field input, .order-search-ghost { font-size: 16px; }
+}

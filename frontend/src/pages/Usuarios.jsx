@@ -334,6 +334,7 @@ const formatearFecha = (fecha) =>
          )
       }
     >
+      <option value="Encargado">Encargado</option>
       <option value="Admin">
         Admin
       </option>
@@ -446,6 +447,7 @@ const formatearFecha = (fecha) =>
         }
       >
         <option>Usuario</option>
+        <option>Encargado</option>
         <option>Comprador</option>
         <option>Admin</option>
       </select>
@@ -530,6 +532,7 @@ const formatearFecha = (fecha) =>
             onChange={(e) => setRolAprobacion(e.target.value)}
           >
             <option value="Usuario">Usuario</option>
+            <option value="Encargado">Encargado</option>
             <option value="Comprador">Comprador</option>
             <option value="Admin">Admin</option>
           </select>

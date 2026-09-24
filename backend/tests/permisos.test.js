@@ -6,12 +6,14 @@ const mongoose = require("mongoose");
 const auth = require("../middleware/auth");
 const Pedido = require("../models/Pedido");
 const Usuario = require("../models/Usuario");
+const Material = require("../models/Material");
+const DestinatarioCompra = require("../models/DestinatarioCompra");
 const emails = require("../services/emailService");
 
 // Real routers and role middleware, with controlled identity and database/storage doubles.
 auth.obtenerUsuarioActual = (req, res, next) => {
   if (!req.get("x-test-role")) return res.sendStatus(401);
-  req.usuarioActual = { rol: req.get("x-test-role"), email: "owner@example.com" };
+  req.usuarioActual = { rol: req.get("x-test-role"), email: "owner@example.com", nombre: "Propietario" };
   next();
 };
 emails.sendStatusChangeNotification = async () => {};
@@ -19,6 +21,7 @@ const app = express();
 app.use(express.json());
 app.use("/api/pedidos", require("../routes/pedidos"));
 app.use("/api/usuarios", require("../routes/usuarios"));
+app.use("/api/materiales", require("../routes/materiales"));
 app.use("/api/configuracion/notificaciones-acceso", require("../routes/destinatariosAcceso"));
 app.use("/api/configuracion/notificaciones-compras", require("../routes/destinatariosCompra"));
 app.use("/api/solicitudes-acceso", require("../routes/solicitudesAcceso"));
@@ -46,7 +49,7 @@ const request = (role, method = "GET", path = "/api/pedidos", body) => fetch(bas
   ...(body ? { body: JSON.stringify(body) } : {})
 });
 
-for (const role of ["Usuario", "Comprador", "Admin"]) {
+for (const role of ["Usuario", "Comprador", "Admin", "Encargado"]) {
   test(`${role} puede leer los pedidos activos sin filtro de propietario`, async () => {
     mock.method(Pedido, "find", async filtro => {
       assert.deepEqual(filtro, { estado: { $ne: "Archivar" } });
@@ -62,7 +65,7 @@ test("lectura requiere autenticación y un rol conocido", async () => {
   assert.equal((await request("Desconocido")).status, 403);
 });
 
-for (const role of ["Comprador", "Admin"]) {
+for (const role of ["Comprador", "Admin", "Encargado"]) {
   test(`${role} consulta exclusivamente archivados en histórico`, async () => {
     mock.method(Pedido, "find", async filtro => {
       assert.deepEqual(filtro, { estado: "Archivar" });
@@ -172,4 +175,70 @@ test("Usuario lee adjuntos ajenos solo si pertenecen al pedido solicitado", asyn
   assert.equal(await response.text(), "test");
   mock.method(Pedido, "findOne", async () => null);
   assert.equal((await request("Usuario", "GET", `/api/pedidos/${id}/archivos/${fileId}`)).status, 404);
+});
+
+test("Encargado crea pedidos pendientes con identidad real y sin datos de gestión", async () => {
+  mock.method(Pedido.prototype, "save", async function () { writes++; return this; });
+  mock.method(DestinatarioCompra, "find", () => ({ select: () => ({ lean: async () => [] }) }));
+  const response = await request("Encargado", "POST", "/api/pedidos", {
+    proyecto: "P12345", elementos: [{ elemento: "Cable", cantidad: 2 }],
+    solicitante: "Otro", email: "other@example.com", estado: "Archivar",
+    compradorAsignado: "Comprador", comentarioCompras: "Intento"
+  });
+  assert.equal(response.status, 201);
+  const creado = await response.json();
+  assert.equal(creado.solicitante, "Propietario");
+  assert.equal(creado.email, "owner@example.com");
+  assert.equal(creado.estado, "Pendiente");
+  assert.equal(creado.compradorAsignado, "");
+  assert.equal(creado.comentarioCompras, "");
+  assert.equal(writes, 1);
+});
+
+test("Encargado edita y elimina solo sus pedidos pendientes", async () => {
+  const cambios = { proyecto: "P12345", elementos: [{ elemento: "Cable", cantidad: 2 }] };
+  assert.equal((await request("Encargado", "PUT", `/api/pedidos/${id}`, cambios)).status, 200);
+  assert.equal((await request("Encargado", "DELETE", `/api/pedidos/${id}`)).status, 200);
+  pedido.email = "other@example.com";
+  assert.equal((await request("Encargado", "PUT", `/api/pedidos/${id}`, cambios)).status, 403);
+  assert.equal((await request("Encargado", "DELETE", `/api/pedidos/${id}`)).status, 403);
+  pedido.email = "owner@example.com";
+  for (const estado of ["Pedido", "Archivar"]) {
+    pedido.estado = estado;
+    assert.equal((await request("Encargado", "PUT", `/api/pedidos/${id}`, cambios)).status, 409);
+    assert.equal((await request("Encargado", "PUT", `/api/pedidos/${id}`, { archivosExistentes: [] })).status, 409);
+    assert.equal((await request("Encargado", "DELETE", `/api/pedidos/${id}`)).status, 409);
+  }
+  assert.equal(writes, 2);
+});
+
+test("Encargado no gestiona estados, compras ni recupera archivados", async () => {
+  for (const estado of ["Pendiente", "Archivar"]) {
+    pedido.estado = estado;
+    for (const body of [{ estado: "Pendiente" }, { estado: "Archivar" }, { compradorAsignado: "Compras" }, { comentarioCompras: "Intento" }, { proyecto: "P1", estado: "Pedido" }, { adjuntosComprasExistentes: [] }]) {
+      assert.equal((await request("Encargado", "PUT", `/api/pedidos/${id}`, body)).status, 403);
+    }
+  }
+  assert.equal((await request("Encargado", "DELETE", `/api/pedidos/admin/${id}`)).status, 403);
+  assert.equal(writes, 0);
+});
+
+test("Encargado no accede a endpoints administrativos ni modifica materiales", async () => {
+  for (const path of ["/api/usuarios", "/api/usuarios/compradores", "/api/solicitudes-acceso", "/api/configuracion/notificaciones-acceso", "/api/configuracion/notificaciones-compras"]) {
+    assert.equal((await request("Encargado", "GET", path)).status, 403);
+  }
+  for (const method of ["POST", "PUT", "DELETE"]) {
+    for (const path of ["/api/usuarios", "/api/materiales"]) {
+      assert.equal((await request("Encargado", method, path + (method === "POST" ? "" : `/${id}`), {})).status, 403);
+    }
+  }
+  assert.equal((await request("Encargado", "PATCH", `/api/solicitudes-acceso/${id}/aprobar`, { nombre: "Otro", rol: "Admin" })).status, 403);
+});
+
+test("Encargado puede consultar el catálogo activo para crear pedidos", async () => {
+  mock.method(Material, "find", filtro => {
+    assert.deepEqual(filtro, { activo: true });
+    return { select: () => ({ sort: () => ({ lean: async () => [] }) }) };
+  });
+  assert.equal((await request("Encargado", "GET", "/api/materiales?incluirInactivos=1")).status, 200);
 });

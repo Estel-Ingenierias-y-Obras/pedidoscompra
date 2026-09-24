@@ -9,8 +9,7 @@ import {
   faFilePdf,
   faPaperclip,
   faPen,
-  faArrowLeft,
-  faMagnifyingGlass
+  faArrowLeft
 } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import AttachmentList, {
@@ -21,6 +20,7 @@ import AttachmentList, {
 import DeleteIconButton from "../components/DeleteIconButton";
 import ProjectSelector from "../components/ProjectSelector";
 import ProjectOrderCard from "../components/ProjectOrderCard";
+import OrderFilters, { useOrderFilters } from "../components/OrderFilters";
 import OriginalRequestModal from "../components/OriginalRequestModal";
 import ModalShell from "../components/ModalShell";
 import NotificationToast from "../components/NotificationToast";
@@ -65,8 +65,6 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
 
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
-  const [busquedaProyecto, setBusquedaProyecto] = useState("");
-  const [filtroProyectos, setFiltroProyectos] = useState("todos");
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
   const [pedidoAEliminar, setPedidoAEliminar] = useState(null);
   const [pedidoAEditar, setPedidoAEditar] = useState(null);
@@ -91,9 +89,11 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
   const urgenteInputRef = useRef(null);
   const noUrgenteInputRef = useRef(null);
 
-  const pedidosVisibles = useMemo(() => solicitudes.filter(pedido =>
+  const pedidosPorEstado = useMemo(() => solicitudes.filter(pedido =>
     historico ? pedido.estado === "Archivar" : pedido.estado !== "Archivar"
   ), [solicitudes, historico]);
+  const filtrosPedidos = useOrderFilters(pedidosPorEstado);
+  const pedidosVisibles = filtrosPedidos.filtrados;
 
   const proyectos = useMemo(() => {
     const agrupados = pedidosVisibles.reduce((resultado, pedido) => {
@@ -130,19 +130,6 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
         a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
       );
   }, [pedidosVisibles]);
-
-  const proyectosFiltrados = proyectos.filter(proyecto => {
-    const coincideBusqueda = proyecto.nombre
-      .toLowerCase()
-      .includes(busquedaProyecto.trim().toLowerCase());
-    const coincideEstado =
-      filtroProyectos === "todos" ||
-      (filtroProyectos === "pendientes" &&
-        proyecto.estados.some(estado => normalizarEstado(estado.estado) === "pendiente")) ||
-      (filtroProyectos === "completados" && proyecto.estadoGeneral.final);
-
-    return coincideBusqueda && coincideEstado;
-  });
 
   const pedidosProyectoSeleccionado = pedidosVisibles.filter(
     pedido => (pedido.proyecto || "Sin proyecto").trim() === proyectoSeleccionado
@@ -514,49 +501,25 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
       />
 
       <div className="page-content">
+        <OrderFilters filtros={filtrosPedidos} onChange={() => {
+          setProyectoSeleccionado(null);
+        }} />
         {!proyectoSeleccionado ? (
           <section className="projects-view" aria-labelledby="projects-heading">
             <div className="projects-toolbar">
-              <label className="projects-search">
-                <FontAwesomeIcon icon={faMagnifyingGlass} aria-hidden="true" />
-                <span className="sr-only">Buscar proyectos</span>
-                <input
-                  type="search"
-                  placeholder="Buscar proyectos..."
-                  value={busquedaProyecto}
-                  onChange={(event) => setBusquedaProyecto(event.target.value)}
-                />
-              </label>
-              <div className="projects-filter" role="group" aria-label="Filtrar proyectos">
-                {(historico ? [["todos", "Archivados"]] : [
-                  ["todos", "Todos"],
-                  ["pendientes", "Pendientes"],
-                  ["completados", "Completados"]
-                ]).map(([valor, etiqueta]) => (
-                  <button
-                    type="button"
-                    key={valor}
-                    className={filtroProyectos === valor ? "is-active" : ""}
-                    onClick={() => setFiltroProyectos(valor)}
-                    aria-pressed={filtroProyectos === valor}
-                  >
-                    {etiqueta}
-                  </button>
-                ))}
-              </div>
               <span className="projects-count" id="projects-heading">
                 {proyectos.length} proyectos
               </span>
             </div>
 
-            {proyectosFiltrados.length === 0 ? (
+            {proyectos.length === 0 ? (
               <div className="projects-empty">
                 <h3>{cargando ? "Cargando pedidos..." : errorCarga || (historico && proyectos.length === 0 ? "No hay pedidos en el histórico." : "No hay proyectos que coincidan")}</h3>
-                {!cargando && !errorCarga && proyectos.length > 0 && <p>Prueba con otra búsqueda o cambia el filtro seleccionado.</p>}
+                {!cargando && !errorCarga && proyectos.length > 0 && <p>Prueba con otra búsqueda.</p>}
               </div>
             ) : (
               <div className="projects-grid">
-                {proyectosFiltrados.map(proyecto => (
+                {proyectos.map(proyecto => (
                   <ProjectOrderCard
                     key={proyecto.nombre}
                     proyecto={proyecto}
@@ -635,7 +598,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
                 <div className="project-request-card-field project-request-actions">
                   <span>Acciones</span>
                   <div className="mis-pedidos-actions">
-                    {historico && (
+                    {historico && onRecuperar && (
                       <button type="button" onClick={event => {
                         event.stopPropagation();
                         onRecuperar(solicitud);
@@ -658,7 +621,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
                         onClick={event => { event.stopPropagation(); setPedidoAEliminar(solicitud); }}
                       />
                     )}
-                    {!historico && !puedeEditarPedido(solicitud) && !puedeEliminarPedido(solicitud) && (
+                    {!(historico && onRecuperar) && !puedeEditarPedido(solicitud) && !puedeEliminarPedido(solicitud) && (
                       <span className="project-request-no-actions">Solo lectura</span>
                     )}
                   </div>

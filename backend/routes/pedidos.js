@@ -14,7 +14,7 @@ const {
 const router = express.Router();
 
 router.use(obtenerUsuarioActual);
-router.use(permitirRoles("Usuario", "Comprador", "Admin"));
+router.use(permitirRoles("Usuario", "Comprador", "Admin", "Encargado"));
 
 const TIPOS_PERMITIDOS = new Set([
   "application/pdf",
@@ -291,7 +291,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", permitirRoles("Usuario", "Admin"), recibirArchivos, async (req, res) => {
+router.post("/", permitirRoles("Usuario", "Admin", "Encargado"), recibirArchivos, async (req, res) => {
   const archivosGuardados = [];
 
   try {
@@ -331,6 +331,12 @@ router.post("/", permitirRoles("Usuario", "Admin"), recibirArchivos, async (req,
     ]);
     const pedido = new Pedido({
       ...req.body,
+      ...(req.usuarioActual.rol === "Encargado" ? {
+        estado: "Pendiente",
+        compradorAsignado: "",
+        comentarioCompras: "",
+        adjuntosCompras: []
+      } : {}),
       solicitante: req.usuarioActual.nombre,
       email: req.usuarioActual.email,
       elementos,
@@ -479,6 +485,16 @@ router.put("/:id", recibirArchivos, async (req, res) => {
 
     if (!esGestorPedido && !esPropietarioPedido(pedidoAnterior, req.usuarioActual)) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+
+    if (req.usuarioActual.rol === "Encargado") {
+      const camposRestringidos = ["estado", "compradorAsignado", "comentarioCompras", "adjuntosCompras", "adjuntosComprasExistentes"];
+      if (camposRestringidos.some(campo => Object.prototype.hasOwnProperty.call(req.body, campo))) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      if (pedidoAnterior.estado !== "Pendiente") {
+        return res.status(409).json({ error: "Solo puedes modificar tus pedidos pendientes." });
+      }
     }
 
     const camposGestion = new Set(["estado", "compradorAsignado"]);

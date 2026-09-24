@@ -18,7 +18,7 @@ function HistoricoPedidos() {
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
-    if (!["Admin", "Comprador"].includes(user?.rol)) return;
+    if (!["Admin", "Comprador", "Encargado"].includes(user?.rol)) return;
     let vigente = true;
     setCargando(true);
     setError("");
@@ -29,12 +29,12 @@ function HistoricoPedidos() {
     return () => { vigente = false; };
   }, [user]);
 
-  if (!["Admin", "Comprador"].includes(user?.rol)) {
+  if (!["Admin", "Comprador", "Encargado"].includes(user?.rol)) {
     return <Navigate to="/nuevasolicitud" replace />;
   }
 
   const confirmarRecuperacion = async () => {
-    if (!pedidoARecuperar || recuperando) return;
+    if (!pedidoARecuperar || recuperando || !["Admin", "Comprador"].includes(user?.rol)) return;
     setRecuperando(true);
     try {
       const response = await api.put(`/api/pedidos/${pedidoARecuperar._id}`, { estado: "Pendiente" });
@@ -56,7 +56,7 @@ function HistoricoPedidos() {
   return (
     <>
       <SolicitudesContext.Provider value={{ solicitudes: archivados, setSolicitudes: setArchivados }}>
-        <MisSolicitudes historico onRecuperar={setPedidoARecuperar} cargando={cargando} errorCarga={error} />
+        <MisSolicitudes historico onRecuperar={["Admin", "Comprador"].includes(user?.rol) ? setPedidoARecuperar : undefined} cargando={cargando} errorCarga={error} />
       </SolicitudesContext.Provider>
       <NotificationToast message={error || mensaje} type={error ? "error" : "exito"} onClose={() => { setError(""); setMensaje(""); }} />
       {pedidoARecuperar && (

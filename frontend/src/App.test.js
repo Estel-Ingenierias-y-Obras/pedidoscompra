@@ -38,3 +38,21 @@ test("sin sesión las rutas requieren login", () => {
   render(<AuthContext.Provider value={{ user: null }}><App /></AuthContext.Provider>);
   expect(screen.getByText("Login")).toBeInTheDocument();
 });
+
+test.each(["/usuarios", "/material", "/configuracion", "/validar-solicitudes", "/desconocida", "/USUARIOS/"])(
+  "Encargado no puede acceder manualmente a %s", path => {
+    window.history.replaceState({}, "", path);
+    render(<AuthContext.Provider value={{ user: { rol: "Encargado" } }}><App /></AuthContext.Provider>);
+    expect(screen.getByText("Nuevo Pedido")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/nuevasolicitud");
+  }
+);
+
+test.each([
+  ["/nuevasolicitud", "Nuevo Pedido"], ["/pedidos", "Pedidos"],
+  ["/missolicitudes", "Pedidos"], ["/historico-pedidos", "Histórico de Pedidos"]
+])("Encargado puede acceder a %s", (path, texto) => {
+  window.history.replaceState({}, "", path);
+  render(<AuthContext.Provider value={{ user: { rol: "Encargado" } }}><App /></AuthContext.Provider>);
+  expect(screen.getByText(texto)).toBeInTheDocument();
+});

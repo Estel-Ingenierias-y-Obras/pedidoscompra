@@ -6,6 +6,7 @@ import { SolicitudesContext } from "../context/SolicitudesContext";
 
 jest.mock("../api", () => ({ put: jest.fn(), delete: jest.fn() }));
 jest.mock("../components/ProjectSelector", () => () => <div>Selector proyecto</div>);
+jest.mock("../hooks/useProjectCatalog", () => () => []);
 
 test("Usuario ve pedidos ajenos y sus detalles, con acciones solo en propios pendientes", () => {
   const pedidos = [

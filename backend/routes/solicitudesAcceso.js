@@ -11,7 +11,7 @@ const {
 } = require("../services/emailService");
 
 const router = express.Router();
-const ROLES_VALIDOS = new Set(["Admin", "Comprador", "Usuario"]);
+const ROLES_VALIDOS = new Set(["Admin", "Comprador", "Usuario", "Encargado"]);
 
 const escaparRegex = (value) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
