@@ -40,5 +40,6 @@ async function obtenerProyectos() {
 }
 
 module.exports = {
+  obtenerToken,
   obtenerProyectos
 };

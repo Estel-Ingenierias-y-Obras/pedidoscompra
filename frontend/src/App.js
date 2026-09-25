@@ -9,6 +9,9 @@ import Configuracion from "./pages/Configuracion";
 import "./App.css";
 import HistoricoPedidos from "./pages/HistoricoPedidos";
 import Materiales from "./pages/Materiales";
+import Material from "./pages/Material";
+import Almacen from "./pages/Almacen";
+import EntradasAlmacen from "./pages/EntradasAlmacen";
 import "./business-central-theme.css";
 
 function App() {
@@ -57,9 +60,12 @@ function App() {
         <Route path="/material"
           element={
             <ProtectedRoute>
-              <Materiales />
+              <Material />
             </ProtectedRoute>
           } />
+        <Route path="/material/catalogo" element={<ProtectedRoute><Materiales /></ProtectedRoute>} />
+        <Route path="/material/almacen" element={<ProtectedRoute><Almacen /></ProtectedRoute>} />
+        <Route path="/material/almacen/entradas" element={<ProtectedRoute><EntradasAlmacen /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

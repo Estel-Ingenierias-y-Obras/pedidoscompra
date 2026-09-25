@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ModalShell from "../components/ModalShell";
 import DeleteIconButton from "../components/DeleteIconButton";
@@ -97,7 +97,8 @@ function Materiales() {
   return (
     <Layout>
       <div className="page-header">
-        <h1>Material</h1>
+        <Link className="back-link" to="/material">← Material</Link>
+        <h1>Catálogo de Materiales</h1>
         <p className="page-subtitle">Catálogo de materiales frecuentes para agilizar las solicitudes.</p>
       </div>
       <div className="page-content materials-page">

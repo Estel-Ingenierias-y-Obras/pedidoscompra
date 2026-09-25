@@ -12,6 +12,7 @@ export const rutaInicio = rol => paginas.find(pagina => pagina.roles.includes(ro
 
 export const puedeAcceder = (rol, pathname) => {
   const ruta = pathname.replace(/\/+$/, "").toLowerCase();
-  const pagina = paginas.find(item => item.path === (ruta === "/pedidos" ? "/missolicitudes" : ruta));
+  const subrutasMaterial = ["/material/catalogo", "/material/almacen", "/material/almacen/entradas"];
+  const pagina = paginas.find(item => item.path === (subrutasMaterial.includes(ruta) ? "/material" : ruta === "/pedidos" ? "/missolicitudes" : ruta));
   return pagina?.roles.includes(rol) || false;
 };

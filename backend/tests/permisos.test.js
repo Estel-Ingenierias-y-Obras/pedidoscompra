@@ -22,6 +22,7 @@ app.use(express.json());
 app.use("/api/pedidos", require("../routes/pedidos"));
 app.use("/api/usuarios", require("../routes/usuarios"));
 app.use("/api/materiales", require("../routes/materiales"));
+app.use("/api/almacen", require("../routes/almacen"));
 app.use("/api/configuracion/notificaciones-acceso", require("../routes/destinatariosAcceso"));
 app.use("/api/configuracion/notificaciones-compras", require("../routes/destinatariosCompra"));
 app.use("/api/solicitudes-acceso", require("../routes/solicitudesAcceso"));
@@ -47,6 +48,15 @@ const request = (role, method = "GET", path = "/api/pedidos", body) => fetch(bas
   method,
   headers: { ...(role ? { "x-test-role": role } : {}), "Content-Type": "application/json" },
   ...(body ? { body: JSON.stringify(body) } : {})
+});
+
+test("almacén protege consultas y escrituras por rol", async () => {
+  for (const role of [null, "Usuario", "Encargado"]) {
+    for (const [method, path] of [["GET", "configuracion"], ["GET", "productos"], ["GET", "entradas"], ["POST", "entradas"], ["GET", "stock"], ["GET", "movimientos"]]) {
+      assert.equal((await request(role, method, `/api/almacen/${path}`)).status, role ? 403 : 401);
+    }
+  }
+  for (const role of ["Admin", "Comprador"]) assert.equal((await request(role, "GET", "/api/almacen/configuracion")).status, 200);
 });
 
 for (const role of ["Usuario", "Comprador", "Admin", "Encargado"]) {
