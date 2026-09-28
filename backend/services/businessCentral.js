@@ -15,7 +15,9 @@ async function obtenerToken() {
         "Content-Type":
           "application/x-www-form-urlencoded"
       },
-      proxy: false
+      proxy: false,
+      timeout: 15000,
+      maxRedirects: 0
     }
   );
 

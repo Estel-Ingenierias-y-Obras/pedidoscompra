@@ -2,34 +2,36 @@ const express = require("express");
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const servicio = require("../services/almacen");
 const bc = require("../services/almacenBC");
-const Movimiento = require("../models/MovimientoAlmacen");
+const registro = require("../services/registroAlmacen");
 const router = express.Router();
 router.use(obtenerUsuarioActual, permitirRoles("Admin", "Comprador"));
+const lectura = fn => async (req, res, next) => { try { res.json(await fn(req)); } catch (error) { next(error); } };
 router.get("/configuracion", (req, res) => res.json(servicio.configuracion));
-router.get("/productos", async (req, res, next) => {
-  try { res.json(await bc.obtenerProductos()); } catch (error) { next(error); }
-});
-router.get("/entradas", async (req, res, next) => {
+router.get("/productos", lectura(() => bc.obtenerProductos()));
+router.get("/almacenes", lectura(() => bc.obtenerAlmacenes()));
+router.get("/tipos-proyecto", lectura(() => bc.obtenerTiposProyecto()));
+router.get("/unidades-producto", lectura(req => bc.obtenerUnidades(req.query.numprod)));
+router.get("/movimientos-aplicables", lectura(req => bc.obtenerMovimientosAplicables(req.query.numprod)));
+router.get("/operaciones", lectura(req => servicio.obtenerOperaciones(req.usuarioActual)));
+router.get("/registros-pendientes", lectura(req => registro.obtenerPendientes(req.usuarioActual)));
+router.get("/entradas", lectura(() => bc.obtenerEntradas()));
+router.get("/entradas/:id", lectura(req => bc.obtenerEntrada(req.params.id)));
+router.post("/entradas", async (req, res, next) => {
   try {
-    const pagina = Math.max(1, Math.min(100000, parseInt(req.query.pagina, 10) || 1));
-    const filtro = { tipoMovimiento: "ajustePositivo" };
-    const [entradas, total] = await Promise.all([
-      Movimiento.find(filtro).sort({ createdAt: -1, _id: -1 }).skip((pagina - 1) * 50).limit(50).lean(),
-      Movimiento.countDocuments(filtro)
-    ]);
-    res.json({ entradas, total, pagina });
+    const resultado = await servicio.crearEntrada(req.body, req.usuarioActual);
+    res.status(resultado.estado === "creada" ? 201 : resultado.estado === "rechazada" ? 422 : resultado.estado === "bloqueada" ? 409 : 202).json(resultado);
   } catch (error) { next(error); }
 });
-router.post("/entradas", async (req, res, next) => {
-  try { res.status(201).json(await servicio.crearEntrada(req.body, req.usuarioActual)); }
-  catch (error) { next(error); }
+router.post("/entradas/:id/registrar", async (req, res, next) => {
+  try {
+    if (Object.keys(req.body || {}).some(key => key !== "claveintegracion")) return res.status(400).json({ error: "El registro solo admite la clave de la línea seleccionada." });
+    const resultado = await registro.registrarEntrada({ idlinea: req.params.id, solicitudId: req.params.id, claveintegracion: req.body?.claveintegracion }, req.usuarioActual);
+    res.status(resultado.estado === "creada" ? 200 : resultado.estado === "rechazada" ? 422 : resultado.estado === "bloqueada" ? 409 : 202).json(resultado);
+  } catch (error) { next(error); }
 });
-// No devolver stock ficticio: se habilitará al integrar el registro contable de BC.
-for (const ruta of ["/movimientos", "/stock"]) {
-  router.get(ruta, (req, res) => res.status(501).json({ error: "Apartado previsto para una próxima fase" }));
-}
+for (const ruta of ["/movimientos", "/stock"]) router.get(ruta, (req, res) => res.status(501).json({ error: "Apartado previsto para una próxima fase" }));
 router.use((error, req, res, next) => {
-  const status = error.status || (error.name === "ValidationError" ? 400 : 502);
-  res.status(status).json({ error: error.status ? error.message : "No se pudo completar la operación de almacén. Puedes reintentar sin duplicar la entrada." });
+  // No devolver objetos Axios: contienen Authorization y configuración.
+  res.status(error.status >= 400 && error.status <= 599 ? error.status : 503).json({ error: error.seguro ? error.message : "No se pudo completar la operación. Conserva los datos y reintenta la misma solicitud.", codigoError: error.codigo, definitivo: error.definitivo === true });
 });
 module.exports = router;

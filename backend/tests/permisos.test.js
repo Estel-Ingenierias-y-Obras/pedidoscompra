@@ -52,7 +52,7 @@ const request = (role, method = "GET", path = "/api/pedidos", body) => fetch(bas
 
 test("almacén protege consultas y escrituras por rol", async () => {
   for (const role of [null, "Usuario", "Encargado"]) {
-    for (const [method, path] of [["GET", "configuracion"], ["GET", "productos"], ["GET", "entradas"], ["POST", "entradas"], ["GET", "stock"], ["GET", "movimientos"]]) {
+    for (const [method, path] of [["GET", "configuracion"], ["GET", "productos"], ["GET", "entradas"], ["GET", "entradas/507f1f77bcf86cd799439011"], ["POST", "entradas"], ["GET", "stock"], ["GET", "movimientos"], ["GET", "operaciones"], ["GET", "tipos-proyecto"], ["GET", "unidades-producto?numprod=1000"], ["GET", "movimientos-aplicables?numprod=1000"], ["GET", "almacenes"]]) {
       assert.equal((await request(role, method, `/api/almacen/${path}`)).status, role ? 403 : 401);
     }
   }
@@ -73,6 +73,13 @@ for (const role of ["Usuario", "Comprador", "Admin", "Encargado"]) {
 test("lectura requiere autenticación y un rol conocido", async () => {
   assert.equal((await request(null)).status, 401);
   assert.equal((await request("Desconocido")).status, 403);
+});
+
+test("registro contable requiere autenticación y rol de gestión", async () => {
+  for (const rol of [null, "Usuario", "Encargado"]) {
+    assert.equal((await request(rol, "POST", "/api/almacen/entradas/95a4dd3c-e5d6-431e-9345-16860a69089b/registrar", { claveintegracion: "95a4dd3c-e5d6-431e-9345-16860a69089b" })).status, rol ? 403 : 401);
+    assert.equal((await request(rol, "GET", "/api/almacen/registros-pendientes")).status, rol ? 403 : 401);
+  }
 });
 
 for (const role of ["Comprador", "Admin", "Encargado"]) {

@@ -1,0 +1,32 @@
+{
+  "id": "2c5ac04d-50b0-4fa1-a718-4d5a1ad0d18a",
+  "name": "API-GestionMaterial",
+  "publisher": "ESTEL-IT-JCB",
+  "version": "1.0.2.20260928",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "27.0.0.0",
+  "idRanges": [
+    {
+      "from": 60700,
+      "to": 60749
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "16.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}

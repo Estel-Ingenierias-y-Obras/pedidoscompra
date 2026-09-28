@@ -1,59 +1,87 @@
-# Material y almacén
+# Integración del diario de almacén
 
-`/material` muestra los dos accesos. El catálogo existente pasa a `/material/catalogo`, conservando sus operaciones. `/material/almacen` presenta los tres apartados y `/material/almacen/entradas` implementa el diario. Acceso: Admin y Comprador, validado también en backend.
+Contrato de creación AL suministrado: [README-API.md](README-API.md). Esta implementación reemplaza las entradas locales y la numeración T generada en Node. Crear una línea sigue dejándola pendiente en ELEMENTO / GENERICO. Desde el 28/09 se añade registro explícito de una sola línea seleccionada, con confirmación, que sí modifica existencias al confirmarse en BC. Requiere publicar la [extensión nueva](../integrations/business-central/README.md) y asignar GM REGISTRAR API; el contrato anterior no incluía esa operación.
 
-## Arquitectura y modelos
+La pantalla muestra ahora **una única tabla** con borradores y líneas de BC, selector de fila, barra Inicio (Registrar, Nueva línea, Actualizar datos), sección GENERICO y detalle del producto. La descripción de dos tablas de versiones anteriores ya no aplica.
 
-React → API Express propia → servicio de almacén → adaptador Business Central. MongoDB conserva entradas locales. React nunca recibe credenciales de BC.
+Para registrar: `POST /api/almacen/entradas/:id/registrar` con `claveintegracion`. El modelo RegistroAlmacen persiste la operación antes de enviarla a `registrosProducto`; `GET /api/almacen/registros-pendientes` permite recuperarla. El frontend conserva id/clave aunque la línea desaparezca del diario durante un timeout. Solo se anuncia registro confirmado cuando BC devuelve registrado=true para esa misma línea/clave. No se calcula ni incrementa stock en React.
 
-- `MovimientoAlmacen`: quince campos, clave de reintento, autor, timestamps, estado de sincronización, `bcSystemId` y `errorSincronizacion`.
-- `SecuenciaAlmacen`: contador atómico de documentos.
+Error real diagnosticado: la identidad OAuth carece de inserción indirecta en TableData 60702 GM Entry Request. Asignar GM ENTRADAS API a esa aplicación Entra para la empresa, y GM REGISTRAR API para la nueva función. El backend conserva ahora el detalle de errores 403 sin exponer credenciales.
 
-Las entradas guardadas quedan pendientesBC e inmutables en esta fase. No se envían ni contabilizan en BC ni modifican stock. Estados futuros: enviadoBC, registradoBC y errorBC. El futuro stock deberá consultar existencias contabilizadas en BC, no sumar entradas locales pendientes. Consumos, inventarios y ajustes negativos requieren ampliar validaciones, modelo y adaptador.
+## Configuración
 
-## API propia
+Configurar exclusivamente en backend:
 
-Todas las rutas requieren autenticación y rol Admin o Comprador.
+| Variable | Uso |
+| --- | --- |
+| TENANT_ID | Tenant de la identidad BC y de la URL del servicio |
+| CLIENT_ID, CLIENT_SECRET | Identidad confidencial existente |
+| BC_SCOPE | Scope OAuth existente para BC |
+| BC_ENVIRONMENT | Nombre exacto del entorno |
+| BC_COMPANY_ID | UUID de empresa |
+| MONGO_URI | Persistencia durable de las operaciones antes de llamar a BC |
 
-| Método | Ruta | Resultado |
+El cliente construye las raíces `https://api.businesscentral.dynamics.com/v2.0/{tenant}/{entorno}/api/Estel/GestionMaterial/v1.0/companies({companyId})` y su equivalente estándar `/api/v2.0/companies({companyId})`.
+
+No infiere entorno/empresa de la API de proyectos. Con el entorno Production-Estel-IT y el nombre de empresa facilitados por el usuario, se consultó la API estándar y se configuró localmente BC_COMPANY_ID=e2747643-9342-ed11-946f-000d3aa816c0. La empresa coincidió por su nombre mostrado; BC devuelve ESTEL INGENIERIA Y OBRAS como nombre interno. Los secretos no se imprimieron. Tras publicar la extensión, las consultas estándar y personalizadas funcionan. No se crearon entradas.
+
+BC_ALMACEN_ITEMS_URL, BC_ALMACEN_LOCATIONS_URL y ALMACEN_ULTIMO_DOCUMENTO dejan de utilizarse. El servicio de proyectos conserva su BC_API_URL. La serie DIAP-GEN se gestiona solo en AL.
+
+## Backend
+
+- `services/almacenBC.js`: URLs, filtros OData escapados, lectura de todas las páginas, validación del origen/empresa de nextLink, límites de tiempo, errores saneados y hasta tres intentos para fallos transitorios. No sigue redirecciones con credenciales. Reintenta con espera progresiva respetando Retry-After; si la espera supera cinco segundos, devuelve la operación pendiente con fecha mínima de reintento, sin mantener una petición larga.
+- `services/almacen.js`: lista explícita de campos de entrada, control de usuario/cuerpo, persistencia previa y coordinación de envíos. No asigna documentos, fechas, dimensiones ni costes.
+- `models/OperacionAlmacen.js`: identidad web, UUID BC generado en Node, destino (sin secretos), cuerpo inmutable, huella, autor, estado, bloqueo temporal, próxima fecha de intento y respuesta BC completa, incluido id y numdoc.
+- `routes/almacen.js`: autenticación existente; Admin y Comprador. No expone secretos ni objetos de error Axios.
+
+### Rutas propias
+
+| Método | Ruta /api/almacen | Uso |
 | --- | --- | --- |
-| GET | `/api/almacen/configuracion` | Valores fijos y selectores |
-| GET | `/api/almacen/productos` | Productos de BC no bloqueados |
-| GET | `/api/almacen/entradas?pagina=1` | Entradas, 50 por página y total |
-| POST | `/api/almacen/entradas` | Guarda entrada pendiente |
-| GET | `/api/almacen/movimientos` | 501: futura fase |
-| GET | `/api/almacen/stock` | 501: futura fase |
+| GET | /configuracion | Información fija del módulo |
+| GET | /productos | items estándar filtrados por inventario y no bloqueados |
+| GET | /almacenes | locations estándar para CENTRAL 3 |
+| GET | /tipos-proyecto | tiposProyecto de la API AL |
+| GET | /unidades-producto?numprod=… | unidadesProducto con igualdad para un producto |
+| GET | /movimientos-aplicables?numprod=… | movimientosAplicables del producto |
+| GET | /entradas | Todas las líneas actuales de integración en BC |
+| GET | /entradas/:id | Lectura BC por SystemId |
+| POST | /entradas | Crear/reintentar una operación lógica |
+| GET | /operaciones | Operaciones propias pendientes o bloqueadas, recuperables tras recarga |
+| GET | /movimientos y /stock | 501, fases futuras |
 
-El servidor impone ubicación, departamento, estado, descripción consultada en BC y fecha de guardado en Europe/Madrid. Cantidad mayor que cero; importes finitos no negativos. Precio e importe son independientes y editables. La unidad se inicializa desde el producto y puede modificarse; la futura API AL deberá validar unidades del producto y conversiones.
+El POST web contiene `solicitudId` (UUID estable del borrador) y los campos AL editables. Node sustituye esa identidad web por su `claveintegracion` persistida al llamar a BC. Omitir y enviar cero son solicitudes distintas. No se admiten campos fijos ni más de uno entre preciounitario, importe y costeunitario.
 
-## Numeración
+Respuesta web: `{ solicitudId, estado, cuerpo, claveintegracion, respuesta, error, codigoError, proximoIntento }`. `respuesta` contiene los valores de BC. HTTP 201 = creada; 202 = preparada/procesando/incierta; 422 = rechazada; 409 = bloqueada o conflicto de operación.
 
-Configurar ALMACEN_ULTIMO_DOCUMENTO antes del primer uso: 27 produce T00028; por defecto empieza en T00001. El ejemplo T00027 no se presupone como último documento real. La configuración solo inicializa el contador.
+### Idempotencia y recuperación
 
-MongoDB incrementa mediante $inc atómico. Documento y solicitudId tienen índices únicos. Reintentar la misma fila devuelve la entrada existente. Un fallo después de reservar un número puede dejar huecos; no se reutilizan. Verificar los índices antes de desplegar, especialmente si se desactiva autoIndex.
+1. El navegador conserva el UUID web y el cuerpo enviado antes del POST. Node persiste UUID BC y cuerpo antes de contactar con BC. El índice único de `_id` evita dos operaciones para el mismo identificador web.
+2. La huella usa una representación de orden estable, conservando omisiones y ceros. Otro cuerpo o usuario con el mismo identificador se rechaza. No se reenvía una operación a otro entorno/empresa si cambia la configuración.
+3. Una actualización atómica reclama la operación durante 180 segundos. Las llamadas concurrentes reciben el estado actual. El token del bloqueo evita que una respuesta tardía sobrescriba un intento posterior. Tras caída del proceso, la misma solicitud puede reclamar el bloqueo caducado.
+4. Un timeout o fallo al persistir la confirmación deja una operación recuperable. Repetir el POST original utiliza el mismo UUID/cuerpo; la idempotencia AL protege incluso si dos peticiones llegan a BC por expiración del bloqueo.
+5. Errores de validación/autorización no se reintentan automáticamente. Una solicitud rechazada permite corregir explícitamente en un nuevo borrador. Si ya había incertidumbre, se conserva hasta resolverla. GM_KEY_CONFLICT y GM_ENTRY_GONE bloquean la operación: nunca se crea una sustituta automática.
+6. Repetir explícitamente una operación confirmada vuelve a consultar mediante el POST original, para recibir la línea actual o GM_ENTRY_GONE. La lista visible procede siempre de GET en BC, no de sumar respuestas antiguas.
 
-La serie debe ser exclusiva de PedidosCompra. Si se comparte con BC u otras aplicaciones, la futura API AL deberá reservar números transaccionalmente en BC: el contador local no coordina escritores externos.
+No eliminar operaciones como si fueran caché. Mantener copias de seguridad y los índices de MongoDB. No se migran ni envían automáticamente los antiguos documentos locales de MovimientoAlmacen. Los modelos MovimientoAlmacen/SecuenciaAlmacen quedan como referencia histórica; las nuevas rutas no los utilizan ni borran sus colecciones.
 
-## Conexión AL pendiente
+## React
 
-Configurar las credenciales backend existentes TENANT_ID, CLIENT_ID, CLIENT_SECRET y BC_SCOPE, y las URLs completas con empresa BC_ALMACEN_ITEMS_URL y BC_ALMACEN_LOCATIONS_URL.
+`EntradasAlmacen` coordina catálogos, recuperación y confirmaciones. `DiarioAlmacen` conserva el formato de tabla y sus quince columnas, más el modo monetario. `services/almacenPayload.js` construye exclusivamente los campos permitidos.
 
-Contrato propuesto para la extensión AL:
+- Producto: número y descripción. Cambiarlo limpia unidad y movimiento. Las respuestas de un producto anterior se descartan.
+- Unidad: opción «Inicializa BC» (se omite del POST) o unidad del catálogo del producto.
+- Proyecto: nombres reales del catálogo y código al enviar; INDIRECTO predeterminado. Si queda bloqueado/no disponible, exige otro valor disponible.
+- Movimiento: opcional, muestra número, documento, fecha y pendiente en unidad base. Comprueba la cantidad base cuando dispone del factor; la validación definitiva es de BC.
+- Moneda: usar BC o introducir uno de los tres campos monetarios. El descuento es solo lectura. No se infiere el método de coste del producto; el error de coste estándar de AL se muestra al usuario.
+- Fecha, documento, almacén, tipo y departamento informativos antes del alta. La lista posterior muestra los valores reales devueltos, incluidos cantidad base, factor y conjunto de dimensiones. El literal tipomovimiento de respuesta no se interpreta ni se envía.
+- Doble envío bloqueado. Borradores conservados por usuario en localStorage. El cuerpo de una solicitud enviada queda congelado mientras se desconozca el resultado. Si falla el almacenamiento, no se inicia un envío nuevo. Los envíos pendientes del servidor también se recuperan mediante /operaciones, aunque falle otro catálogo.
+- No hay edición ni eliminación de líneas creadas en BC. «Quitar» solo afecta a borradores todavía no enviados.
 
-- Item: `{ "value": [{ "number": "P001", "displayName": "Producto", "baseUnitOfMeasureCode": "UD", "blocked": false }] }`.
-- Location: `{ "value": [{ "code": "CENTRAL 3" }] }`.
-- Paginación OData @odata.nextLink; el adaptador sigue páginas del mismo origen HTTPS.
+## Verificación y límites
 
-Antes de guardar, el backend comprueba producto y existencia de CENTRAL 3. Sin configuración muestra indisponibilidad; no sustituye productos BC por el catálogo local.
+Pruebas automatizadas locales con dobles de HTTP y persistencia: cuerpos monetarios, campos fijos, catálogos y respuestas tardías, doble envío, recarga, timeouts/reintentos, conflictos, línea desaparecida, paginación, permisos y conservación de la respuesta final. Compilación de producción React.
 
-La siguiente fase deberá publicar la API AL basada en Item Journal Line y configurar plantilla/sección del diario, enums, dimensiones (tipo de proyecto/departamento), unidades y significado de «Liq por nº orden». Distinguir crear línea de registrar contablemente. Implementar envío idempotente con solicitudId, reconciliación por bcSystemId y reintentos antes de habilitar contabilización y stock. Esta entrega no incluye extensión AL ni conexión verificada contra BC real.
+Pendiente con la configuración real: publicar la extensión y verificar permisos de la identidad de integración; contrastar los catálogos y metadatos del sandbox; crear una entrada de prueba y comprobar su documento/valores; reintentar sin duplicar; verificar que las existencias no cambian. También quedan pendientes pruebas de concurrencia sobre MongoDB y BC reales. Ninguna prueba local hace POST a BC ni conecta con producción.
 
-## Componentes y UX
-
-Páginas Material, Almacen y EntradasAlmacen; componente DiarioAlmacen; cliente services/almacen.js. Tarjetas con accesos claros y retorno. Tabla compacta con quince columnas, scroll horizontal, etiquetas accesibles y campos automáticos diferenciados. Producto muestra número y descripción. Guardado y errores por fila; lista persistida debajo con estado. Los apartados futuros se identifican como próximos.
-
-Las filas sin guardar permanecen en memoria. Hay aviso al cerrar/recargar y al usar el enlace de vuelta; guardar antes de navegar por otros enlaces del menú. El documento muestra «Al guardar» hasta reservarse realmente.
-
-## Verificación
-
-Pruebas backend con node --test, frontend con react-scripts test y compilación de producción. Los tests usan dobles de BC y MongoDB; verificar adicionalmente permisos AL, productos paginados, almacén, índices y concurrencia en el entorno real. No se modifica ni migra el catálogo existente.
+Comprobación real de solo lectura tras publicar la extensión: 21.202 productos, CENTRAL 3 encontrado, tres tipos de proyecto (DIRECTO → Obra, INDIRECTO → Estructura, GRUPO → Grupo), ninguno bloqueado. El diario responde correctamente y está vacío. Para un producto del catálogo, unidadesProducto devuelve una unidad y movimientosAplicables una lista vacía válida. Se utilizó el cliente backend, incluida su paginación. No se ejecutaron pruebas reales de POST ni se modificaron datos de BC; creación, recálculos e idempotencia reales siguen pendientes de verificar.
