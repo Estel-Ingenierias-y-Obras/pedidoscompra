@@ -28,7 +28,6 @@ export default function EntradasAlmacen() {
   const [productos, setProductos] = useState([]);
   const [tiposProyecto, setTiposProyecto] = useState([]);
   const [entradas, setEntradas] = useState([]);
-  const [pagina, setPagina] = useState(1);
   const [seleccion, setSeleccion] = useState(null);
   const [confirmarRegistro, setConfirmarRegistro] = useState(null);
   const claveRegistros = `${clave}:registros`;
@@ -93,7 +92,6 @@ export default function EntradasAlmacen() {
         persistir(filasRef.current.filter(item => item.solicitudId !== fila.solicitudId));
         setMensaje(`Entrada creada en el diario, pendiente de registrar. Documento ${resultado.respuesta.numdoc}.`);
         setEntradas(actuales => [resultado.respuesta, ...actuales.filter(item => item.id !== resultado.respuesta.id)]);
-        setPagina(1);
         setSeleccion(resultado.respuesta.id);
       } else cambiar(fila.solicitudId, { estado: resultado.estado, error: resultado.error, proximoIntento: resultado.proximoIntento });
     } catch (err) {
@@ -148,8 +146,8 @@ export default function EntradasAlmacen() {
       {error && <p role="alert" className="journal-error">{error}</p>}
       {mensaje && <p role="status">{mensaje}</p>}
       {cargando && <p role="status">Cargando diario y catálogos…</p>}
-      <DiarioAlmacen {...{ filas, productos, tiposProyecto, cambiar, guardar, corregir, seleccion }} seleccionar={setSeleccion} entradas={visibles.slice((pagina - 1) * 50, pagina * 50)} ocupado={ocupado || cargando || !!errorStorage} quitar={id => persistir(filasRef.current.filter(fila => fila.solicitudId !== id))} />
-      <div className="bc-journal-footer"><span>{filas.length} borradores · {visibles.length} líneas de BC</span><div><button disabled={pagina === 1} onClick={() => setPagina(valor => valor - 1)}>Anterior</button><span> Página {pagina} </span><button disabled={pagina * 50 >= visibles.length} onClick={() => setPagina(valor => valor + 1)}>Siguiente</button></div></div>
+      <DiarioAlmacen {...{ filas, productos, tiposProyecto, cambiar, guardar, corregir, seleccion }} seleccionar={setSeleccion} entradas={visibles} ocupado={ocupado || cargando || !!errorStorage} quitar={id => persistir(filasRef.current.filter(fila => fila.solicitudId !== id))} />
+      <div className="bc-journal-footer"><span>{filas.length} borradores · {visibles.length} líneas de BC</span></div>
       <aside className="bc-journal-detail"><strong>Descripción producto</strong><p>{descripcionSeleccionada || "Selecciona una línea para ver su descripción"}</p>{lineaSeleccionada && <small>Cantidad base: {lineaSeleccionada.cantidadbase ?? "—"} · Factor unidad: {lineaSeleccionada.factorunidad ?? "—"} · Dimensiones: {lineaSeleccionada.conjuntodimensiones ?? "—"}</small>}</aside>
     </div>
     </div>

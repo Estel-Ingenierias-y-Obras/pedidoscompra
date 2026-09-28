@@ -1,15 +1,9 @@
 const axios = require("axios");
 const authBC = require("./businessCentral");
+const { configuracionBC, logSolicitudBC } = require("./bcConfig");
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fallo = (mensaje, status = 503) => Object.assign(new Error(mensaje), { status, seguro: true });
 
-function configuracionBC(env = process.env) {
-  const faltan = ["TENANT_ID", "CLIENT_ID", "CLIENT_SECRET", "BC_SCOPE", "BC_ENVIRONMENT", "BC_COMPANY_ID"].filter(campo => !env[campo]);
-  if (faltan.length) throw fallo(`Falta configurar la integración de almacén: ${faltan.join(", ")}.`);
-  if (!UUID.test(env.TENANT_ID) || !UUID.test(env.BC_COMPANY_ID)) throw fallo("TENANT_ID y BC_COMPANY_ID deben ser UUID válidos.");
-  const base = `https://api.businesscentral.dynamics.com/v2.0/${env.TENANT_ID}/${encodeURIComponent(env.BC_ENVIRONMENT)}`;
-  return { custom: `${base}/api/Estel/GestionMaterial/v1.0/companies(${env.BC_COMPANY_ID})`, standard: `${base}/api/v2.0/companies(${env.BC_COMPANY_ID})` };
-}
 
 function clasificarError(error) {
   if (error.seguro) return { mensaje: error.message, status: error.status, transitorio: false, incierto: false, codigo: "CONFIGURACION" };
@@ -29,7 +23,7 @@ function clasificarError(error) {
       .replace(/(client_secret|access_token|refresh_token)\s*[:=]\s*\S+/gi, "$1=[oculto]")
       .replace(/[\x00-\x1f]/g, " ").slice(0, 600);
     mensaje = status === 403 ? `${mensaje} Detalle: ${detalle}` : detalle;
-    if (process.env.CLIENT_SECRET) mensaje = mensaje.split(process.env.CLIENT_SECRET).join("[oculto]");
+    for (const secreto of [process.env.BC_CLIENT_SECRET, process.env.CLIENT_SECRET].filter(Boolean)) mensaje = mensaje.split(secreto).join("[oculto]");
   }
   const cabecera = error.response?.headers?.["retry-after"];
   const retryMs = cabecera == null ? 0 : /^\d+(\.\d+)?$/.test(String(cabecera)) ? Number(cabecera) * 1000 : Math.max(0, Date.parse(cabecera) - Date.now()) || 0;
@@ -41,6 +35,7 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     let huboIncertidumbre = false;
     for (let intento = 0; intento < 3; intento++) {
       try {
+        logSolicitudBC(url);
         return (await request({ method, url, ...(data === undefined ? {} : { data }), headers: { Authorization: `Bearer ${await token()}` }, timeout: 15000, maxRedirects: 0, proxy: false })).data;
       } catch (error) {
         const info = clasificarError(error);

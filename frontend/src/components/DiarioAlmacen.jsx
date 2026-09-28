@@ -55,7 +55,7 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
     </select>;
     else if (campo === "cantidad") control = <input aria-label={label} type="number" step="any" disabled={deshabilitado} value={fila.cantidad} onChange={e => modificar({ cantidad: e.target.value })} />;
     else control = fila.modoMonetario === campo ? <input aria-label={label} type="number" step="any" disabled={deshabilitado} value={fila.valorMonetario} onChange={e => modificar({ valorMonetario: e.target.value })} /> : "Calcula BC";
-    return <td key={campo} className={Object.prototype.hasOwnProperty.call(fijos, campo) ? "journal-fixed" : ""}>{control}</td>;
+    return <td key={campo} title={typeof control === "string" || typeof control === "number" ? String(control) : undefined} className={Object.prototype.hasOwnProperty.call(fijos, campo) ? "journal-fixed" : ""}>{control}</td>;
   })}<td><select aria-label={`Modo monetario, fila ${indice + 1}`} value={fila.modoMonetario} disabled={deshabilitado} onChange={e => modificar({ modoMonetario: e.target.value, valorMonetario: "" })}>{modosMonetarios.map(([valor, texto]) => <option key={valor} value={valor}>{texto}</option>)}</select></td>
     <td className="journal-row-status">
       <div className="journal-actions">
@@ -77,7 +77,8 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
 
 export default function DiarioAlmacen(props) {
   const entradas = props.entradas || [];
-  const anchos = [32, 95, 105, 95, 155, 180, 100, 80, 100, 95, 95, 90, 95, 140, 135, 110, 170, 210];
+  // Selector, campos del diario en su orden visible, modo monetario y acciones.
+  const anchos = [28, 86, 96, 84, 130, 200, 84, 68, 90, 82, 82, 82, 82, 110, 115, 104, 130, 195];
   return <div className="journal-scroll" tabIndex="0" role="region" aria-label="Diario editable de entradas"><table className="journal-table" style={{ width: anchos.reduce((total, ancho) => total + ancho, 0) }}>
     <caption>Diario de productos · Borradores y líneas pendientes en BC</caption>
     <colgroup>{anchos.map((ancho, indice) => <col key={indice} style={{ width: ancho }} />)}</colgroup>

@@ -4,6 +4,7 @@ const path = require("node:path");
 const axios = require("axios");
 const dotenv = require("dotenv");
 const { obtenerToken } = require("../services/businessCentral");
+const { baseBC } = require("../services/bcConfig");
 
 async function main() {
   const [entorno, empresa] = process.argv.slice(2);
@@ -11,8 +12,7 @@ async function main() {
   const archivo = path.join(__dirname, "../.env");
   const contenido = fs.readFileSync(archivo, "utf8");
   dotenv.config({ path: archivo, quiet: true });
-  if (!/^[0-9a-f-]{36}$/i.test(process.env.TENANT_ID || "")) throw new Error("TENANT_ID no configurado correctamente.");
-  const raiz = `https://api.businesscentral.dynamics.com/v2.0/${process.env.TENANT_ID}/${encodeURIComponent(entorno)}/api/v2.0/companies`;
+  const raiz = `${baseBC({ ...process.env, BC_ENVIRONMENT: entorno })}/api/v2.0/companies`;
   const token = await obtenerToken();
   const empresas = [], visitadas = new Set();
   let siguiente = raiz;
@@ -31,7 +31,7 @@ async function main() {
   const encontrada = coincidencias[0];
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(encontrada.id)) throw new Error("BC no devolvió un UUID de empresa válido.");
   let actualizado = contenido;
-  for (const [clave, valor] of Object.entries({ BC_ENVIRONMENT: entorno, BC_COMPANY_ID: encontrada.id })) {
+  for (const [clave, valor] of Object.entries({ BC_ENVIRONMENT: entorno, BC_COMPANY_ID: encontrada.id, BC_COMPANY_NAME: encontrada.name })) {
     const linea = `${clave}=${JSON.stringify(valor)}`;
     const patron = new RegExp(`^${clave}=.*$`, "gm");
     actualizado = patron.test(actualizado) ? actualizado.replace(patron, () => linea) : `${actualizado.trimEnd()}\n${linea}\n`;

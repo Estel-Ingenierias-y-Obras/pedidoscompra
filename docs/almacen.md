@@ -19,13 +19,32 @@ Configurar exclusivamente en backend:
 | BC_SCOPE | Scope OAuth existente para BC |
 | BC_ENVIRONMENT | Nombre exacto del entorno |
 | BC_COMPANY_ID | UUID de empresa |
+| BC_COMPANY_NAME | Nombre interno exacto de la misma empresa para proyectos OData |
+| BC_LOG_REQUESTS | `true` activa logs de destino sin tokens, cuerpos ni filtros; `false` los desactiva |
 | MONGO_URI | Persistencia durable de las operaciones antes de llamar a BC |
 
 El cliente construye las raíces `https://api.businesscentral.dynamics.com/v2.0/{tenant}/{entorno}/api/Estel/GestionMaterial/v1.0/companies({companyId})` y su equivalente estándar `/api/v2.0/companies({companyId})`.
 
-No infiere entorno/empresa de la API de proyectos. Con el entorno Production-Estel-IT y el nombre de empresa facilitados por el usuario, se consultó la API estándar y se configuró localmente BC_COMPANY_ID=e2747643-9342-ed11-946f-000d3aa816c0. La empresa coincidió por su nombre mostrado; BC devuelve ESTEL INGENIERIA Y OBRAS como nombre interno. Los secretos no se imprimieron. Tras publicar la extensión, las consultas estándar y personalizadas funcionan. No se crearon entradas.
+La configuración común está en `backend/services/bcConfig.js`. `BC_ENVIRONMENT` controla proyectos OData, APIs estándar y APIs personalizadas. Se admiten `BC_TENANT_ID`, `BC_CLIENT_ID` y `BC_CLIENT_SECRET` con prioridad sobre los nombres anteriores sin prefijo. Las variables ENTRA_* de acceso a la web y GRAPH_* de correo son independientes y no se cambian.
 
-BC_ALMACEN_ITEMS_URL, BC_ALMACEN_LOCATIONS_URL y ALMACEN_ULTIMO_DOCUMENTO dejan de utilizarse. El servicio de proyectos conserva su BC_API_URL. La serie DIAP-GEN se gestiona solo en AL.
+`BC_API_URL` deja de utilizarse: proyectos construye `BASE/ODataV4/Company('{BC_COMPANY_NAME}')/API_Proyectos`, a partir del servicio real facilitado por el usuario. Tampoco se usan BC_ALMACEN_ITEMS_URL, BC_ALMACEN_LOCATIONS_URL ni ALMACEN_ULTIMO_DOCUMENTO. La serie DIAP-GEN se gestiona solo en AL.
+
+### Paso a Producción (28/09/2026)
+
+Configuración local verificada mediante consulta de empresas en Production:
+
+```dotenv
+BC_ENVIRONMENT=Production
+BC_COMPANY_ID=e2747643-9342-ed11-946f-000d3aa816c0
+BC_COMPANY_NAME="ESTEL INGENIERIA Y OBRAS"
+BC_LOG_REQUESTS=true
+```
+
+`node backend/scripts/verificar-bc.js` consulta exclusivamente GET con `$top=1`. Proyectos, items y locations devuelven HTTP 200. diarioProductos, tiposProyecto, unidadesProducto, movimientosAplicables y registrosProducto devuelven HTTP 404. La conexión ya apunta a Production, pero esas APIs no están disponibles en las rutas esperadas: comprobar/publicar la extensión en Production y sus permisos antes de utilizar entradas. No se han probado escrituras ni registrado existencias.
+
+En Render, configurar las cuatro variables anteriores y desplegar el código actualizado. Las credenciales existentes siguen siendo válidas; no se han cambiado variables remotas desde este workspace. `render.yaml` declara los nuevos ajustes, pero no modifica por sí solo un servicio ya desplegado. Reiniciar el backend local para cargar `.env`. Desactivar `BC_LOG_REQUESTS` tras el diagnóstico.
+
+Para volver al sandbox, ejecutar `node backend/scripts/configurar-empresa-almacen.js Production-Estel-IT "ESTEL Ingeniería y Obras SA"` y reiniciar el backend. El script verifica la empresa por GET antes de guardar entorno, UUID y nombre interno. En Render, actualizar las mismas variables al destino verificado y redesplegar. Las operaciones pendientes mantienen su destino original: no se deben reenviar a otro entorno ni borrar sus claves para eludir ese control.
 
 ## Backend
 

@@ -52,6 +52,23 @@ test.each(["GM_KEY_CONFLICT", "GM_ENTRY_GONE"])("%s conserva fila bloqueada sin 
   expect(JSON.parse(localStorage.getItem(key))[0].estado).toBe("bloqueada");
 });
 
+test("muestra más de 50 entradas sin paginar y permite seleccionar la última", async () => {
+  localStorage.setItem(key, "[]");
+  servicio.obtenerEntradas.mockResolvedValue(Array.from({ length: 65 }, (_, indice) => ({
+    id: `bc-${indice}`, claveintegracion: `clave-${indice}`, numdoc: `DOC-${indice}`, descripcion: `Producto ${indice}`
+  })));
+  montar();
+  const ultima = await screen.findByRole("radio", { name: "Seleccionar documento DOC-64" });
+  expect(screen.getAllByRole("radio")).toHaveLength(65);
+  expect(screen.queryByRole("button", { name: /Anterior|Siguiente/ })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Página \d/)).not.toBeInTheDocument();
+  fireEvent.click(ultima);
+  expect(ultima).toBeChecked();
+  expect(screen.getByRole("button", { name: "Registrar" })).toBeEnabled();
+  expect(servicio.guardarEntrada).not.toHaveBeenCalled();
+  expect(servicio.registrarEntrada).not.toHaveBeenCalled();
+});
+
 test("un solo diario; Registrar exige selección y confirmación", async () => {
   localStorage.setItem(key, "[]");
   const entrada = { id: "id-bc", claveintegracion: "clave-bc", numdoc: "T00100", numprod: "1000", cantidad: 3 };

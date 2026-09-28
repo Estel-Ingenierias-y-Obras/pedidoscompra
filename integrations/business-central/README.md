@@ -4,7 +4,7 @@ Esta carpeta contiene una copia de la extensión original con el mismo app ID y 
 
 ## Publicación y permisos
 
-1. Publicar este paquete en el sandbox Production-Estel-IT, conservando los datos de la extensión anterior. Alternativamente, incorporar estos fuentes a tu proyecto AL y compilar/publicar. No publicar después la versión antigua desde el otro proyecto.
+1. Publicar este paquete en el entorno configurado en `BC_ENVIRONMENT` (ahora `Production`), conservando los datos de cualquier versión anterior. El sandbox anterior era `Production-Estel-IT`. Alternativamente, incorporar estos fuentes a tu proyecto AL y compilar/publicar. No publicar después la versión antigua desde el otro proyecto. La comprobación GET en Production del 28/09/2026 devuelve 404 para las cinco APIs de esta extensión; no se ha publicado desde este workspace.
 2. En **Aplicaciones Microsoft Entra**, localizar el CLIENT_ID del backend y la empresa ESTEL. Asignar **GM ENTRADAS API** para crear líneas y **GM REGISTRAR API** para permitir el registro desde la web. Este último incluye el primero. Reiniciar el backend para cargar cambios de código.
 3. Comprobar los permisos base de ejecución de rutinas estándar de inventario/contabilidad de la identidad. El conjunto nuevo declara escrituras indirectas: otras extensiones/configuraciones pueden exigir permisos adicionales, que se deben resolver según el mensaje concreto, sin conceder SUPER.
 

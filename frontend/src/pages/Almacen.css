@@ -23,25 +23,25 @@ a.module-card:hover, a.module-card:focus-visible { background: #eff8f8; border-c
 
 /* Cabecera corporativa y tarjeta de la web; cuadrícula compacta de BC. */
 .bc-journal-page { min-width: 0; color: var(--text); }
-.bc-journal-card { padding: 18px 20px; }
+.bc-journal-card { padding: 18px 20px; min-width: 0; max-width: 100%; box-sizing: border-box; }
 .bc-save-state { margin-left: auto; font-size: 12px; color: var(--text-muted); }
 .bc-command-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--border); padding: 0 0 12px; }
-.bc-command-bar button, .bc-journal-footer button { border: 0; background: transparent; color: #394a5d; border-radius: 0; box-shadow: none; padding: 7px 12px; font-size: 14px; font-weight: 400; }
+.bc-command-bar button { border: 0; background: transparent; color: #394a5d; border-radius: 0; box-shadow: none; padding: 7px 12px; font-size: 14px; font-weight: 400; }
 .bc-command-bar button svg { color: var(--brand-navy); margin-right: 6px; }
 .bc-command-bar button { border-radius: 4px; color: var(--brand-navy); }
 .bc-command-bar button:first-child { background: var(--brand-navy); color: white; }
 .bc-command-bar button:first-child svg { color: var(--brand-amber); }
-.bc-command-bar button:hover:not(:disabled), .bc-journal-footer button:hover:not(:disabled) { background: var(--surface-muted); color: var(--brand-navy); }
+.bc-command-bar button:hover:not(:disabled) { background: var(--surface-muted); color: var(--brand-navy); }
 .bc-command-bar button:first-child:hover:not(:disabled) { background: var(--brand-blue-hover); color: white; }
 .bc-command-bar button:disabled { opacity: .45; cursor: not-allowed; }
 .bc-journal-help { font-size: 12px; margin: 12px 0; color: #637084; }
-.bc-journal-content .journal-scroll { height: min(54vh, 570px); min-height: 300px; border: 1px solid var(--border-soft); border-top: 2px solid var(--brand-amber); border-radius: 4px; background: var(--surface-muted); }
+.bc-journal-content .journal-scroll { height: min(54vh, 570px); min-height: 300px; overflow: auto; border: 1px solid var(--border-soft); border-top: 2px solid var(--brand-amber); border-radius: 4px; background: var(--surface-muted); }
 .bc-journal-content .journal-table { table-layout: fixed; font-size: 12px; background: white; }
 .bc-journal-content .journal-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.bc-journal-content .journal-table th { position: sticky; top: 0; z-index: 1; height: 46px; padding: 6px; background: var(--surface-muted); font-size: 11px; font-weight: 600; color: var(--brand-navy); white-space: normal; vertical-align: middle; border-bottom: 1px solid var(--border); }
-.bc-journal-content .journal-table td { padding: 2px 6px; height: 32px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); color: var(--text); background: white; }
+.bc-journal-content .journal-table th { position: sticky; top: 0; z-index: 1; height: 38px; padding: 4px; background: var(--surface-muted); font-size: 11px; font-weight: 600; color: var(--brand-navy); white-space: normal; vertical-align: middle; border-bottom: 1px solid var(--border); }
+.bc-journal-content .journal-table td { padding: 1px 4px; height: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); color: var(--text); background: white; }
 .bc-journal-content .journal-table .journal-fixed { color: #697788; }
-.bc-journal-content .journal-table input, .bc-journal-content .journal-table select { width: 100%; min-width: 0; max-width: 100%; border: 1px solid transparent; border-radius: 2px; min-height: 27px; padding: 2px; background: transparent; font: inherit; }
+.bc-journal-content .journal-table input, .bc-journal-content .journal-table select { width: 100%; min-width: 0; max-width: 100%; border: 1px solid transparent; border-radius: 2px; min-height: 25px; padding: 1px; background: transparent; font: inherit; }
 .bc-journal-content .journal-table input:hover, .bc-journal-content .journal-table select:hover { border-color: #b8c8ca; }
 .bc-journal-content .journal-table .bc-row-selector, .bc-journal-content .journal-table th:first-child { text-align: center; }
 .bc-journal-content .journal-table .bc-row-selector input { width: 14px; height: 14px; min-height: 0; accent-color: var(--brand-navy); }

@@ -1,13 +1,15 @@
 const axios = require("axios");
+const { identidadBC, urlProyectos, logSolicitudBC } = require("./bcConfig");
 
 async function obtenerToken() {
+  const config = identidadBC();
 
   const response = await axios.post(
-    `https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`,
+    `https://login.microsoftonline.com/${config.tenant}/oauth2/v2.0/token`,
     new URLSearchParams({
-      client_id: process.env.CLIENT_ID,
-      client_secret: process.env.CLIENT_SECRET,
-      scope: process.env.BC_SCOPE,
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      scope: config.scope,
       grant_type: "client_credentials"
     }),
     {
@@ -25,16 +27,20 @@ async function obtenerToken() {
 }
 
 async function obtenerProyectos() {
+  const url = urlProyectos();
 
   const token = await obtenerToken();
 
+  logSolicitudBC(url);
   const response = await axios.get(
-    process.env.BC_API_URL,
+    url,
     {
       headers: {
         Authorization: `Bearer ${token}`
       },
-      proxy: false
+      proxy: false,
+      timeout: 15000,
+      maxRedirects: 0
     }
   );
 
