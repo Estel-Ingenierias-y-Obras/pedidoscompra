@@ -1,12 +1,14 @@
 # Integración del diario de almacén
 
-Contrato de creación AL suministrado: [README-API.md](README-API.md). Esta implementación reemplaza las entradas locales y la numeración T generada en Node. Crear una línea sigue dejándola pendiente en ELEMENTO / GENERICO. Desde el 28/09 se añade registro explícito de una sola línea seleccionada, con confirmación, que sí modifica existencias al confirmarse en BC. Requiere publicar la [extensión nueva](../integrations/business-central/README.md) y asignar GM REGISTRAR API; el contrato anterior no incluía esa operación.
+Contrato de creación AL suministrado: [README-API.md](README-API.md). Enviar una línea la deja pendiente en el diario de BC; su confirmación y registro se realizan exclusivamente desde Business Central en el flujo actual de la web.
 
-La pantalla muestra ahora **una única tabla** con borradores y líneas de BC, selector de fila, barra Inicio (Registrar, Nueva línea, Actualizar datos), sección GENERICO y detalle del producto. La descripción de dos tablas de versiones anteriores ya no aplica.
+`/material/almacen/entradas` muestra únicamente borradores y envíos cuya recepción sigue sin confirmar. La columna **Acciones** ofrece **Enviar a BC** y **Eliminar** para borradores nunca enviados. Un envío incierto conserva su identidad y solo admite el reintento existente; no se permite eliminarlo porque puede haber llegado a BC. Las validaciones y el POST de creación permanecen iguales.
 
-Para registrar: `POST /api/almacen/entradas/:id/registrar` con `claveintegracion`. El modelo RegistroAlmacen persiste la operación antes de enviarla a `registrosProducto`; `GET /api/almacen/registros-pendientes` permite recuperarla. El frontend conserva id/clave aunque la línea desaparezca del diario durante un timeout. Solo se anuncia registro confirmado cuando BC devuelve registrado=true para esa misma línea/clave. No se calcula ni incrementa stock en React.
+El botón **Enviados a BC** abre `/material/almacen/enviados`: vista de solo lectura de los envíos propios que siguen presentes en el diario de BC. Al cargar o actualizar, la pantalla cruza `GET /api/almacen/enviados` con la colección completa y paginada de `GET /api/almacen/entradas`, comparando los identificadores de BC. Las líneas eliminadas o retiradas del diario al registrarlas dejan de mostrarse. Si falla cualquiera de las consultas, se conservan las filas mostradas y se informa del error. La API de enviados conserva las respuestas e identificadores originales en OperacionAlmacen para evitar duplicados y permitir que la pantalla de entradas reconcilie respuestas perdidas; no se eliminan esos datos técnicos ni se contabiliza en BC.
 
-Error real diagnosticado: la identidad OAuth carece de inserción indirecta en TableData 60702 GM Entry Request. Asignar GM ENTRADAS API a esa aplicación Entra para la empresa, y GM REGISTRAR API para la nueva función. El backend conserva ahora el detalle de errores 403 sin exponer credenciales.
+Se han retirado el botón Registrar, su confirmación y sus llamadas del frontend. Las rutas de registro anteriores (`POST /api/almacen/entradas/:id/registrar`, `GET /api/almacen/registros-pendientes`) y sus datos se conservan por compatibilidad, sin uso desde estas pantallas. No se borran solicitudes de registro antiguas ni se reintentan automáticamente.
+
+Error real diagnosticado: la identidad OAuth carece de inserción indirecta en TableData 60702 GM Entry Request. Asignar GM ENTRADAS API a esa aplicación Entra para la empresa. GM REGISTRAR API corresponde únicamente a la operación de registro heredada, que ya no se utiliza desde estas pantallas. El backend conserva ahora el detalle de errores 403 sin exponer credenciales.
 
 ## Configuración
 
@@ -67,6 +69,7 @@ Para volver al sandbox, ejecutar `node backend/scripts/configurar-empresa-almace
 | GET | /entradas/:id | Lectura BC por SystemId |
 | POST | /entradas | Crear/reintentar una operación lógica |
 | GET | /operaciones | Operaciones propias pendientes o bloqueadas, recuperables tras recarga |
+| GET | /enviados | Historial propio de respuestas confirmadas en el destino actual, conservado aunque la línea salga de BC |
 | GET | /movimientos y /stock | 501, fases futuras |
 
 El POST web contiene `solicitudId` (UUID estable del borrador) y los campos AL editables. Node sustituye esa identidad web por su `claveintegracion` persistida al llamar a BC. Omitir y enviar cero son solicitudes distintas. No se admiten campos fijos ni más de uno entre preciounitario, importe y costeunitario.
@@ -80,7 +83,7 @@ Respuesta web: `{ solicitudId, estado, cuerpo, claveintegracion, respuesta, erro
 3. Una actualización atómica reclama la operación durante 180 segundos. Las llamadas concurrentes reciben el estado actual. El token del bloqueo evita que una respuesta tardía sobrescriba un intento posterior. Tras caída del proceso, la misma solicitud puede reclamar el bloqueo caducado.
 4. Un timeout o fallo al persistir la confirmación deja una operación recuperable. Repetir el POST original utiliza el mismo UUID/cuerpo; la idempotencia AL protege incluso si dos peticiones llegan a BC por expiración del bloqueo.
 5. Errores de validación/autorización no se reintentan automáticamente. Una solicitud rechazada permite corregir explícitamente en un nuevo borrador. Si ya había incertidumbre, se conserva hasta resolverla. GM_KEY_CONFLICT y GM_ENTRY_GONE bloquean la operación: nunca se crea una sustituta automática.
-6. Repetir explícitamente una operación confirmada vuelve a consultar mediante el POST original, para recibir la línea actual o GM_ENTRY_GONE. La lista visible procede siempre de GET en BC, no de sumar respuestas antiguas.
+6. Repetir explícitamente una operación confirmada vuelve a consultar mediante el POST original, para recibir la línea actual o GM_ENTRY_GONE. El historial conserva la respuesta confirmada del envío y no pretende representar el estado contable actual en BC.
 
 No eliminar operaciones como si fueran caché. Mantener copias de seguridad y los índices de MongoDB. No se migran ni envían automáticamente los antiguos documentos locales de MovimientoAlmacen. Los modelos MovimientoAlmacen/SecuenciaAlmacen quedan como referencia histórica; las nuevas rutas no los utilizan ni borran sus colecciones.
 
@@ -95,7 +98,7 @@ No eliminar operaciones como si fueran caché. Mantener copias de seguridad y lo
 - Moneda: usar BC o introducir uno de los tres campos monetarios. El descuento es solo lectura. No se infiere el método de coste del producto; el error de coste estándar de AL se muestra al usuario.
 - Fecha, documento, almacén, tipo y departamento informativos antes del alta. La lista posterior muestra los valores reales devueltos, incluidos cantidad base, factor y conjunto de dimensiones. El literal tipomovimiento de respuesta no se interpreta ni se envía.
 - Doble envío bloqueado. Borradores conservados por usuario en localStorage. El cuerpo de una solicitud enviada queda congelado mientras se desconozca el resultado. Si falla el almacenamiento, no se inicia un envío nuevo. Los envíos pendientes del servidor también se recuperan mediante /operaciones, aunque falle otro catálogo.
-- No hay edición ni eliminación de líneas creadas en BC. «Quitar» solo afecta a borradores todavía no enviados.
+- No hay edición ni eliminación de líneas creadas en BC. «Eliminar» solo afecta a borradores todavía no enviados.
 
 ## Verificación y límites
 

@@ -1,27 +1,39 @@
 import { fireEvent, render, screen, waitFor, act } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import EntradasAlmacen from "./EntradasAlmacen";
+import EnviadosAlmacen from "./EnviadosAlmacen";
 import * as servicio from "../services/almacen";
 jest.mock("../components/Layout", () => ({ children }) => <div>{children}</div>);
-jest.mock("../services/almacen", () => ({ obtenerProductos: jest.fn(), obtenerTiposProyecto: jest.fn(), obtenerEntradas: jest.fn(), obtenerOperaciones: jest.fn(), obtenerUnidades: jest.fn(), obtenerMovimientosAplicables: jest.fn(), guardarEntrada: jest.fn(), obtenerRegistrosPendientes: jest.fn(), registrarEntrada: jest.fn() }));
+jest.mock("../services/almacen", () => ({ obtenerProductos: jest.fn(), obtenerTiposProyecto: jest.fn(), obtenerEntradas: jest.fn(), obtenerOperaciones: jest.fn(), obtenerEnviados: jest.fn(), obtenerUnidades: jest.fn(), obtenerMovimientosAplicables: jest.fn(), guardarEntrada: jest.fn(), obtenerRegistrosPendientes: jest.fn(), registrarEntrada: jest.fn() }));
 const key = "almacen-entradas-v2:test@example.com";
 const draft = { solicitudId: "a8c7ab30-7013-4a4b-8d19-1c392a571251", estado: "borrador", numprod: "1000", cantidad: "2", codudmedida: "", liqpornumorden: "", tipoproyectocodigo: "INDIRECTO", modoMonetario: "bc", valorMonetario: "" };
-const montar = () => render(<MemoryRouter><AuthContext.Provider value={{ user: { email: "test@example.com", rol: "Admin" } }}><EntradasAlmacen /></AuthContext.Provider></MemoryRouter>);
+const montar = () => render(<MemoryRouter initialEntries={["/material/almacen/entradas"]}><AuthContext.Provider value={{ user: { email: "test@example.com", rol: "Admin" } }}><Routes><Route path="/material/almacen/entradas" element={<EntradasAlmacen />} /><Route path="/material/almacen/enviados" element={<EnviadosAlmacen />} /></Routes></AuthContext.Provider></MemoryRouter>);
 beforeEach(() => {
   jest.clearAllMocks(); localStorage.clear();
   localStorage.setItem(key, JSON.stringify([draft]));
   servicio.obtenerProductos.mockResolvedValue([{ number: "1000", displayName: "Producto", baseUnitOfMeasureCode: "UD" }]);
   servicio.obtenerTiposProyecto.mockResolvedValue([{ codigo: "INDIRECTO", nombre: "Estructura", bloqueado: false }]);
-  servicio.obtenerEntradas.mockResolvedValue([]); servicio.obtenerOperaciones.mockResolvedValue([]);
+  servicio.obtenerEntradas.mockResolvedValue([]); servicio.obtenerOperaciones.mockResolvedValue([]); servicio.obtenerEnviados.mockResolvedValue([]);
   servicio.obtenerRegistrosPendientes.mockResolvedValue([]);
   servicio.obtenerUnidades.mockResolvedValue([{ codigo: "UD", factor: 1 }]); servicio.obtenerMovimientosAplicables.mockResolvedValue([]);
 });
+test("un borrador antiguo con importe manual se envía usando los valores de BC", async () => {
+  localStorage.setItem(key, JSON.stringify([{ ...draft, modoMonetario: "importe", valorMonetario: "120" }]));
+  servicio.guardarEntrada.mockResolvedValue({ estado: "creada", respuesta: { numdoc: "BC-DEFAULT" } });
+  montar();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Enviar a BC" })).toBeEnabled());
+  expect(screen.queryByLabelText("Modo monetario, fila 1")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Enviar a BC" }));
+  await waitFor(() => expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument());
+  expect(servicio.guardarEntrada).toHaveBeenCalledWith({ solicitudId: draft.solicitudId, numprod: "1000", cantidad: 2, tipoproyectocodigo: "INDIRECTO" });
+});
+
 test("doble clic envía una sola vez; timeout y recarga conservan cuerpo y operación", async () => {
   let rechazar;
   servicio.guardarEntrada.mockImplementation(() => new Promise((resolve, reject) => { rechazar = reject; }));
   const vista = montar();
-  const crear = await screen.findByRole("button", { name: "Crear entrada pendiente" });
+  const crear = await screen.findByRole("button", { name: "Enviar a BC" });
   await waitFor(() => expect(crear).not.toBeDisabled());
   fireEvent.click(crear); fireEvent.click(crear);
   expect(servicio.guardarEntrada).toHaveBeenCalledTimes(1);
@@ -35,78 +47,83 @@ test("doble clic envía una sola vez; timeout y recarga conservan cuerpo y opera
   const reintentar = screen.getByRole("button", { name: "Confirmar resultado / Reintentar" });
   await waitFor(() => expect(reintentar).not.toBeDisabled());
   fireEvent.click(reintentar);
-  await screen.findByText("Entrada creada en el diario, pendiente de registrar. Documento T00099.");
+  await waitFor(() => expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument());
   expect(servicio.guardarEntrada.mock.calls[1][0]).toEqual(cuerpo);
-  expect(screen.getByText("12.34")).toBeInTheDocument();
+  expect(screen.queryByRole("row", { name: "Documento T00099" })).not.toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem(key))).toEqual([]);
   expect(screen.queryByRole("button", { name: /Eliminar|Editar/ })).not.toBeInTheDocument();
 });
 test.each(["GM_KEY_CONFLICT", "GM_ENTRY_GONE"])("%s conserva fila bloqueada sin ofrecer sustitución", async codigoError => {
   servicio.guardarEntrada.mockRejectedValue({ response: { data: { estado: "bloqueada", codigoError, error: "Requiere revisión en BC" } } });
   montar();
-  const crear = await screen.findByRole("button", { name: "Crear entrada pendiente" });
+  const crear = await screen.findByRole("button", { name: "Enviar a BC" });
   await waitFor(() => expect(crear).not.toBeDisabled());
   fireEvent.click(crear);
   await screen.findByText("Requiere revisión en BC");
-  expect(screen.queryByRole("button", { name: /Corregir|Quitar|Reintentar/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Corregir|Eliminar|Reintentar/ })).not.toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem(key))[0].estado).toBe("bloqueada");
 });
 
-test("muestra más de 50 entradas sin paginar y permite seleccionar la última", async () => {
-  localStorage.setItem(key, "[]");
-  servicio.obtenerEntradas.mockResolvedValue(Array.from({ length: 65 }, (_, indice) => ({
-    id: `bc-${indice}`, claveintegracion: `clave-${indice}`, numdoc: `DOC-${indice}`, descripcion: `Producto ${indice}`
-  })));
+test("permite eliminar un borrador y conserva la eliminación al recargar sin llamar a BC", async () => {
+  const vista = montar();
+  const eliminar = await screen.findByRole("button", { name: "Eliminar borrador 1" });
+  await waitFor(() => expect(eliminar).toBeEnabled());
+  expect(screen.getByRole("columnheader", { name: "Acciones" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Registrar" })).not.toBeInTheDocument();
+  fireEvent.click(eliminar);
+  expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem(key))).toEqual([]);
+  vista.unmount();
   montar();
-  const ultima = await screen.findByRole("radio", { name: "Seleccionar documento DOC-64" });
-  expect(screen.getAllByRole("radio")).toHaveLength(65);
-  expect(screen.queryByRole("button", { name: /Anterior|Siguiente/ })).not.toBeInTheDocument();
-  expect(screen.queryByText(/Página \d/)).not.toBeInTheDocument();
-  fireEvent.click(ultima);
-  expect(ultima).toBeChecked();
-  expect(screen.getByRole("button", { name: "Registrar" })).toBeEnabled();
+  await waitFor(() => expect(screen.queryByText("Cargando diario y catálogos…")).not.toBeInTheDocument());
+  expect(screen.queryByRole("button", { name: /Eliminar/ })).not.toBeInTheDocument();
   expect(servicio.guardarEntrada).not.toHaveBeenCalled();
   expect(servicio.registrarEntrada).not.toHaveBeenCalled();
 });
 
-test("un solo diario; Registrar exige selección y confirmación", async () => {
-  localStorage.setItem(key, "[]");
-  const entrada = { id: "id-bc", claveintegracion: "clave-bc", numdoc: "T00100", numprod: "1000", cantidad: 3 };
-  servicio.obtenerEntradas.mockResolvedValue([entrada]);
-  servicio.registrarEntrada.mockResolvedValue({ estado: "creada", respuesta: { registrado: true, numdoc: "T00100" } });
+test("un envío confirmado sale del diario y se consulta desde el botón de historial, sin registrar", async () => {
+  const respuesta = { id: "bc-id", numdoc: "T00100", numprod: "1000", cantidad: 2, descripcion: "Producto enviado" };
+  const operacion = { solicitudId: draft.solicitudId, estado: "creada", cuerpo: { numprod: "1000", cantidad: 2 }, respuesta };
+  servicio.guardarEntrada.mockImplementation(async () => {
+    servicio.obtenerEnviados.mockResolvedValue([operacion]);
+    servicio.obtenerEntradas.mockResolvedValue([respuesta]);
+    return operacion;
+  });
   montar();
-  await screen.findByText("T00100");
-  expect(screen.getAllByRole("table")).toHaveLength(1);
-  expect(screen.getByRole("button", { name: "Registrar" })).toBeDisabled();
-  fireEvent.click(screen.getByRole("radio", { name: "Seleccionar documento T00100" }));
-  fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
+  const enviar = await screen.findByRole("button", { name: "Enviar a BC" });
+  await waitFor(() => expect(enviar).toBeEnabled());
+  fireEvent.click(enviar);
+  await waitFor(() => expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument());
+  expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("row", { name: "Documento T00100" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Enviados a BC" }));
+  const enviada = await screen.findByRole("row", { name: "Documento T00100" });
+  fireEvent.click(enviada);
+  expect(enviada).toHaveAttribute("aria-selected", "true");
+  expect(screen.queryByRole("button", { name: /Eliminar|Enviar a BC|Registrar/ })).not.toBeInTheDocument();
   expect(servicio.registrarEntrada).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Confirmar registro" }));
-  await screen.findByText("Documento T00100 registrado en Business Central. BC ha contabilizado la entrada.");
-  expect(servicio.registrarEntrada).toHaveBeenCalledWith(entrada);
-  expect(screen.queryByRole("radio", { name: "Seleccionar documento T00100" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Volver a entradas" }));
+  await waitFor(() => expect(screen.queryByText("Cargando diario y catálogos…")).not.toBeInTheDocument());
+  expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument();
 });
 
-test("registro incierto se conserva al recargar aunque BC ya no devuelva la línea", async () => {
-  localStorage.setItem(key, "[]");
-  const entrada = { id: "id-bc", claveintegracion: "clave-bc", numdoc: "T00101", numprod: "1000", cantidad: 1 };
-  servicio.obtenerEntradas.mockResolvedValue([entrada]);
-  servicio.registrarEntrada.mockRejectedValue(new Error("timeout"));
-  const vista = montar();
-  await screen.findByText("T00101");
-  fireEvent.click(screen.getByRole("radio", { name: "Seleccionar documento T00101" }));
-  fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
-  fireEvent.click(screen.getByRole("button", { name: "Confirmar registro" }));
-  await screen.findByText(/Resultado pendiente de confirmar. Reintenta esta misma línea/);
-  vista.unmount();
-  servicio.obtenerEntradas.mockResolvedValue([]);
-  servicio.registrarEntrada.mockResolvedValue({ estado: "creada", respuesta: { registrado: true, numdoc: "T00101" } });
+test("recupera la confirmación del servidor tras perder la respuesta sin reenviar ni reintroducir la fila", async () => {
+  localStorage.setItem(key, JSON.stringify([{ ...draft, estado: "incierta", cuerpoEnviado: { solicitudId: draft.solicitudId, numprod: "1000", cantidad: 2 } }]));
+  servicio.obtenerEnviados.mockResolvedValue([{ solicitudId: draft.solicitudId, respuesta: { id: "bc-1", numdoc: "DOC-1" } }]);
   montar();
   await waitFor(() => expect(screen.queryByText("Cargando diario y catálogos…")).not.toBeInTheDocument());
-  fireEvent.click(screen.getByRole("radio", { name: "Seleccionar documento T00101" }));
-  fireEvent.click(screen.getByRole("button", { name: "Reintentar registro" }));
-  fireEvent.click(screen.getByRole("button", { name: "Confirmar registro" }));
-  await screen.findByText(/Documento T00101 registrado en Business Central/);
-  expect(servicio.registrarEntrada.mock.calls[1][0].id).toBe(entrada.id);
-  expect(servicio.registrarEntrada.mock.calls[1][0].claveintegracion).toBe(entrada.claveintegracion);
+  expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem(key))).toEqual([]);
+  expect(servicio.guardarEntrada).not.toHaveBeenCalled();
+});
+
+test("no permite eliminar un envío incierto y no descarta datos si falla el historial", async () => {
+  localStorage.setItem(key, JSON.stringify([{ ...draft, estado: "incierta", cuerpoEnviado: { solicitudId: draft.solicitudId, numprod: "1000", cantidad: 2 } }]));
+  servicio.obtenerEnviados.mockRejectedValue(new Error("sin conexión"));
+  montar();
+  await waitFor(() => expect(screen.queryByText("Cargando diario y catálogos…")).not.toBeInTheDocument());
+  expect(screen.getByRole("button", { name: "Confirmar resultado / Reintentar" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Eliminar/ })).not.toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem(key))[0].solicitudId).toBe(draft.solicitudId);
+  expect(servicio.guardarEntrada).not.toHaveBeenCalled();
 });

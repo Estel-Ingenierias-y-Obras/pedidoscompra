@@ -78,6 +78,12 @@ function crearServicio({ modelo = Operacion, cliente = bc, uuid = randomUUID, ah
     const operaciones = await modelo.find({ creadoPor: usuario.email.toLowerCase(), estado: { $nin: ["creada", "rechazada"] } }).sort({ createdAt: -1 }).lean();
     return operaciones.map(serializar);
   }
-  return { crearEntrada, obtenerOperaciones };
+  async function obtenerEnviados(usuario) {
+    // Conservar también confirmaciones anteriores cuyo reintento acabó en GM_ENTRY_GONE.
+    // La respuesta persistida acredita el envío, no el registro/contabilización en BC.
+    const operaciones = await modelo.find({ creadoPor: usuario.email.toLowerCase(), destino: cliente.destino(), "respuesta.id": { $exists: true, $ne: null } }).sort({ createdAt: -1 }).lean();
+    return operaciones.map(serializar);
+  }
+  return { crearEntrada, obtenerOperaciones, obtenerEnviados };
 }
 module.exports = { configuracion, validarEntrada, serializar, crearServicio, ...crearServicio() };

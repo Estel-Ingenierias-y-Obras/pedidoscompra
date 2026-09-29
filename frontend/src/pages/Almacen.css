@@ -21,12 +21,12 @@ a.module-card:hover, a.module-card:focus-visible { background: #eff8f8; border-c
 .journal-row-status { min-width: 300px; max-width: 420px; }
 .warehouse-page button:disabled { opacity: .55; cursor: not-allowed; }
 
-/* Cabecera corporativa y tarjeta de la web; cuadrícula compacta de BC. */
+/* Área de trabajo amplia con filas compactas, sin estirarlas al aumentar el panel. */
 .bc-journal-page { min-width: 0; color: var(--text); }
-.bc-journal-card { padding: 18px 20px; min-width: 0; max-width: 100%; box-sizing: border-box; }
-.bc-save-state { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+.bc-journal-page .bc-journal-card { min-width: 0; width: 100%; max-width: 100%; padding: 24px 28px; overflow: visible; border: 1px solid var(--border-soft); border-radius: 8px; box-shadow: var(--shadow-card); background: var(--surface); }
+.bc-save-state { margin-left: auto; font-size: 15px; color: var(--text-muted); }
 .bc-command-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--border); padding: 0 0 12px; }
-.bc-command-bar button { border: 0; background: transparent; color: #394a5d; border-radius: 0; box-shadow: none; padding: 7px 12px; font-size: 14px; font-weight: 400; }
+.bc-command-bar button { border: 0; background: transparent; color: #394a5d; border-radius: 0; box-shadow: none; padding: 7px 12px; font-size: 15px; font-weight: 400; }
 .bc-command-bar button svg { color: var(--brand-navy); margin-right: 6px; }
 .bc-command-bar button { border-radius: 4px; color: var(--brand-navy); }
 .bc-command-bar button:first-child { background: var(--brand-navy); color: white; }
@@ -34,29 +34,41 @@ a.module-card:hover, a.module-card:focus-visible { background: #eff8f8; border-c
 .bc-command-bar button:hover:not(:disabled) { background: var(--surface-muted); color: var(--brand-navy); }
 .bc-command-bar button:first-child:hover:not(:disabled) { background: var(--brand-blue-hover); color: white; }
 .bc-command-bar button:disabled { opacity: .45; cursor: not-allowed; }
-.bc-journal-help { font-size: 12px; margin: 12px 0; color: #637084; }
-.bc-journal-content .journal-scroll { height: min(54vh, 570px); min-height: 300px; overflow: auto; border: 1px solid var(--border-soft); border-top: 2px solid var(--brand-amber); border-radius: 4px; background: var(--surface-muted); }
-.bc-journal-content .journal-table { table-layout: fixed; font-size: 12px; background: white; }
-.bc-journal-content .journal-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.bc-journal-content .journal-table th { position: sticky; top: 0; z-index: 1; height: 38px; padding: 4px; background: var(--surface-muted); font-size: 11px; font-weight: 600; color: var(--brand-navy); white-space: normal; vertical-align: middle; border-bottom: 1px solid var(--border); }
-.bc-journal-content .journal-table td { padding: 1px 4px; height: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); color: var(--text); background: white; }
-.bc-journal-content .journal-table .journal-fixed { color: #697788; }
-.bc-journal-content .journal-table input, .bc-journal-content .journal-table select { width: 100%; min-width: 0; max-width: 100%; border: 1px solid transparent; border-radius: 2px; min-height: 25px; padding: 1px; background: transparent; font: inherit; }
-.bc-journal-content .journal-table input:hover, .bc-journal-content .journal-table select:hover { border-color: #b8c8ca; }
-.bc-journal-content .journal-table .bc-row-selector, .bc-journal-content .journal-table th:first-child { text-align: center; }
-.bc-journal-content .journal-table .bc-row-selector input { width: 14px; height: 14px; min-height: 0; accent-color: var(--brand-navy); }
-.bc-journal-content .journal-table .bc-row-selected td { background: #edf2f7; }
-.bc-journal-content .journal-table .bc-row-selected .bc-row-selector { background: #f5e8d4; }
-.bc-journal-content .journal-table .journal-row-status { min-width: 0; max-width: none; white-space: normal; overflow-wrap: anywhere; }
-.bc-journal-content .journal-actions { margin: 0; gap: 4px; flex-wrap: wrap; white-space: normal; }
-.bc-journal-content .journal-actions button { font-size: 12px; padding: 4px 8px; }
-.bc-line-status { font-size: 12px; color: #596a7e; }
-.bc-journal-content .journal-table .bc-empty { height: 90px; color: #697788; text-align: left; padding-left: 44px; }
-.bc-journal-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; font-size: 12px; border-bottom: 1px solid #e2e7eb; }
-.bc-journal-detail { text-align: right; padding: 22px 6px 30px; min-height: 100px; }
-.bc-journal-detail p { margin: 12px 0; }
-@media (max-width: 700px) {
-  .bc-journal-card { padding: 12px; }
-  .bc-save-state { font-size: 12px; }
-  .bc-journal-footer { flex-wrap: wrap; }
+.bc-command-bar .bc-command-link { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 4px; color: var(--brand-navy); font-size: 15px; text-decoration: none; }
+.bc-command-bar .bc-command-link:hover { background: var(--surface-muted); }
+.bc-command-bar .bc-command-link:focus-visible { outline: 2px solid #008489; outline-offset: 2px; }
+.bc-journal-help { font-size: 15px; margin: 12px 0; color: #637084; }
+.bc-journal-content { min-width: 0; }
+.bc-journal-content > p { flex-shrink: 0; margin: 3px 2px; font-size: 15px; }
+.bc-journal-content .bc-journal-help { color: var(--text-muted); line-height: 18px; }
+/* Tabla y controles compartidos con Gestión de pedidos. */
+.warehouse-table-container { max-width: 100%; margin: 16px 0; overflow-x: auto; }
+.warehouse-entries-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.warehouse-entries-table .bc-select-detail { display: none; }
+.warehouse-entries-table .bc-compact-select { display: block; min-width: 0; }
+.warehouse-entries-table tbody tr { cursor: pointer; }
+.warehouse-entries-table .bc-row-selected { background: #edf3f8; }
+.warehouse-entries-table tr:focus-visible { outline: 2px solid var(--brand-navy); outline-offset: -2px; }
+.warehouse-entries-table td { overflow-wrap: anywhere; }
+.warehouse-entries-table .journal-fixed { background: transparent; color: inherit; }
+.warehouse-entries-table input[type="number"] { min-height: 32px; padding: 5px 9px; font-size: 13px; }
+.warehouse-row-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.warehouse-row-status p { margin: 6px 0; }
+.bc-line-status { color: var(--text-muted); }
+@media (min-width: 901px) {
+  .warehouse-entries-table td select { width: 100%; min-width: 0; }
+}
+@media (max-width: 900px) {
+  .warehouse-table-container { overflow: visible; }
+  .warehouse-entries-table colgroup { display: none; }
+  .warehouse-entries-table.gestion-pedidos-table td::before { content: attr(data-label); }
+  .warehouse-entries-table.gestion-pedidos-table .bc-empty::before { content: none; }
+}
+.bc-journal-footer { flex-shrink: 0; padding: 4px 12px; border: 1px solid var(--border-soft); border-radius: 4px; background: var(--surface-muted); color: var(--text-muted); font-size: 15px; line-height: 18px; }
+.bc-journal-detail { display: flex; flex-shrink: 0; align-items: baseline; flex-wrap: wrap; gap: 2px 12px; min-height: 0; padding: 3px 2px; text-align: left; font-size: 15px; line-height: 18px; }
+.bc-journal-detail strong { font-weight: 600; }
+.bc-journal-detail p { flex: 1 1 220px; margin: 0; overflow-wrap: anywhere; }
+.bc-journal-detail small { font-size: 15px; color: var(--text-muted); overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .bc-journal-page .bc-journal-card { padding: 16px; }
 }

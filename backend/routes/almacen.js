@@ -13,6 +13,7 @@ router.get("/tipos-proyecto", lectura(() => bc.obtenerTiposProyecto()));
 router.get("/unidades-producto", lectura(req => bc.obtenerUnidades(req.query.numprod)));
 router.get("/movimientos-aplicables", lectura(req => bc.obtenerMovimientosAplicables(req.query.numprod)));
 router.get("/operaciones", lectura(req => servicio.obtenerOperaciones(req.usuarioActual)));
+router.get("/enviados", lectura(req => servicio.obtenerEnviados(req.usuarioActual)));
 router.get("/registros-pendientes", lectura(req => registro.obtenerPendientes(req.usuarioActual)));
 router.get("/entradas", lectura(() => bc.obtenerEntradas()));
 router.get("/entradas/:id", lectura(req => bc.obtenerEntrada(req.params.id)));

@@ -6,6 +6,7 @@ export const obtenerUnidades = numprod => api.get("/api/almacen/unidades-product
 export const obtenerMovimientosAplicables = numprod => api.get("/api/almacen/movimientos-aplicables", { params: { numprod } }).then(res => res.data);
 export const obtenerEntradas = () => api.get("/api/almacen/entradas").then(res => res.data);
 export const obtenerOperaciones = () => api.get("/api/almacen/operaciones").then(res => res.data);
+export const obtenerEnviados = () => api.get("/api/almacen/enviados").then(res => res.data);
 export const guardarEntrada = cuerpo => api.post("/api/almacen/entradas", cuerpo).then(res => res.data);
 export const registrarEntrada = entrada => api.post(`/api/almacen/entradas/${entrada.id}/registrar`, { claveintegracion: entrada.claveintegracion }).then(res => res.data);
 export const obtenerRegistrosPendientes = () => api.get("/api/almacen/registros-pendientes").then(res => res.data);

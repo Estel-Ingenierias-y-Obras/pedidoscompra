@@ -39,6 +39,29 @@ function escenario(post, opciones = {}) {
   return { modelo, cliente, servicio: crearServicio({ modelo, cliente, ...opciones }) };
 }
 
+test("historial conserva respuestas confirmadas por usuario y destino sin volver a consultar BC", async () => {
+  const final = respuesta();
+  const registros = [
+    { _id: "confirmada", creadoPor: usuario.email, destino: "sandbox/empresa", estado: "creada", respuesta: final },
+    { _id: "ya-no-en-diario", creadoPor: usuario.email, destino: "sandbox/empresa", estado: "bloqueada", codigoError: "GM_ENTRY_GONE", respuesta: { ...final, numdoc: "T00029" } },
+    { _id: "incierta", creadoPor: usuario.email, destino: "sandbox/empresa", estado: "incierta" },
+    { _id: "ajena", creadoPor: "other@example.com", destino: "sandbox/empresa", estado: "creada", respuesta: final },
+    { _id: "otro-destino", creadoPor: usuario.email, destino: "production/otra", estado: "creada", respuesta: final }
+  ];
+  const modelo = { find: filtro => {
+    assert.deepEqual(filtro, { creadoPor: usuario.email, destino: "sandbox/empresa", "respuesta.id": { $exists: true, $ne: null } });
+    return { sort: orden => {
+      assert.deepEqual(orden, { createdAt: -1 });
+      return { lean: async () => registros.filter(op => op.creadoPor === filtro.creadoPor && op.destino === filtro.destino && op.respuesta?.id) };
+    } };
+  } };
+  const servicio = crearServicio({ modelo, cliente: { destino: () => "sandbox/empresa", crearEntrada: () => assert.fail("El historial no escribe en BC") } });
+  const historial = await servicio.obtenerEnviados({ email: "OWNER@EXAMPLE.COM" });
+  assert.deepEqual(historial.map(op => op.solicitudId), ["confirmada", "ya-no-en-diario"]);
+  assert.deepEqual(historial[0].respuesta, final);
+  assert.equal(historial[1].respuesta.numdoc, "T00029");
+});
+
 test("registro persiste y reintenta la misma línea, exige confirmación y recupera permisos", async () => {
   const modelo = almacenMemoria();
   const idlinea = randomUUID(), claveintegracion = randomUUID(), cuerpos = [];

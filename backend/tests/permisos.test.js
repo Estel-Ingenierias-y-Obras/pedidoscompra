@@ -82,6 +82,24 @@ test("registro contable requiere autenticación y rol de gestión", async () => 
   }
 });
 
+test("historial de almacén exige rol de gestión y utiliza el usuario autenticado", async () => {
+  const almacen = require("../services/almacen");
+  let consultas = 0;
+  mock.method(almacen, "obtenerEnviados", async usuario => {
+    consultas++;
+    assert.equal(usuario.email, "owner@example.com");
+    return [{ solicitudId: "envio", respuesta: { numdoc: "DOC-1" } }];
+  });
+  for (const rol of [null, "Usuario", "Encargado"]) assert.equal((await request(rol, "GET", "/api/almacen/enviados")).status, rol ? 403 : 401);
+  assert.equal(consultas, 0);
+  for (const rol of ["Admin", "Comprador"]) {
+    const response = await request(rol, "GET", "/api/almacen/enviados");
+    assert.equal(response.status, 200);
+    assert.equal((await response.json())[0].respuesta.numdoc, "DOC-1");
+  }
+  assert.equal(consultas, 2);
+});
+
 for (const role of ["Comprador", "Admin", "Encargado"]) {
   test(`${role} consulta exclusivamente archivados en histórico`, async () => {
     mock.method(Pedido, "find", async filtro => {
