@@ -1,4 +1,6 @@
 import { Children, useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import DeleteIconButton from "./DeleteIconButton";
 import * as servicio from "../services/almacen";
 
@@ -75,7 +77,7 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
   })}
     <td className="warehouse-row-status" data-label="Acciones">
       <div className="warehouse-row-actions">
-        {fila.estado === "borrador" && <><button title="Enviar la línea para confirmarla desde Business Central" disabled={ocupado || !disponibles || !proyectoValido || !unidadValida || !movimientoValido || excede} onClick={() => guardar(fila)}>Enviar a BC</button>{!fila.cuerpoEnviado && <DeleteIconButton disabled={ocupado} label={`Eliminar borrador ${indice + 1}`} onClick={event => { event.stopPropagation(); quitar(fila.solicitudId); }} />}</>}
+        {fila.estado === "borrador" && <><button aria-label="Enviar a BC" title="Enviar a BC" disabled={ocupado || !disponibles || !proyectoValido || !unidadValida || !movimientoValido || excede} onClick={() => guardar(fila)}><FontAwesomeIcon icon={faPaperPlane} /></button>{!fila.cuerpoEnviado && <DeleteIconButton disabled={ocupado} label={`Eliminar borrador ${indice + 1}`} onClick={event => { event.stopPropagation(); quitar(fila.solicitudId); }} />}</>}
         {["incierta", "procesando", "preparada"].includes(fila.estado) && <button disabled={ocupado} onClick={() => guardar(fila)}>Confirmar resultado / Reintentar</button>}
         {fila.estado === "rechazada" && <button disabled={ocupado} onClick={() => corregir(fila)}>Corregir solicitud rechazada</button>}
       </div>
