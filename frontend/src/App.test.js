@@ -14,6 +14,7 @@ jest.mock("./pages/Material", () => () => <div>Material</div>);
 jest.mock("./pages/Almacen", () => () => <div>Almacén</div>);
 jest.mock("./pages/EntradasAlmacen", () => () => <div>Entradas</div>);
 jest.mock("./pages/EnviadosAlmacen", () => () => <div>Enviados a BC</div>);
+jest.mock("./pages/StockAlmacen", () => () => <div>Stock actual</div>);
 
 test.each(["/usuarios", "/configuracion", "/nuevasolicitud", "/pedidos", "/missolicitudes", "/desconocida", "/USUARIOS/"])(
   "Comprador es redirigido desde %s a gestión", path => {
@@ -27,6 +28,10 @@ test.each([
   ["Comprador", "/material", "Material"],
   ["Comprador", "/material/catalogo", "Material"],
   ["Comprador", "/material/almacen", "Almacén"],
+  ["Admin", "/material/almacen/stock", "Stock actual"],
+  ["Comprador", "/material/almacen/stock", "Stock actual"],
+  ["Usuario", "/material/almacen/stock", "Nuevo Pedido"],
+  ["Encargado", "/material/almacen/stock", "Nuevo Pedido"],
   ["Admin", "/material/almacen/entradas", "Entradas"],
   ["Admin", "/material/almacen/enviados", "Enviados a BC"],
   ["Comprador", "/material/almacen/enviados", "Enviados a BC"],

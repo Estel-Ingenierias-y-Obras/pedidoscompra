@@ -50,6 +50,21 @@ const request = (role, method = "GET", path = "/api/pedidos", body) => fetch(bas
   ...(body ? { body: JSON.stringify(body) } : {})
 });
 
+test("stock consulta BC para los roles autorizados y propaga errores seguros", async () => {
+  const bc = require("../services/almacenBC");
+  const filas = [{ id: "producto", inventario: -2.12345 }];
+  mock.method(bc, "obtenerStock", async () => filas);
+  for (const rol of ["Admin", "Comprador"]) {
+    const response = await request(rol, "GET", "/api/almacen/stock");
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), filas);
+  }
+  mock.method(bc, "obtenerStock", async () => { throw Object.assign(new Error("BC no disponible"), { status: 502, seguro: true }); });
+  const response = await request("Admin", "GET", "/api/almacen/stock");
+  assert.equal(response.status, 502);
+  assert.equal((await response.json()).error, "BC no disponible");
+});
+
 test("almacén protege consultas y escrituras por rol", async () => {
   for (const role of [null, "Usuario", "Encargado"]) {
     for (const [method, path] of [["GET", "configuracion"], ["GET", "productos"], ["GET", "entradas"], ["GET", "entradas/507f1f77bcf86cd799439011"], ["POST", "entradas"], ["GET", "stock"], ["GET", "movimientos"], ["GET", "operaciones"], ["GET", "tipos-proyecto"], ["GET", "unidades-producto?numprod=1000"], ["GET", "movimientos-aplicables?numprod=1000"], ["GET", "almacenes"]]) {

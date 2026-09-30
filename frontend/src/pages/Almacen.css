@@ -1,4 +1,11 @@
 .module-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+.stock-search { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.stock-search input { flex: 1 1 240px; min-width: 0; max-width: 520px; }
+.warehouse-entries-table.stock-table tbody tr { cursor: default; }
+.stock-table .stock-quantity { font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .warehouse-entries-table.stock-table.gestion-pedidos-table td::before { content: attr(data-label); }
+}
 .module-card { display: block; padding: 28px; border: 1px solid #d5dfe0; border-top: 4px solid var(--brand-amber); border-radius: 4px; background: white; color: #243a40; text-decoration: none; }
 .module-card-icon { font-size: 32px; color: var(--brand-navy); }
 .module-card h2 { font-size: 20px; margin: 14px 0; }

@@ -8,6 +8,7 @@ router.use(obtenerUsuarioActual, permitirRoles("Admin", "Comprador"));
 const lectura = fn => async (req, res, next) => { try { res.json(await fn(req)); } catch (error) { next(error); } };
 router.get("/configuracion", (req, res) => res.json(servicio.configuracion));
 router.get("/productos", lectura(() => bc.obtenerProductos()));
+router.get("/stock", lectura(() => bc.obtenerStock()));
 router.get("/almacenes", lectura(() => bc.obtenerAlmacenes()));
 router.get("/tipos-proyecto", lectura(() => bc.obtenerTiposProyecto()));
 router.get("/unidades-producto", lectura(req => bc.obtenerUnidades(req.query.numprod)));
@@ -30,7 +31,7 @@ router.post("/entradas/:id/registrar", async (req, res, next) => {
     res.status(resultado.estado === "creada" ? 200 : resultado.estado === "rechazada" ? 422 : resultado.estado === "bloqueada" ? 409 : 202).json(resultado);
   } catch (error) { next(error); }
 });
-for (const ruta of ["/movimientos", "/stock"]) router.get(ruta, (req, res) => res.status(501).json({ error: "Apartado previsto para una próxima fase" }));
+router.get("/movimientos", (req, res) => res.status(501).json({ error: "Apartado previsto para una próxima fase" }));
 router.use((error, req, res, next) => {
   // No devolver objetos Axios: contienen Authorization y configuración.
   res.status(error.status >= 400 && error.status <= 599 ? error.status : 503).json({ error: error.seguro ? error.message : "No se pudo completar la operación. Conserva los datos y reintenta la misma solicitud.", codigoError: error.codigo, definitivo: error.definitivo === true });

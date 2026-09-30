@@ -72,6 +72,7 @@ function crearCliente({ request = config => axios.request(config), token = () =>
   };
   return {
     destino: () => config().custom,
+    obtenerStock: () => coleccion("custom", "productos"),
     obtenerProductos: () => coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,blocked" }),
     obtenerAlmacenes: () => coleccion("standard", "locations", { $filter: "code eq 'CENTRAL 3'" }),
     obtenerTiposProyecto: () => coleccion("custom", "tiposProyecto"),

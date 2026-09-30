@@ -1,4 +1,5 @@
 import api from "../api";
+export const obtenerStock = () => api.get("/api/almacen/stock").then(res => res.data);
 export const obtenerConfiguracion = () => api.get("/api/almacen/configuracion").then(res => res.data);
 export const obtenerProductos = () => api.get("/api/almacen/productos").then(res => res.data);
 export const obtenerTiposProyecto = () => api.get("/api/almacen/tipos-proyecto").then(res => res.data);
