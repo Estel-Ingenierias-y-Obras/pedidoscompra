@@ -1,6 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCartPlus, faPlus } from "@fortawesome/free-solid-svg-icons";
-import DeleteIconButton from "./DeleteIconButton";
+import { faCartPlus, faPlus, faTrash, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useContext, useId, useState } from "react";
 import { MaterialesContext } from "../context/MaterialesContext";
 
@@ -213,7 +212,16 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
                 onChange={event => actualizar(indice, "descripcion", event.target.value)}
               />
             </label>
-            <DeleteIconButton label={`Eliminar elemento ${indice + 1}`} onClick={() => eliminar(indice)} />
+            <button
+              type="button"
+              className="delete-icon-button request-line-delete"
+              title={`Eliminar elemento ${indice + 1}`}
+              aria-label={`Eliminar elemento ${indice + 1}`}
+              onClick={() => eliminar(indice)}
+            >
+              <FontAwesomeIcon icon={faTrash} className="request-line-trash" aria-hidden="true" />
+              <FontAwesomeIcon icon={faXmark} className="request-line-close" aria-hidden="true" />
+            </button>
           </div>;
         })}
       </div>

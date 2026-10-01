@@ -5925,6 +5925,46 @@ table .delete-icon-button {
 .request-items-table-row small { color: var(--text-muted); }
 .request-items-legacy { margin: 0; white-space: pre-wrap; }
 
+.request-line-delete .request-line-close { display: none; }
+
+@media (max-width: 760px) {
+  .new-request-page .request-line > .request-line-delete {
+    top: 5px;
+    right: 3px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    color: #fff;
+    isolation: isolate;
+  }
+
+  .new-request-page .request-line-delete::before {
+    position: absolute;
+    inset: 11px;
+    z-index: -1;
+    border-radius: 50%;
+    background: var(--danger);
+    content: "";
+  }
+
+  .new-request-page .request-line-delete:hover::before {
+    background: var(--danger-hover);
+  }
+
+  .new-request-page .request-line-delete .request-line-trash { display: none; }
+  .new-request-page .request-line-delete .request-line-close {
+    display: block;
+    width: 10px;
+    height: 10px;
+  }
+}
+
 @media (max-width: 760px) {
   .request-lines-grid { border: 0; background: transparent; }
   .request-lines-header { display: none; }
