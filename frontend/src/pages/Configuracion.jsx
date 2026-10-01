@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import DeleteIconButton from "../components/DeleteIconButton";
+import AddPersonIconButton from "../components/AddPersonIconButton";
 import NotificationToast from "../components/NotificationToast";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
@@ -168,7 +169,7 @@ function Configuracion() {
             required
           />
         </div>
-        <button type="submit">Añadir destinatario</button>
+        <AddPersonIconButton type="submit" label="Añadir destinatario" />
       </form>
 
       {destinatarios.length === 0 ? (

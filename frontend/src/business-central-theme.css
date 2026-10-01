@@ -823,6 +823,33 @@ table select {
   white-space: nowrap;
 }
 
+.settings-form input,
+.usuarios-toolbar input {
+  height: 38px;
+}
+
+.usuarios-toolbar {
+  align-items: center;
+}
+
+.settings-form .add-person-icon-button {
+  margin-bottom: 3px;
+}
+
+.settings-form .add-person-icon-button,
+.usuarios-toolbar .add-person-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
 .settings-feedback {
   margin: 0 0 18px;
   padding: 11px 14px;

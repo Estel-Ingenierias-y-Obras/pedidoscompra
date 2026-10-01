@@ -1,5 +1,6 @@
 import Layout from "../components/Layout";
 import DeleteIconButton from "../components/DeleteIconButton";
+import AddPersonIconButton from "../components/AddPersonIconButton";
 import "./Usuarios.css";
 import { useContext, useEffect, useState } from "react";
 import { UsuariosContext } from "../context/UsuariosContext";
@@ -271,11 +272,10 @@ const formatearFecha = (fecha) =>
     }
   />
 
-  <button
+  <AddPersonIconButton
+    label="Añadir usuario"
     onClick={() => setMostrarModal(true)}
-  >
-    Añadir usuario
-  </button>
+  />
 
 </div>
 
