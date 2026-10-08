@@ -8,14 +8,15 @@ jest.mock("../services/almacen", () => ({ obtenerEnviados: jest.fn(), obtenerEnt
 const montar = () => render(<MemoryRouter><EnviadosAlmacen /></MemoryRouter>);
 beforeEach(() => { jest.clearAllMocks(); servicio.obtenerEntradas.mockResolvedValue(Array.from({ length: 65 }, (_, i) => ({ id: `bc-${i}` }))); });
 
-test("mantiene más de 50 envíos vigentes sin ofrecer acciones de escritura", async () => {
+test("mantiene más de 50 envíos vigentes y abre el modal sin registrar automáticamente", async () => {
   servicio.obtenerEnviados.mockResolvedValue(Array.from({ length: 65 }, (_, i) => ({ solicitudId: `op-${i}`, estado: i === 64 ? "bloqueada" : "creada", respuesta: { id: `bc-${i}`, numdoc: `DOC-${i}`, descripcion: `Producto ${i}` } })));
   montar();
   const ultima = await screen.findByRole("row", { name: "Documento DOC-64" });
   expect(screen.getAllByRole("row")).toHaveLength(66);
   fireEvent.click(ultima);
   expect(ultima).toHaveAttribute("aria-selected", "true");
-  expect(screen.queryByRole("button", { name: /Registrar|Eliminar|Enviar|Anterior|Siguiente/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("dialog", { name: "Registrar entrada en BC" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Registrar" })).toBeDisabled();
   expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   expect(servicio.obtenerEntradas).toHaveBeenCalledTimes(1);
   expect(servicio.registrarEntrada).not.toHaveBeenCalled();
@@ -67,4 +68,37 @@ test.each(["conexión", "respuesta inválida"])("un fallo de %s conserva las fil
 test("historial mantiene los permisos de almacén", () => {
   for (const rol of ["Admin", "Comprador"]) expect(puedeAcceder(rol, "/material/almacen/enviados")).toBe(true);
   for (const rol of ["Usuario", "Encargado", "Desconocido"]) expect(puedeAcceder(rol, "/material/almacen/enviados")).toBe(false);
+});
+
+test("clic en una celda registra solo la línea seleccionada y evita envíos duplicados", async () => {
+  const entrada = { id: "bc-1", numdoc: "DOC-1", descripcion: "Material", claveintegracion: "clave-1" };
+  servicio.obtenerEnviados.mockResolvedValue([{ solicitudId: "op-1", respuesta: entrada }]);
+  let confirmar;
+  servicio.registrarEntrada.mockImplementation(() => new Promise(resolve => { confirmar = resolve; }));
+  montar();
+  fireEvent.click(await screen.findByText("Material"));
+  expect(servicio.registrarEntrada).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
+  expect(screen.getByRole("button", { name: "Registrando…" })).toBeDisabled();
+  expect(servicio.registrarEntrada).toHaveBeenCalledTimes(1);
+  expect(servicio.registrarEntrada.mock.calls[0][0]).toMatchObject(entrada);
+  confirmar({ estado: "creada", respuesta: { registrado: true } });
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(screen.queryByRole("row", { name: "Documento DOC-1" })).not.toBeInTheDocument();
+  expect(screen.getByText(/registrado correctamente/)).toBeInTheDocument();
+});
+
+test("Enter abre el modal y un resultado incierto conserva la línea para reintentar", async () => {
+  servicio.obtenerEnviados.mockResolvedValue([{ solicitudId: "op-1", claveintegracion: "clave-1", respuesta: { id: "bc-1", numdoc: "DOC-1" } }]);
+  servicio.registrarEntrada.mockResolvedValueOnce({ estado: "incierta", error: "Confirma el resultado" }).mockRejectedValueOnce({ response: { data: { error: "BC rechazó el registro" } } });
+  montar();
+  fireEvent.keyDown(await screen.findByRole("row", { name: "Documento DOC-1" }), { key: "Enter" });
+  fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
+  await screen.findByText("Confirma el resultado");
+  expect(screen.getByRole("row", { name: "Documento DOC-1" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
+  await screen.findByText("BC rechazó el registro");
+  expect(servicio.registrarEntrada.mock.calls[0][0]).toEqual(servicio.registrarEntrada.mock.calls[1][0]);
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

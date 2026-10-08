@@ -100,7 +100,8 @@ test("un envío confirmado sale del diario y se consulta desde el botón de hist
   const enviada = await screen.findByRole("row", { name: "Documento T00100" });
   fireEvent.click(enviada);
   expect(enviada).toHaveAttribute("aria-selected", "true");
-  expect(screen.queryByRole("button", { name: /Eliminar|Enviar a BC|Registrar/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("dialog", { name: "Registrar entrada en BC" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(servicio.registrarEntrada).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("link", { name: "Volver a entradas" }));
   await waitFor(() => expect(screen.queryByText("Cargando diario y catálogos…")).not.toBeInTheDocument());

@@ -8,6 +8,8 @@ function validarRegistro(body) {
   }
   return { idlinea: body.idlinea, claveintegracion: body.claveintegracion };
 }
-const confirmarRegistro = (respuesta, cuerpo) => respuesta.registrado === true && respuesta.idlinea === cuerpo.idlinea && respuesta.claveintegracion === cuerpo.claveintegracion;
+// BC puede devolver los GUID con otra capitalización; su identidad no cambia.
+const mismoGuid = (a, b) => typeof a === "string" && typeof b === "string" && bc.UUID.test(a) && bc.UUID.test(b) && a.toLowerCase() === b.toLowerCase();
+const confirmarRegistro = (respuesta, cuerpo) => respuesta?.registrado === true && mismoGuid(respuesta.idlinea, cuerpo.idlinea) && mismoGuid(respuesta.claveintegracion, cuerpo.claveintegracion);
 const servicio = crearServicio({ modelo: Registro, cliente: { destino: () => `${bc.destino()}/registrosProducto`, crearEntrada: cuerpo => bc.registrarEntrada(cuerpo) }, validar: validarRegistro, confirmar: confirmarRegistro, reintentarRechazadas: true });
 module.exports = { registrarEntrada: servicio.crearEntrada, obtenerPendientes: servicio.obtenerOperaciones, validarRegistro, confirmarRegistro };

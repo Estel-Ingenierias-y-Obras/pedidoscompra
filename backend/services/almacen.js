@@ -62,7 +62,21 @@ function crearServicio({ modelo = Operacion, cliente = bc, uuid = randomUUID, ah
     let resultado;
     try {
       const respuesta = await cliente.crearEntrada(reclamada.cuerpo);
-      if (!bc.UUID.test(respuesta?.id || "") || !respuesta.numdoc || !confirmar(respuesta, reclamada.cuerpo)) throw Object.assign(new Error("La respuesta no confirma la operación. Reintenta la misma solicitud."), { incierto: true, seguro: true });
+      const idValido = bc.UUID.test(respuesta?.id || "");
+      const documentoPresente = typeof respuesta?.numdoc === "string" && !!respuesta.numdoc.trim();
+      const operacionConfirmada = confirmar(respuesta, reclamada.cuerpo);
+      if (!idValido || !documentoPresente || !operacionConfirmada) {
+        // Diagnóstico limitado al contrato: nunca imprimir la respuesta completa ni credenciales.
+        const diagnostico = { idValido, documentoPresente, operacionConfirmada };
+        if (Object.hasOwn(reclamada.cuerpo, "idlinea")) {
+          diagnostico.registrado = respuesta?.registrado === true;
+          diagnostico.idLineaCoincide = typeof respuesta?.idlinea === "string" && respuesta.idlinea.toLowerCase() === reclamada.cuerpo.idlinea.toLowerCase();
+          diagnostico.claveCoincide = typeof respuesta?.claveintegracion === "string" && respuesta.claveintegracion.toLowerCase() === reclamada.cuerpo.claveintegracion.toLowerCase();
+        }
+        console.warn("[BC_CONFIRMACION_INVALIDA]", JSON.stringify(diagnostico));
+        const faltan = [!idValido && "id válido", !documentoPresente && "numdoc", !operacionConfirmada && "confirmación de la operación"].filter(Boolean).join(", ");
+        throw Object.assign(new Error(`La respuesta de BC no confirma la operación: falta ${faltan}. Reintenta la misma solicitud.`), { incierto: true, seguro: true });
+      }
       resultado = { estado: "creada", respuesta, bcSystemId: respuesta.id, numeroDocumento: respuesta.numdoc, error: null, codigoError: null, proximoIntento: null };
     } catch (error) {
       const especial = ["GM_KEY_CONFLICT", "GM_ENTRY_GONE"].includes(error.codigo);

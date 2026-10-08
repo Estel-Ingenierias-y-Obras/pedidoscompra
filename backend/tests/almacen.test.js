@@ -79,6 +79,10 @@ test("registro persiste y reintenta la misma línea, exige confirmación y recup
   assert.ok(cuerpos.every(cuerpo => cuerpo.idlinea === idlinea && cuerpo.claveintegracion === claveintegracion));
   assert.equal(modelo.registros.get(idlinea).claveintegracion, claveintegracion);
   assert.equal(confirmarRegistro({ registrado: false, idlinea, claveintegracion }, body), false);
+  assert.equal(confirmarRegistro({ registrado: true, idlinea: idlinea.toUpperCase(), claveintegracion: claveintegracion.toUpperCase() }, body), true);
+  assert.equal(confirmarRegistro({ registrado: true, idlinea: randomUUID(), claveintegracion }, body), false);
+  assert.equal(confirmarRegistro({ registrado: true, idlinea, claveintegracion: randomUUID() }, body), false);
+  assert.equal(confirmarRegistro({ registrado: true }, body), false);
   assert.throws(() => validarRegistro({ ...body, cantidad: 100 }), { status: 400 });
 });
 
@@ -222,6 +226,37 @@ test("backend conserva Retry-After entre llamadas del navegador", async () => {
 
 const raices = { custom: "https://api.businesscentral.dynamics.com/v2.0/tenant/sandbox/api/Estel/GestionMaterial/v1.0/companies(empresa)", standard: "https://api.businesscentral.dynamics.com/v2.0/tenant/sandbox/api/v2.0/companies(empresa)" };
 const clienteHTTP = (request, esperar = async () => {}) => crearCliente({ request, esperar, token: async () => "token-test", config: () => raices });
+
+test("registro confirma el comprobante persistido cuando el POST devuelve un buffer incompleto", async () => {
+  const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };
+  const comprobante = { id: randomUUID(), ...cuerpo, numdoc: "T00034", registrado: true };
+  const llamadas = [];
+  const cliente = clienteHTTP(async config => {
+    llamadas.push(config);
+    return { data: config.method === "POST" ? { id: randomUUID(), ...cuerpo, registrado: false, numdoc: "" } : { value: [comprobante] } };
+  });
+  assert.deepEqual(await cliente.registrarEntrada(cuerpo), comprobante);
+  assert.deepEqual(llamadas.map(c => c.method), ["POST", "GET"]);
+  assert.deepEqual(llamadas[0].data, cuerpo);
+  assert.equal(new URL(llamadas[1].url).searchParams.get("$filter"), "registrado eq true");
+});
+
+test("registro no asume éxito con comprobante ausente, distinto o sin registrar", async () => {
+  const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };
+  for (const registros of [[], [{ id: randomUUID(), ...cuerpo, numdoc: "T34", registrado: false }], [{ id: randomUUID(), ...cuerpo, idlinea: randomUUID(), numdoc: "T34", registrado: true }]]) {
+    const cliente = clienteHTTP(async ({ method }) => ({ data: method === "POST" ? { ...cuerpo } : { value: registros } }));
+    await assert.rejects(cliente.registrarEntrada(cuerpo), { incierto: true });
+  }
+});
+
+test("registro con POST confirmado no necesita consulta adicional", async () => {
+  const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };
+  const comprobante = { id: randomUUID(), ...cuerpo, numdoc: "T34", registrado: true };
+  let llamadas = 0;
+  const cliente = clienteHTTP(async () => { llamadas++; return { data: comprobante }; });
+  assert.deepEqual(await cliente.registrarEntrada(cuerpo), comprobante);
+  assert.equal(llamadas, 1);
+});
 test("catálogos usan filtro de un producto escapado y siguen todas las páginas", async () => {
   const urls = [];
   const cliente = clienteHTTP(async ({ url }) => {
