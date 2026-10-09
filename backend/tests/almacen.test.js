@@ -70,7 +70,7 @@ test("registro persiste y reintenta la misma línea, exige confirmación y recup
     cuerpos.push(structuredClone(cuerpo));
     if (cuerpos.length === 1) throw Object.assign(new Error("Permiso"), { seguro: true, status: 403 });
     if (cuerpos.length === 2) throw new Error("timeout");
-    return { id: randomUUID(), idlinea, claveintegracion, numdoc: "T10", registrado: true };
+    return { id: randomUUID(), idlinea, claveintegracion, numdoc: "T10", fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true };
   } };
   const servicio = crearServicio({ modelo, cliente, validar: validarRegistro, confirmar: confirmarRegistro, reintentarRechazadas: true });
   assert.equal((await servicio.crearEntrada(body, usuario)).estado, "rechazada");
@@ -79,10 +79,10 @@ test("registro persiste y reintenta la misma línea, exige confirmación y recup
   assert.ok(cuerpos.every(cuerpo => cuerpo.idlinea === idlinea && cuerpo.claveintegracion === claveintegracion));
   assert.equal(modelo.registros.get(idlinea).claveintegracion, claveintegracion);
   assert.equal(confirmarRegistro({ registrado: false, idlinea, claveintegracion }, body), false);
-  assert.equal(confirmarRegistro({ registrado: true, idlinea: idlinea.toUpperCase(), claveintegracion: claveintegracion.toUpperCase() }, body), true);
-  assert.equal(confirmarRegistro({ registrado: true, idlinea: randomUUID(), claveintegracion }, body), false);
-  assert.equal(confirmarRegistro({ registrado: true, idlinea, claveintegracion: randomUUID() }, body), false);
-  assert.equal(confirmarRegistro({ registrado: true }, body), false);
+  assert.equal(confirmarRegistro({ fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true, idlinea: idlinea.toUpperCase(), claveintegracion: claveintegracion.toUpperCase() }, body), true);
+  assert.equal(confirmarRegistro({ fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true, idlinea: randomUUID(), claveintegracion }, body), false);
+  assert.equal(confirmarRegistro({ fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true, idlinea, claveintegracion: randomUUID() }, body), false);
+  assert.equal(confirmarRegistro({ fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true }, body), false);
   assert.throws(() => validarRegistro({ ...body, cantidad: 100 }), { status: 400 });
 });
 
@@ -229,7 +229,7 @@ const clienteHTTP = (request, esperar = async () => {}) => crearCliente({ reques
 
 test("registro confirma el comprobante persistido cuando el POST devuelve un buffer incompleto", async () => {
   const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };
-  const comprobante = { id: randomUUID(), ...cuerpo, numdoc: "T00034", registrado: true };
+  const comprobante = { id: randomUUID(), ...cuerpo, numdoc: "T00034", fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true };
   const llamadas = [];
   const cliente = clienteHTTP(async config => {
     llamadas.push(config);
@@ -238,12 +238,12 @@ test("registro confirma el comprobante persistido cuando el POST devuelve un buf
   assert.deepEqual(await cliente.registrarEntrada(cuerpo), comprobante);
   assert.deepEqual(llamadas.map(c => c.method), ["POST", "GET"]);
   assert.deepEqual(llamadas[0].data, cuerpo);
-  assert.equal(new URL(llamadas[1].url).searchParams.get("$filter"), "registrado eq true");
+  assert.equal(new URL(llamadas[1].url).searchParams.get("$filter"), `claveintegracion eq ${cuerpo.claveintegracion} and idlinea eq ${cuerpo.idlinea}`);
 });
 
 test("registro no asume éxito con comprobante ausente, distinto o sin registrar", async () => {
   const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };
-  for (const registros of [[], [{ id: randomUUID(), ...cuerpo, numdoc: "T34", registrado: false }], [{ id: randomUUID(), ...cuerpo, idlinea: randomUUID(), numdoc: "T34", registrado: true }]]) {
+  for (const registros of [[], [{ id: randomUUID(), ...cuerpo, numdoc: "T34", registrado: false }], [{ id: randomUUID(), ...cuerpo, idlinea: randomUUID(), numdoc: "T34", fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true }]]) {
     const cliente = clienteHTTP(async ({ method }) => ({ data: method === "POST" ? { ...cuerpo } : { value: registros } }));
     await assert.rejects(cliente.registrarEntrada(cuerpo), { incierto: true });
   }
@@ -251,7 +251,7 @@ test("registro no asume éxito con comprobante ausente, distinto o sin registrar
 
 test("registro con POST confirmado no necesita consulta adicional", async () => {
   const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };
-  const comprobante = { id: randomUUID(), ...cuerpo, numdoc: "T34", registrado: true };
+  const comprobante = { id: randomUUID(), ...cuerpo, numdoc: "T34", fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true };
   let llamadas = 0;
   const cliente = clienteHTTP(async () => { llamadas++; return { data: comprobante }; });
   assert.deepEqual(await cliente.registrarEntrada(cuerpo), comprobante);
@@ -268,11 +268,13 @@ test("catálogos usan filtro de un producto escapado y siguen todas las páginas
   assert.equal(result.length, 2);
   assert.throws(() => cliente.obtenerMovimientosAplicables(""), { status: 400 });
 });
-test("productos usan API estándar y los filtros indicados; listas no filtran campos variables", async () => {
+test("el diario usa catálogo general de materiales y stock usa catálogo de almacén", async () => {
   const urls = [];
   const cliente = clienteHTTP(async ({ url }) => { urls.push(new URL(url)); return { data: { value: [] } }; });
-  await cliente.obtenerProductos(); await cliente.obtenerEntradas();
+  await cliente.obtenerProductos(); await cliente.obtenerStock();
+  assert.ok(urls[0].pathname.endsWith("/api/v2.0/companies(empresa)/items"));
   assert.equal(urls[0].searchParams.get("$filter"), "blocked eq false and type eq 'Inventory'");
+  assert.ok(urls[1].pathname.endsWith("/api/Estel/GestionMaterial/v1.0/companies(empresa)/productos"));
   assert.equal(urls[1].searchParams.has("$filter"), false);
 });
 test("rechaza nextLink de otro origen o empresa antes de enviar token", async () => {
@@ -320,4 +322,59 @@ test("configuración exige entorno y empresa explícitos, no usa el nombre de un
   assert.throws(() => configuracionBC({}), /BC_ENVIRONMENT/);
   const config = configuracionBC({ TENANT_ID: randomUUID(), CLIENT_ID: "id", CLIENT_SECRET: "secret", BC_SCOPE: "scope", BC_ENVIRONMENT: "Mi sandbox", BC_COMPANY_ID: randomUUID() });
   assert.ok(config.custom.includes("Mi%20sandbox/api/Estel/GestionMaterial/v1.0/companies("));
+});
+
+for (const accion of ["crearEntrada", "registrarEntrada"]) test(`${accion}: GM_ENTRY_GONE consulta recibo del diario de productos sin crear otra línea`, async () => {
+ const cuerpo = { claveintegracion: randomUUID(), idlinea: randomUUID() };
+ const recibo = { id: randomUUID(), ...cuerpo, fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true, numdoc: "T10", fecharegistrocontable: "2026-10-08T12:00:00Z" };
+ const llamadas = [];
+ const cliente = clienteHTTP(async config => {
+  llamadas.push(config);
+  if (config.method === "POST") throw { response: { status: 400, data: { error: { message: "GM_ENTRY_GONE" } } } };
+  return { data: { value: [recibo] } };
+ });
+ if (accion === "registrarEntrada") assert.deepEqual(await cliente[accion](cuerpo), recibo);
+ else await assert.rejects(cliente[accion](cuerpo), e => e.codigo === "GM_ENTRY_GONE" && e.message.includes("T10"));
+ assert.equal(llamadas.length, 2);
+ assert.ok(new URL(llamadas[0].url).pathname.endsWith(accion === "crearEntrada" ? "/diarioProductos" : "/registrosProducto"));
+ assert.ok(new URL(llamadas[1].url).pathname.endsWith("/registrosProducto"));
+ assert.equal(new URL(llamadas[1].url).searchParams.get("$filter"), `claveintegracion eq ${cuerpo.claveintegracion} and idlinea eq ${cuerpo.idlinea}`);
+});
+test("catálogo de movimientos se pagina con filtro OData escapado", async () => {
+ const urls = [];
+ const cliente = clienteHTTP(async ({url}) => { urls.push(url); return {data: urls.length === 1 ? {value: [{numero: 10}], "@odata.nextLink": `${raices.custom}/movimientosAplicables?$skiptoken=2`} : {value: [{numero: 11}]}}; });
+ assert.deepEqual(await cliente.obtenerMovimientosAplicables("A'B"), [{numero: 10},{numero: 11}]);
+ assert.equal(new URL(urls[0]).searchParams.get("$filter"), "numprod eq 'A''B'");
+});
+
+test("recibo filtrable: pagina y selecciona solo la clave y línea exactas", async () => {
+ const cuerpo = {idlinea: randomUUID(), claveintegracion: randomUUID()};
+ const recibo = {id: randomUUID(), ...cuerpo, fecharegistrocontable: "2026-10-08T09:30:00Z", registrado: true, numdoc: "T42"};
+ let gets = 0, posts = 0;
+ const cliente = clienteHTTP(async ({method,url}) => {
+  if(method === "POST") {posts++;return {data:{registrado:false}};}
+  const destino = new URL(url);
+  if (gets === 0) assert.equal(destino.searchParams.get("$filter"), `claveintegracion eq ${cuerpo.claveintegracion} and idlinea eq ${cuerpo.idlinea}`);
+  gets++;
+  return {data: gets === 1 ? {value:[{...recibo,claveintegracion:randomUUID()},{...recibo,idlinea:randomUUID()}],"@odata.nextLink": `${raices.custom}/registrosProducto?$skiptoken=2`} : {value:[recibo]}};
+ });
+ assert.deepEqual(await cliente.registrarEntrada(cuerpo),recibo);
+ assert.equal(posts,1);assert.equal(gets,2);
+});
+test("fallo al leer recibo tras POST conserva resultado incierto", async () => {
+ const cliente = clienteHTTP(async ({method}) => {
+  if(method === "POST")return {data:{registrado:false}};
+  throw {response:{status:403,data:{error:{message:"Permiso de lectura"}}}};
+ });
+ await assert.rejects(cliente.registrarEntrada({idlinea:randomUUID(),claveintegracion:randomUUID()}),{incierto:true});
+});
+
+test("contrato 1.1.1 exige id, timestamp y ambos UUID en el recibo", async () => {
+ const cuerpo={idlinea:randomUUID(),claveintegracion:randomUUID()};
+ const completo={id:randomUUID(),...cuerpo,registrado:true,numdoc:"T44",fecharegistrocontable:"2026-10-08T09:30:00Z"};
+ for(const campo of ["id","fecharegistrocontable","idlinea","claveintegracion"]){
+  const incompleto={...completo};delete incompleto[campo];
+  const cliente=clienteHTTP(async ({method})=>({data:method==="POST"?incompleto:{value:[incompleto]}}));
+  await assert.rejects(cliente.registrarEntrada(cuerpo),{codigo:"BC_RECEIPT_MISSING",incierto:true});
+ }
 });

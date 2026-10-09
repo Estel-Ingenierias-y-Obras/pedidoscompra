@@ -4,9 +4,9 @@ import EnviadosAlmacen from "./EnviadosAlmacen";
 import { puedeAcceder } from "../routes/permissions";
 import * as servicio from "../services/almacen";
 jest.mock("../components/Layout", () => ({ children }) => <div>{children}</div>);
-jest.mock("../services/almacen", () => ({ obtenerEnviados: jest.fn(), obtenerEntradas: jest.fn(), registrarEntrada: jest.fn(), guardarEntrada: jest.fn() }));
+jest.mock("../services/almacen", () => ({ obtenerRegistrosPendientes: jest.fn(), obtenerEnviados: jest.fn(), obtenerEntradas: jest.fn(), registrarEntrada: jest.fn(), guardarEntrada: jest.fn() }));
 const montar = () => render(<MemoryRouter><EnviadosAlmacen /></MemoryRouter>);
-beforeEach(() => { jest.clearAllMocks(); servicio.obtenerEntradas.mockResolvedValue(Array.from({ length: 65 }, (_, i) => ({ id: `bc-${i}` }))); });
+beforeEach(() => { jest.clearAllMocks(); servicio.obtenerRegistrosPendientes.mockResolvedValue([]); servicio.obtenerEntradas.mockResolvedValue(Array.from({ length: 65 }, (_, i) => ({ id: `bc-${i}` }))); });
 
 test("mantiene más de 50 envíos vigentes y abre el modal sin registrar automáticamente", async () => {
   servicio.obtenerEnviados.mockResolvedValue(Array.from({ length: 65 }, (_, i) => ({ solicitudId: `op-${i}`, estado: i === 64 ? "bloqueada" : "creada", respuesta: { id: `bc-${i}`, numdoc: `DOC-${i}`, descripcion: `Producto ${i}` } })));
@@ -85,7 +85,7 @@ test("clic en una celda registra solo la línea seleccionada y evita envíos dup
   confirmar({ estado: "creada", respuesta: { registrado: true } });
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(screen.queryByRole("row", { name: "Documento DOC-1" })).not.toBeInTheDocument();
-  expect(screen.getByText(/registrado correctamente/)).toBeInTheDocument();
+  expect(screen.getByText("Línea registrada correctamente en Business Central")).toHaveClass("notification-toast-exito");
 });
 
 test("Enter abre el modal y un resultado incierto conserva la línea para reintentar", async () => {
@@ -101,4 +101,14 @@ test("Enter abre el modal y un resultado incierto conserva la línea para reinte
   expect(servicio.registrarEntrada.mock.calls[0][0]).toEqual(servicio.registrarEntrada.mock.calls[1][0]);
   fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test("las líneas eliminadas de BC no aparecen aunque tengan registros inciertos", async () => {
+ servicio.obtenerEnviados.mockResolvedValue([1,2,3].map(i => ({solicitudId: `op-${i}`,respuesta:{id:`bc-${i}`,numdoc:`DOC-${i}`}})));
+ servicio.obtenerEntradas.mockResolvedValue([]);
+ servicio.obtenerRegistrosPendientes.mockResolvedValue([{cuerpo:{idlinea:"bc-1"},estado:"incierta"}]);
+ montar();
+ await screen.findByText("Todavía no hay envíos confirmados a BC.");
+ expect(screen.queryByRole("row",{name:/Documento DOC/})).not.toBeInTheDocument();
+ expect(servicio.registrarEntrada).not.toHaveBeenCalled();
 });

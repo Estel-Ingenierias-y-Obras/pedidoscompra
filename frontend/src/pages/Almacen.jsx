@@ -6,7 +6,7 @@ export default function Almacen() {
   return <Layout>
     <div className="page-header"><Link className="back-link" to="/material">← Material</Link><h1>Almacén</h1><p className="page-subtitle">Almacén CENTRAL 3 · Departamento SG-ALMACEN</p></div>
     <div className="page-content module-cards">
-      <Link className="module-card" to="/material/almacen/entradas"><h2>Añadir Material al Almacén</h2><p>Crear entradas en el diario de productos.</p></Link>
+      <Link className="module-card" to="/material/almacen/entradas"><h2>Diario de productos</h2><p>Crear entradas en el diario de productos.</p></Link>
       <div className="module-card module-card-disabled"><h2>Movimientos de Almacén</h2><p>Próximamente</p></div>
       <Link className="module-card" to="/material/almacen/stock"><h2>Stock actual</h2><p>Consultar las existencias de CENTRAL 3.</p></Link>
     </div>

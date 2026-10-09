@@ -5,6 +5,7 @@ import { faRotate } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import DiarioAlmacen from "../components/DiarioAlmacen";
 import ModalShell from "../components/ModalShell";
+import NotificationToast from "../components/NotificationToast";
 import { obtenerEnviados, obtenerEntradas, registrarEntrada } from "../services/almacen";
 import "./Almacen.css";
 
@@ -41,7 +42,7 @@ export default function EnviadosAlmacen() {
       setEntradas(actuales => actuales.filter(entrada => entrada.id !== lineaRegistro.id));
       setSeleccion(null);
       setLineaRegistro(null);
-      setMensaje(`Documento ${lineaRegistro.numdoc}: registrado correctamente en Business Central.`);
+      setMensaje("Línea registrada correctamente en Business Central");
     } catch (err) {
       setErrorRegistro(err.response?.data?.error || err.response?.data?.resultado?.error || "No se pudo confirmar el registro en BC. Reintenta la misma línea para confirmar el resultado.");
     } finally {
@@ -61,6 +62,7 @@ export default function EnviadosAlmacen() {
         const vigentes = operaciones.filter(op => typeof op.respuesta?.id === "string" && idsVigentes.has(op.respuesta.id.toLowerCase()));
         setEntradas(vigentes.map(op => ({ ...op.cuerpo, ...op.respuesta, claveintegracion: op.respuesta.claveintegracion || op.claveintegracion || op.cuerpo?.claveintegracion, solicitudId: op.solicitudId, fechaEnvio: op.createdAt })));
         setSeleccion(anterior => vigentes.some(op => op.respuesta.id === anterior) ? anterior : null);
+        setLineaRegistro(anterior => anterior && idsVigentes.has(anterior.id.toLowerCase()) ? anterior : null);
         setCargado(true);
       }
     }).catch(err => {
@@ -69,6 +71,7 @@ export default function EnviadosAlmacen() {
     return () => { activo = false; };
   }, [intento]);
   return <Layout>
+    <NotificationToast message={mensaje} onClose={() => setMensaje("")} />
     <section className="bc-journal-page">
       <header className="page-header"><Link className="back-link" to="/material/almacen/entradas">← Entradas de almacén</Link><h1>Enviados a BC</h1><p className="page-subtitle">Historial de tus envíos · CENTRAL 3 · SG-ALMACEN</p></header>
       <div className="page-content bc-journal-card">
@@ -78,7 +81,6 @@ export default function EnviadosAlmacen() {
         </div>
         <div className="bc-journal-content warehouse-page">
           {error && <p role="alert" className="journal-error">{error}</p>}
-          {mensaje && <p role="status">{mensaje}</p>}
           {cargando && <p role="status">Cargando envíos a BC…</p>}
           {cargado && <DiarioAlmacen historial filas={[]} entradas={entradas} seleccion={seleccion} seleccionar={setSeleccion} abrirRegistro={abrirRegistro} />}
           {cargado && <div className="bc-journal-footer">{entradas.length} envíos confirmados por BC</div>}
@@ -86,7 +88,6 @@ export default function EnviadosAlmacen() {
       </div>
       {lineaRegistro && <ModalShell onClose={cerrarRegistro} ariaLabel="Registrar entrada en BC">
         <h2>Registrar entrada</h2>
-        <p>Se registrará esta línea del diario de productos en Business Central.</p>
         <p><strong>Documento:</strong> {lineaRegistro.numdoc}<br /><strong>Producto:</strong> {lineaRegistro.numprod} · {lineaRegistro.descripcion}<br /><strong>Cantidad:</strong> {lineaRegistro.cantidad} {lineaRegistro.codudmedida}</p>
         {!lineaRegistro.claveintegracion && <p role="alert" className="journal-error">Esta línea no tiene clave de integración. Actualiza los datos antes de registrarla.</p>}
         {errorRegistro && <p role="alert" className="journal-error">{errorRegistro}</p>}

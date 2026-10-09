@@ -10,18 +10,20 @@ const producto = (id, inventario = 1) => ({ id, numprod: `COD-${id}`, descripcio
 const montar = () => render(<MemoryRouter><StockAlmacen /></MemoryRouter>);
 beforeEach(() => jest.resetAllMocks());
 
-test("muestra carga y todos los productos, negativos y precisión; busca por código y descripción", async () => {
-  obtenerStock.mockResolvedValue([...Array.from({ length: 65 }, (_, i) => producto(String(i))), producto("negativo", -0.1234567)]);
+test("muestra solo existencias >= 1, excluye negativos, cero y fracciones; busca por código y descripción", async () => {
+  obtenerStock.mockResolvedValue([...Array.from({ length: 65 }, (_, i) => producto(String(i))), producto("negativo", -0.1234567), producto("cero", 0), producto("fraccion", 0.99)]);
   montar();
   expect(screen.getByRole("status")).toHaveTextContent("Cargando existencias");
   await screen.findByText("COD-64");
-  expect(screen.getAllByRole("row")).toHaveLength(67);
-  expect(screen.getByText("-0,1234567")).toBeInTheDocument();
+  expect(screen.getAllByRole("row")).toHaveLength(66);
+  expect(screen.queryByText("COD-negativo")).not.toBeInTheDocument();
+  expect(screen.queryByText("COD-cero")).not.toBeInTheDocument();
+  expect(screen.queryByText("COD-fraccion")).not.toBeInTheDocument();
   const buscar = screen.getByRole("searchbox", { name: "Buscar por código o descripción" });
   fireEvent.change(buscar, { target: { value: "cod-64" } });
   expect(screen.getAllByRole("row")).toHaveLength(2);
   fireEvent.change(buscar, { target: { value: "descripcion negativo" } });
-  expect(screen.getByText("COD-negativo")).toBeInTheDocument();
+  expect(screen.queryByText("COD-negativo")).not.toBeInTheDocument();
   fireEvent.change(buscar, { target: { value: "inexistente" } });
   expect(screen.getByRole("status")).toHaveTextContent("No hay productos que coincidan");
   expect(screen.getAllByRole("button")).toHaveLength(1);
@@ -33,7 +35,7 @@ test("distingue stock vacío de error y permite reintentar", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("BC sin conexión");
   expect(screen.queryByText(/No hay productos/)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Actualizar datos" }));
-  await screen.findByText("No hay productos con existencias distintas de cero en CENTRAL 3.");
+  await screen.findByText("No hay productos con existencias de 1 o más en CENTRAL 3.");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 

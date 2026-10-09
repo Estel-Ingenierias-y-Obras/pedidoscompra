@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import Layout from "../components/Layout";
 import DiarioAlmacen from "../components/DiarioAlmacen";
+import NotificationToast from "../components/NotificationToast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faRotate, faCheck, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import * as servicio from "../services/almacen";
@@ -31,6 +32,7 @@ export default function EntradasAlmacen() {
   const [ocupado, setOcupado] = useState(false);
   const enVuelo = useRef(false);
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
   const [intento, setIntento] = useState(0);
   // Persistir sincronamente ANTES del POST, incluido el cuerpo inmutable enviado.
   const persistir = nuevas => {
@@ -49,7 +51,7 @@ export default function EntradasAlmacen() {
         if (items.status === "fulfilled") setProductos(items.value);
         if (tipos.status === "fulfilled") setTiposProyecto(tipos.value);
         const fallos = resultados.filter(item => item.status === "rejected");
-        if (fallos.length) setError(fallos.map(item => item.reason.response?.data?.error || "No se pudieron cargar todos los datos del diario.").join(" "));
+        if (fallos.length) setError(fallos.map(item => item.reason.response?.data?.error || item.reason.message || "No se pudieron cargar todos los datos del diario.").join(" "));
         const recuperadas = new Map(filasRef.current.map(fila => [fila.solicitudId, fila]));
         if (operaciones.status === "fulfilled") operaciones.value.forEach(op => recuperadas.set(op.solicitudId, filaDesdeOperacion(op)));
         const confirmadas = new Set(enviados.status === "fulfilled" ? enviados.value.map(op => op.solicitudId) : []);
@@ -62,7 +64,7 @@ export default function EntradasAlmacen() {
   }, [intento, clave]);
   const nueva = () => {
     const solicitudId = crypto.randomUUID();
-    if (persistir([...filasRef.current, { solicitudId, estado: "borrador", numprod: "", cantidad: "", codudmedida: "", liqpornumorden: "", tipoproyectocodigo: "INDIRECTO", modoMonetario: "bc", valorMonetario: "" }])) setSeleccion(solicitudId);
+    if (persistir([...filasRef.current, { solicitudId, estado: "borrador", numprod: "", cantidad: "", codudmedida: "", liqpornumorden: 0, tipoproyectocodigo: "INDIRECTO", modoMonetario: "bc", valorMonetario: "" }])) setSeleccion(solicitudId);
   };
   const quitar = id => {
     const fila = filasRef.current.find(item => item.solicitudId === id);
@@ -74,15 +76,16 @@ export default function EntradasAlmacen() {
     if (enVuelo.current || errorStorage) return;
     let cuerpo;
     // Los nuevos envíos usan los valores de BC; los reintentos conservan su cuerpo original.
-    try { cuerpo = fila.cuerpoEnviado || prepararEntrada({ ...fila, modoMonetario: "bc", valorMonetario: "" }); }
+    try { cuerpo = fila.cuerpoEnviado || prepararEntrada({ ...fila, codudmedida: "", modoMonetario: "bc", valorMonetario: "", tipoproyectocodigo: fila.tipoproyectocodigo || "INDIRECTO" }); }
     catch (err) { cambiar(fila.solicitudId, { error: err.message }); return; }
     if (!cambiar(fila.solicitudId, { estado: "procesando", cuerpoEnviado: cuerpo })) return;
-    enVuelo.current = true; setOcupado(true);
+    enVuelo.current = true; setOcupado(true); setMensaje("");
     try {
       const resultado = await servicio.guardarEntrada(cuerpo);
       if (resultado.estado === "creada") {
         persistir(filasRef.current.filter(item => item.solicitudId !== fila.solicitudId));
         setSeleccion(null);
+        setMensaje("Línea enviada a Business Central correctamente");
       } else cambiar(fila.solicitudId, { estado: resultado.estado, error: resultado.error, proximoIntento: resultado.proximoIntento });
     } catch (err) {
       const data = err.response?.data;
@@ -91,8 +94,9 @@ export default function EntradasAlmacen() {
     } finally { enVuelo.current = false; setOcupado(false); }
   };
   return <Layout>
+    <NotificationToast message={mensaje} onClose={() => setMensaje("")} />
     <section className="bc-journal-page">
-    <header className="page-header"><Link className="back-link" to="/material/almacen">← Almacén</Link><h1>Añadir Material al Almacén</h1><p className="page-subtitle">Diario de productos · CENTRAL 3 · SG-ALMACEN</p></header>
+    <header className="page-header"><Link className="back-link" to="/material/almacen">← Almacén</Link><h1>Diario de productos</h1><p className="page-subtitle">Diario de productos · CENTRAL 3 · SG-ALMACEN</p></header>
     <div className="page-content bc-journal-card">
     <div className="bc-command-bar">
       <button onClick={nueva} disabled={cargando || ocupado || !!error || !!errorStorage || !productos.length || !tiposProyecto.length}><FontAwesomeIcon icon={faPlus} /> Nueva línea</button>

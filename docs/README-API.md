@@ -1,3 +1,5 @@
+> Contrato restaurado al diario de productos. Las referencias de versión de este documento son históricas; el registro debe conservar la corrección de BC 1.0.4.
+
 # Entradas de materiales
 
 La aplicación crea una **línea pendiente en el diario de productos**. No ejecuta Registrar,

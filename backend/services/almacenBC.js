@@ -9,9 +9,9 @@ function clasificarError(error) {
   if (error.seguro) return { mensaje: error.message, status: error.status, transitorio: false, incierto: false, codigo: "CONFIGURACION" };
   const status = error.response?.status;
   const texto = String(error.response?.data?.error?.message || "");
-  const codigo = ["GM_KEY_CONFLICT", "GM_ENTRY_GONE"].find(valor => texto.includes(valor) || error.response?.data?.error?.code === valor);
+  const codigo = ["GM_KEY_CONFLICT", "GM_ENTRY_GONE", "GM_POST_NOT_CONFIRMED", "GM_POST_AMBIGUOUS"].find(valor => texto.includes(valor) || error.response?.data?.error?.code === valor);
   if (codigo) return { codigo, status: 409, transitorio: false, incierto: false,
-    mensaje: codigo === "GM_KEY_CONFLICT" ? "La clave de integración ya está asociada a otros datos. Requiere revisión; no se creará otra entrada." : "La línea original ya no está en el diario (puede haberse registrado o eliminado). No se creará una sustituta." };
+    mensaje: ["GM_POST_NOT_CONFIRMED", "GM_POST_AMBIGUOUS"].includes(codigo) ? (codigo === "GM_POST_AMBIGUOUS" ? "BC detectó movimientos existentes sin recibo confirmado. Requiere revisión en BC; no se reintentará automáticamente." : "BC no pudo verificar el movimiento de inventario esperado. El registro no está confirmado; revisa la operación en BC.") : codigo === "GM_KEY_CONFLICT" ? "La clave de integración ya está asociada a otros datos. Requiere revisión; no se creará otra entrada." : "La línea original ya no está en el diario (puede haberse registrado o eliminado). No se creará una sustituta." };
   const transitorio = !status || [408, 429, 500, 502, 503, 504].includes(status);
   let mensaje = "No se pudo confirmar el resultado en Business Central. Reintenta la misma operación.";
   if (status === 401) mensaje = "Business Central ha rechazado la autenticación de la aplicación. Revisa las credenciales del backend que estás utilizando.";
@@ -70,6 +70,9 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     if (typeof numprod !== "string" || !numprod.trim() || numprod.length > 20) throw fallo("Selecciona un único producto válido.", 400);
     return { $filter: `numprod eq '${numprod.replace(/'/g, "''")}'` };
   };
+  const recibos = cuerpo => coleccion("custom", "registrosProducto", {
+    $filter: `claveintegracion eq ${cuerpo.claveintegracion}${cuerpo.idlinea ? ` and idlinea eq ${cuerpo.idlinea}` : ""}`
+  });
   return {
     destino: () => config().custom,
     obtenerStock: () => coleccion("custom", "productos"),
@@ -83,25 +86,47 @@ function crearCliente({ request = config => axios.request(config), token = () =>
       if (!UUID.test(id)) throw fallo("Identificador de entrada no válido.", 400);
       return ejecutar("GET", endpoint("custom", `diarioProductos(${id})`));
     },
-    crearEntrada: cuerpo => ejecutar("POST", endpoint("custom", "diarioProductos"), cuerpo),
+    crearEntrada: async cuerpo => {
+      try { return await ejecutar("POST", endpoint("custom", "diarioProductos"), cuerpo); }
+      catch (error) {
+        if (error.codigo === "GM_ENTRY_GONE") {
+          const comprobantes = await recibos(cuerpo);
+          const recibo = comprobantes.find(r => r.registrado === true && r.claveintegracion?.toLowerCase() === cuerpo.claveintegracion.toLowerCase());
+          if (recibo) error.message = `La línea ya se registró. Documento ${recibo.numdoc}. No se creará otra línea.`;
+        }
+        throw error;
+      }
+    },
     registrarEntrada: async cuerpo => {
       if (!UUID.test(cuerpo?.idlinea || "") || !UUID.test(cuerpo?.claveintegracion || "")) throw fallo("Identificadores de registro no válidos.", 400);
-      const coincide = registro => registro?.registrado === true && UUID.test(registro.id || "") && typeof registro.numdoc === "string" && !!registro.numdoc.trim()
+      const coincide = registro => registro?.registrado === true && UUID.test(registro.id || "")
+        && typeof registro.fecharegistrocontable === "string" && Number.isFinite(Date.parse(registro.fecharegistrocontable))
+        && typeof registro.numdoc === "string" && !!registro.numdoc.trim()
         && typeof registro.idlinea === "string" && registro.idlinea.toLowerCase() === cuerpo.idlinea.toLowerCase()
         && typeof registro.claveintegracion === "string" && registro.claveintegracion.toLowerCase() === cuerpo.claveintegracion.toLowerCase();
+      let postCompletado = false;
       try {
         const respuesta = await ejecutar("POST", endpoint("custom", "registrosProducto"), cuerpo);
-        if (coincide(respuesta)) return respuesta;
+        postCompletado = true;
+        const reciboPost = respuesta;
+        if (coincide(reciboPost)) return reciboPost;
         // El POST de la página AL puede devolver el buffer de inserción, no el
         // comprobante actualizado. Confirmar leyendo el registro persistido.
-        // Las claves son campos variables de la página: comparar localmente.
-        const registros = await coleccion("custom", "registrosProducto", { $filter: "registrado eq true" });
+        // La extensión 1.1.1 expone UUID persistidos y filtrables.
+        // Comprobar además identidades y confirmación en la respuesta.
+        const registros = await recibos(cuerpo);
         const comprobantes = registros.filter(coincide);
         if (comprobantes.length === 1) return comprobantes[0];
-        throw Object.assign(fallo("BC no devuelve un comprobante registrado para esta línea y su clave. El resultado sigue sin confirmar; requiere revisar el registro en BC."), { incierto: true });
+        throw Object.assign(fallo("La API de BC ha respondido, pero no confirma registrado=true ni devuelve un recibo para esta línea. Revisa la extensión de registro publicada en BC (versión 1.1.1.20261008). No crees otra entrada para sustituirla."), { incierto: true, codigo: "BC_RECEIPT_MISSING" });
       }
       catch (error) {
-        if (error.status === 404) error.message = "La operación de registro todavía no está publicada en BC. Publica la extensión 1.0.2.20260928 y asigna GM REGISTRAR API a la identidad de integración.";
+        // Un fallo al consultar el recibo no demuestra que el POST haya fallado.
+        if (postCompletado) error.incierto = true;
+        if (error.codigo === "GM_ENTRY_GONE") {
+          const encontrados = await recibos(cuerpo);
+          const recibo = encontrados.find(coincide);
+          if (recibo) return recibo;
+        }
         throw error;
       }
     }

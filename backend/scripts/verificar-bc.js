@@ -10,8 +10,13 @@ async function main() {
   const endpoints = [
     ["proyectos", urlProyectos()],
     ...["items", "locations"].map(nombre => [nombre, `${config.standard}/${nombre}`]),
-    ...["diarioProductos", "tiposProyecto", "unidadesProducto", "movimientosAplicables", "registrosProducto"].map(nombre => [nombre, `${config.custom}/${nombre}`])
+    ...["productos", "diarioProductos", "tiposProyecto", "registrosProducto"].map(nombre => [nombre, `${config.custom}/${nombre}`])
   ];
+  if (process.env.BC_TEST_ITEM) {
+    const unidades = new URL(`${config.custom}/unidadesProducto`);
+    unidades.search = new URLSearchParams({ $filter: `numprod eq '${process.env.BC_TEST_ITEM.replace(/'/g, "''")}'` }).toString();
+    endpoints.push(["unidadesProducto", unidades.href], ["movimientosAplicables", unidades.href.replace("/unidadesProducto?", "/movimientosAplicables?")]);
+  } else console.log("Unidades: pendiente; definir BC_TEST_ITEM para consultar un material concreto.");
   for (const [nombre, url] of endpoints) {
     logSolicitudBC(url);
     try {

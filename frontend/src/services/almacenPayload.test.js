@@ -18,3 +18,7 @@ test("recuperar operación conserva cuerpo original, omisiones y cero", () => {
   expect(result.modoMonetario).toBe("importe");
   expect(result.valorMonetario).toBe(0);
 });
+
+test("cero explícito de movimiento se envía y no se confunde con pedido", () => {
+ expect(prepararEntrada({...fila(), liqpornumorden: 0})).toHaveProperty("liqpornumorden", 0);
+});

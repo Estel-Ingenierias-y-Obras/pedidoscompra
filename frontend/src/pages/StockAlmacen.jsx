@@ -29,7 +29,7 @@ export default function StockAlmacen() {
         ids.add(producto.id);
         return false;
       })) throw new Error("Business Central devolvió una respuesta de stock no válida.");
-      if (activo) { setProductos(datos); setCargado(true); }
+      if (activo) { setProductos(datos.filter(producto => producto.inventario >= 1)); setCargado(true); }
     }).catch(err => {
       if (activo) setError(err.response?.data?.error || (err.isAxiosError
         ? "No se pudo conectar para consultar el stock de Business Central. Pulsa Actualizar datos para reintentar."
@@ -69,7 +69,7 @@ export default function StockAlmacen() {
                 </tr>)}</tbody>
               </table>
             </div>
-            {!filtrados.length && <p role="status">{productos.length ? "No hay productos que coincidan con la búsqueda." : "No hay productos con existencias distintas de cero en CENTRAL 3."}</p>}
+            {!filtrados.length && <p role="status">{productos.length ? "No hay productos que coincidan con la búsqueda." : "No hay productos con existencias de 1 o más en CENTRAL 3."}</p>}
             <div className="bc-journal-footer">{filtrados.length} de {productos.length} productos</div>
           </>}
         </div>

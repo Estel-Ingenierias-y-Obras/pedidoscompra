@@ -7,7 +7,7 @@ export function prepararEntrada(fila) {
   const cuerpo = { solicitudId: fila.solicitudId, numprod: fila.numprod, cantidad: Number(fila.cantidad) };
   if (fila.codudmedida) cuerpo.codudmedida = fila.codudmedida;
   if (fila.tipoproyectocodigo) cuerpo.tipoproyectocodigo = fila.tipoproyectocodigo;
-  if (fila.liqpornumorden) {
+  if (fila.liqpornumorden !== "" && fila.liqpornumorden != null) {
     const numero = Number(fila.liqpornumorden);
     if (!Number.isInteger(numero) || numero < 0) throw new Error("Selecciona un movimiento válido.");
     cuerpo.liqpornumorden = numero;
@@ -23,7 +23,7 @@ export function filaDesdeOperacion(op) {
   const { claveintegracion, ...datos } = op.cuerpo;
   const modoMonetario = modosMonetarios.find(([campo]) => Object.prototype.hasOwnProperty.call(datos, campo))?.[0] || "bc";
   return { ...datos, solicitudId: op.solicitudId, modoMonetario, valorMonetario: datos[modoMonetario] ?? "",
-    codudmedida: datos.codudmedida || "", liqpornumorden: datos.liqpornumorden || "", tipoproyectocodigo: datos.tipoproyectocodigo || "",
+    codudmedida: datos.codudmedida || "", liqpornumorden: datos.liqpornumorden ?? 0, tipoproyectocodigo: datos.tipoproyectocodigo || "",
     estado: op.estado, error: op.error, codigoError: op.codigoError, proximoIntento: op.proximoIntento,
     cuerpoEnviado: { solicitudId: op.solicitudId, ...datos } };
 }

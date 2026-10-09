@@ -19,6 +19,7 @@ function validarEntrada(body) {
   datos.cantidad = body.cantidad;
   codigo("codudmedida", 10);
   codigo("tipoproyectocodigo", 20);
+  if (datos.tipoproyectocodigo && !["DIRECTO", "INDIRECTO", "GRUPO"].includes(datos.tipoproyectocodigo)) invalidar("Tipo de proyecto no válido.");
   if (Object.hasOwn(body, "liqpornumorden")) {
     if (!Number.isInteger(body.liqpornumorden) || body.liqpornumorden < 0 || body.liqpornumorden > 2147483647) invalidar("Selecciona un movimiento de producto válido.");
     datos.liqpornumorden = body.liqpornumorden;
@@ -62,7 +63,7 @@ function crearServicio({ modelo = Operacion, cliente = bc, uuid = randomUUID, ah
     let resultado;
     try {
       const respuesta = await cliente.crearEntrada(reclamada.cuerpo);
-      const idValido = bc.UUID.test(respuesta?.id || "");
+      const idValido = Object.hasOwn(reclamada.cuerpo, "idlinea") || bc.UUID.test(respuesta?.id || "");
       const documentoPresente = typeof respuesta?.numdoc === "string" && !!respuesta.numdoc.trim();
       const operacionConfirmada = confirmar(respuesta, reclamada.cuerpo);
       if (!idValido || !documentoPresente || !operacionConfirmada) {
@@ -77,9 +78,9 @@ function crearServicio({ modelo = Operacion, cliente = bc, uuid = randomUUID, ah
         const faltan = [!idValido && "id válido", !documentoPresente && "numdoc", !operacionConfirmada && "confirmación de la operación"].filter(Boolean).join(", ");
         throw Object.assign(new Error(`La respuesta de BC no confirma la operación: falta ${faltan}. Reintenta la misma solicitud.`), { incierto: true, seguro: true });
       }
-      resultado = { estado: "creada", respuesta, bcSystemId: respuesta.id, numeroDocumento: respuesta.numdoc, error: null, codigoError: null, proximoIntento: null };
+      resultado = { estado: "creada", respuesta, bcSystemId: respuesta.id || reclamada.cuerpo.idlinea, numeroDocumento: respuesta.numdoc, error: null, codigoError: null, proximoIntento: null };
     } catch (error) {
-      const especial = ["GM_KEY_CONFLICT", "GM_ENTRY_GONE"].includes(error.codigo);
+      const especial = ["GM_KEY_CONFLICT", "GM_ENTRY_GONE", "GM_POST_AMBIGUOUS"].includes(error.codigo);
       const incierto = !error.seguro || error.incierto || error.transitorio || ["incierta", "procesando"].includes(op.estado);
       resultado = { estado: especial ? "bloqueada" : incierto ? "incierta" : "rechazada",
         error: error.seguro ? error.message : "No se pudo confirmar el resultado. Reintenta la misma operación.", codigoError: error.codigo || "RESULTADO_INCIERTO",

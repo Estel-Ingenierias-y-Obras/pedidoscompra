@@ -79,3 +79,36 @@ a.module-card:hover, a.module-card:focus-visible { background: #eff8f8; border-c
 @media (max-width: 900px) {
   .bc-journal-page .bc-journal-card { padding: 16px; }
 }
+
+/* El diario tiene anchos propios y desplazamiento, también en pantallas pequeñas. */
+.bc-journal-content .warehouse-journal-scroll {
+  width: 100%; max-width: 100%; min-width: 0;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  border: 1px solid var(--border-soft); border-radius: 6px;
+}
+.warehouse-journal-scroll .warehouse-journal-table {
+  display: table; width: 2340px; min-width: 2340px;
+  table-layout: fixed; margin: 0; overflow: visible;
+}
+.warehouse-journal-scroll .warehouse-journal-table:has(col:nth-child(12)) { width: 2480px; min-width: 2480px; }
+.warehouse-journal-scroll .warehouse-journal-table colgroup { display: table-column-group; }
+.warehouse-journal-scroll .warehouse-journal-table thead { display: table-header-group; }
+.warehouse-journal-scroll .warehouse-journal-table tbody { display: table-row-group; }
+.warehouse-journal-scroll .warehouse-journal-table tr { display: table-row; padding: 0; }
+.warehouse-journal-scroll .warehouse-journal-table th,
+.warehouse-journal-scroll .warehouse-journal-table td {
+  display: table-cell; width: auto; max-width: none; padding: 10px 12px;
+  vertical-align: middle; text-align: left;
+}
+.warehouse-journal-scroll .warehouse-journal-table th { white-space: nowrap; }
+.warehouse-journal-scroll .warehouse-journal-table td::before { display: none; content: none; }
+.warehouse-journal-scroll .warehouse-journal-table input,
+.warehouse-journal-scroll .warehouse-journal-table select {
+  box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
+  margin: 0; min-height: 36px; padding: 6px 9px; font-size: 14px;
+}
+.warehouse-journal-scroll .warehouse-journal-table select { padding-right: 28px; text-overflow: ellipsis; }
+.warehouse-journal-scroll .warehouse-journal-table td[data-label="Descripción"] {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.warehouse-journal-scroll .warehouse-row-actions { justify-content: flex-start; }
