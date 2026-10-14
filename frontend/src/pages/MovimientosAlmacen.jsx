@@ -1,17 +1,20 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPaperPlane, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import CabeceraMovimiento from "../components/CabeceraMovimiento";
 import LineasMovimiento from "../components/LineasMovimiento";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
-import { prepararMovimiento, validarMovimiento } from "../services/movimientosAlmacen";
-export { validarMovimiento } from "../services/movimientosAlmacen";
+import { construirMovimiento, enviarMovimiento, validarMovimiento } from "../services/movimientosAlmacen";
 import "./Almacen.css";
+export { validarMovimiento } from "../services/movimientosAlmacen";
 
-const nuevo = () => ({ solicitudId: crypto.randomUUID(), serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "", tipodestino: "Job", destino: "", solicitante: "", tipoproyectocodigo: "", departamento: "" }, lineas: [] });
+const nuevo = () => ({ solicitudId: crypto.randomUUID(), estado: "borrador", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "", tipodestino: "Job", destino: "", solicitante: "", tipoproyectocodigo: "", departamento: "" }, lineas: [] });
 export default function MovimientosAlmacen() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const clave = `almacen-movimientos-v1:${user.email.toLowerCase()}`;
   const [documento, setDocumento] = useState(nuevo);
   const [catalogos, setCatalogos] = useState({});
@@ -20,9 +23,7 @@ export default function MovimientosAlmacen() {
   const [storageError, setStorageError] = useState("");
   const [cargando, setCargando] = useState(true);
   const [intento, setIntento] = useState(0);
-  const [preparando, setPreparando] = useState(false);
-  const [preparacion, setPreparacion] = useState(null);
-  const [errorPreparacion, setErrorPreparacion] = useState("");
+  const [enviando, setEnviando] = useState(false);
   const enVuelo = useRef(false);
   useEffect(() => {
     try {
@@ -30,7 +31,7 @@ export default function MovimientosAlmacen() {
       if (guardado) {
         const valor = JSON.parse(guardado);
         if (!valor.cabecera || !Array.isArray(valor.lineas)) throw Error();
-        const limpio = { ...valor, solicitudId: valor.solicitudId || crypto.randomUUID(), serie: "ACO-ALM", lineas: valor.lineas.map(({ id, numprod, cantidad }) => ({ id, numprod, cantidad })) };
+        const limpio = { ...valor, estado: valor.estado === "error" ? "error" : "borrador", solicitudId: valor.solicitudId || crypto.randomUUID(), serie: "ACO-ALM", lineas: valor.lineas.map(({ id, numprod, cantidad }) => ({ id, numprod, cantidad })) };
         localStorage.setItem(clave, JSON.stringify(limpio));
         setDocumento(limpio);
       } else setDocumento(nuevo());
@@ -57,13 +58,14 @@ export default function MovimientosAlmacen() {
     return () => { activo = false; };
   }, [intento]);
   const persistir = valor => {
-    if (storageError || enVuelo.current) return;
-    try { localStorage.setItem(clave, JSON.stringify(valor)); setDocumento(valor); setPreparacion(null); setErrorPreparacion(""); }
+    if (storageError || enVuelo.current || documento.resultadoIncierto) return;
+    const borrador = { ...valor, estado: "borrador", error: "", cuerpoEnviado: undefined };
+    try { localStorage.setItem(clave, JSON.stringify(borrador)); setDocumento(borrador); }
     catch (_) { setStorageError("No se pudo guardar el borrador en este navegador."); }
   };
   const cambiarCabecera = cambio => persistir({ ...documento, cabecera: { ...documento.cabecera, ...cambio } });
   useEffect(() => {
-    if (cargando || errores.length || storageError || !Array.isArray(catalogos.recursos)) return;
+    if (cargando || errores.length || storageError || documento.resultadoIncierto || !Array.isArray(catalogos.recursos)) return;
     const cabecera = { ...documento.cabecera };
     for (const lado of ["origen", "destino"]) {
       if (cabecera[`tipo${lado}`] === "Job" && cabecera[lado] && !proyectos.some(p => p.codigo === cabecera[lado])) cabecera[lado] = "";
@@ -75,20 +77,30 @@ export default function MovimientosAlmacen() {
     catch (_) { setStorageError("No se pudo guardar el borrador en este navegador."); }
   }, [cargando, errores, storageError, catalogos, proyectos, documento, clave]);
   const errorValidacion = validarMovimiento(documento);
-  const preparar = async () => {
+  const enviar = async () => {
     if (enVuelo.current || storageError || errorValidacion || cargando || errores.length) return;
-    enVuelo.current = true; setPreparando(true); setErrorPreparacion(""); setPreparacion(null);
+    enVuelo.current = true; setEnviando(true);
+    let pendiente;
+    let solicitudEnviada = false;
     try {
-      localStorage.setItem(clave, JSON.stringify(documento));
-      const resultado = await prepararMovimiento(documento);
-      if (resultado.estado !== "preparado" || resultado.solicitudId !== documento.solicitudId || resultado.enviadoBC !== false || resultado.registrado !== false) throw new Error("La respuesta no confirma la preparación del borrador.");
-      setPreparacion(resultado);
-    } catch (error) { setErrorPreparacion(error.response?.data?.error || error.message || "No se pudo preparar el movimiento."); }
-    finally { enVuelo.current = false; setPreparando(false); }
+      pendiente = { ...documento, cuerpoEnviado: documento.cuerpoEnviado || construirMovimiento(documento), resultadoIncierto: true, error: "" };
+      localStorage.setItem(clave, JSON.stringify(pendiente)); setDocumento(pendiente);
+      solicitudEnviada = true;
+      const resultado = await enviarMovimiento(pendiente);
+      if (resultado.estado !== "enviadoBC" || resultado.confirmadoBC !== true || resultado.solicitudId !== documento.solicitudId || !/^[0-9a-f-]{36}$/i.test(resultado.bcId || "") || !resultado.numero || resultado.registrado !== false) throw new Error("BC no ha confirmado la creación del movimiento. Reintenta la misma solicitud.");
+      const limpio = nuevo(); localStorage.setItem(clave, JSON.stringify(limpio)); setDocumento(limpio);
+      navigate("/material/almacen/movimientos/enviados");
+    } catch (error) {
+      const status = error.response?.status;
+      const incierto = solicitudEnviada && !(status === 501 || (status >= 400 && status < 500 && ![408, 409, 429].includes(status)));
+      const fallido = { ...(pendiente || documento), estado: "error", resultadoIncierto: !!incierto, cuerpoEnviado: incierto ? pendiente.cuerpoEnviado : undefined, error: error.response?.data?.error || error.message || "No se pudo confirmar el envío a BC." };
+      setDocumento(fallido);
+      try { localStorage.setItem(clave, JSON.stringify(fallido)); } catch (_) { setStorageError("No se pudo conservar el resultado del envío. No vuelvas a crear el movimiento; revisa el resultado en BC."); }
+    } finally { enVuelo.current = false; setEnviando(false); }
   };
   const indirecto = (catalogos.tiposProyecto || []).find(item => String(item.codigo).toUpperCase() === "INDIRECTO");
   useEffect(() => {
-    if (indirecto && !documento.cabecera.tipoproyectocodigo && !storageError) {
+    if (indirecto && !documento.cabecera.tipoproyectocodigo && !storageError && !documento.resultadoIncierto) {
       const valor = { ...documento, cabecera: { ...documento.cabecera, tipoproyectocodigo: indirecto.codigo } };
       try { localStorage.setItem(clave, JSON.stringify(valor)); setDocumento(valor); }
       catch (_) { setStorageError("No se pudo guardar el borrador en este navegador."); }
@@ -96,20 +108,18 @@ export default function MovimientosAlmacen() {
   }, [indirecto, documento, clave, storageError]);
   return <Layout><section className="bc-journal-page"><header className="page-header"><Link className="back-link" to="/material/almacen">← Almacén</Link><h1>Movimientos de Almacén</h1><p className="page-subtitle">Acopio de materiales entre almacenes y proyectos</p></header>
     <div className="page-content bc-journal-card"><div className="bc-command-bar">
-      <button disabled={cargando || preparando || !!storageError} onClick={() => persistir({ ...documento, lineas: [...documento.lineas, { id: crypto.randomUUID(), numprod: "", cantidad: "" }] })}>+ Nueva línea</button>
-      <button disabled={cargando || preparando} onClick={() => { setPreparacion(null); setIntento(valor => valor + 1); }}>Actualizar datos</button>
-      <button disabled={cargando || preparando || !!storageError || !!errorValidacion || !!errores.length} onClick={preparar}>{preparando ? "Validando con BC…" : "Preparar movimiento"}</button>
-      <button disabled title="La creación de acopios aún no está habilitada">Enviar a BC</button>
-      <button disabled title="El registro de acopios aún no está habilitado">Registrar movimiento</button>
-      <span className="bc-save-state">{storageError ? "Borrador sin guardar" : "Borrador local · sin enviar a BC"}</span>
+      <button className="movement-send" disabled={cargando || enviando || !!storageError || !!errorValidacion || !!errores.length} onClick={enviar}><FontAwesomeIcon icon={faPaperPlane} /> {enviando ? "Enviando…" : "Enviar a BC"}</button>
+      <button disabled={cargando || enviando || !!storageError || !!documento.resultadoIncierto} onClick={() => persistir({ ...documento, lineas: [...documento.lineas, { id: crypto.randomUUID(), numprod: "", cantidad: "" }] })}>+ Nueva línea</button>
+      <button disabled={cargando || enviando} onClick={() => setIntento(valor => valor + 1)}>Actualizar datos</button>
+      <Link className="bc-command-link" to="/material/almacen/movimientos/enviados"><FontAwesomeIcon icon={faClockRotateLeft} /> Enviados a BC</Link>
+      <span className="bc-save-state">{storageError ? "Borrador sin guardar" : documento.estado === "error" ? "Error" : "Borrador"}</span>
     </div><div className="bc-journal-content warehouse-page">
-      <p className="journal-notice">Puedes preparar el movimiento. El envío y registro en Business Central están pendientes de habilitar. La disponibilidad del origen todavía no se puede verificar.</p>
       {cargando && <p role="status">Cargando catálogos de Business Central…</p>}
       {errores.map(error => <p className="journal-error" role="alert" key={error}>{error}</p>)}
       {storageError && <p className="journal-error" role="alert">{storageError}</p>}
-      {errorPreparacion && <p className="journal-error" role="alert">{errorPreparacion}</p>}
-      {preparacion && <div role="status" className="journal-notice">Movimiento preparado · {preparacion.propuestaBC?.lineas.length} líneas. Datos contrastados con Business Central. Todavía no se ha enviado ni registrado.</div>}
-      <fieldset className="movement-editor" disabled={cargando || preparando || !!storageError}>
+      {documento.error && <p className="journal-error" role="alert">{documento.error}</p>}
+      {documento.resultadoIncierto && !enviando && <p role="status" className="journal-notice">El resultado del envío no está confirmado. Conservamos los datos originales para reintentar la misma solicitud.</p>}
+      <fieldset className="movement-editor" disabled={cargando || enviando || !!storageError || !!documento.resultadoIncierto}>
         <CabeceraMovimiento cabecera={documento.cabecera} cambiar={cambiarCabecera} catalogos={catalogos} proyectos={proyectos} />
         <h2>Líneas de movimiento</h2>
         <LineasMovimiento lineas={documento.lineas} articulos={catalogos.articulos || []} cambiar={(id, cambio) => persistir({ ...documento, lineas: documento.lineas.map(linea => linea.id === id ? { ...linea, ...cambio } : linea) })} quitar={id => persistir({ ...documento, lineas: documento.lineas.filter(linea => linea.id !== id) })} />

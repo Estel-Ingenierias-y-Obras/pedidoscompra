@@ -7,6 +7,13 @@
 .movement-header select { width: 100%; min-width: 0; min-height: 36px; background: var(--surface); border: 1px solid var(--border); padding: 6px; color: var(--text); }
 .movement-lines .journal-table { min-width: 1180px; }
 .movement-lines td:nth-child(2) { min-width: 200px; }
+.bc-command-bar .movement-send { background: var(--brand-navy); color: white; }
+.bc-command-bar .movement-send svg { color: white; }
+.movement-detail { max-height: 65vh; overflow: auto; }
+.movement-readonly-data { margin: 0 0 16px; }
+.movement-readonly-data > div { padding: 6px 0; border-bottom: 1px solid var(--border-soft); }
+.movement-readonly-data dt { font-weight: 600; color: var(--brand-navy); }
+.movement-readonly-data dd { margin: 4px 0 0 12px; overflow-wrap: anywhere; }
 .movement-header .movement-combobox, .movement-lines .movement-combobox { box-sizing: border-box; width: 100%; min-width: 180px; min-height: 36px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 7px 9px; border-radius: 3px; }
 .movement-combobox:focus { outline: 2px solid #008489; outline-offset: 1px; }
 .movement-suggestions { z-index: 10000; max-height: 264px; overflow-y: auto; background: white; color: #243a40; border: 1px solid #aebfc1; border-radius: 4px; box-shadow: 0 6px 18px #0002; font-size: 14px; }

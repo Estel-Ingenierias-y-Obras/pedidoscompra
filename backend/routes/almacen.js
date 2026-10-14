@@ -33,11 +33,12 @@ router.post("/entradas/:id/registrar", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 router.get("/movimientos", lectura(() => bc.obtenerAcopios()));
-router.post("/movimientos/preparar", lectura(req => movimientos.preparar(req.body)));
-router.post("/movimientos", lectura(req => movimientos.enviar(req.body)));
+router.get("/movimientos/enviados", lectura(req => movimientos.obtenerEnviados(req.usuarioActual)));
+router.get("/movimientos/enviados/:id", lectura(req => movimientos.obtenerDetalle(req.params.id, req.usuarioActual)));
+router.post("/movimientos", lectura(req => movimientos.enviar(req.body, req.usuarioActual)));
 router.post("/movimientos/:id/registrar", lectura(req => {
   if (!req.body || Object.keys(req.body).some(key => key !== "claveintegracion")) throw Object.assign(new Error("El registro solo admite la clave de integración del documento."), { status: 400, seguro: true });
-  return movimientos.registrar({ id: req.params.id, claveintegracion: req.body.claveintegracion });
+  return movimientos.registrar({ id: req.params.id, claveintegracion: req.body.claveintegracion }, req.usuarioActual);
 }));
 router.get("/movimientos/catalogos", lectura(async () => {
   const nombres = ["almacenes", "articulos", "recursos", "departamentos", "tiposProyecto"];

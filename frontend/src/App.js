@@ -15,6 +15,7 @@ import EntradasAlmacen from "./pages/EntradasAlmacen";
 import EnviadosAlmacen from "./pages/EnviadosAlmacen";
 import StockAlmacen from "./pages/StockAlmacen";
 import MovimientosAlmacen from "./pages/MovimientosAlmacen";
+import MovimientosEnviados from "./pages/MovimientosEnviados";
 import "./business-central-theme.css";
 
 function App() {
@@ -70,6 +71,7 @@ function App() {
         <Route path="/material/almacen" element={<ProtectedRoute><Almacen /></ProtectedRoute>} />
         <Route path="/material/almacen/entradas" element={<ProtectedRoute><EntradasAlmacen /></ProtectedRoute>} />
         <Route path="/material/almacen/movimientos" element={<ProtectedRoute><MovimientosAlmacen /></ProtectedRoute>} />
+        <Route path="/material/almacen/movimientos/enviados" element={<ProtectedRoute><MovimientosEnviados /></ProtectedRoute>} />
         <Route path="/material/almacen/enviados" element={<ProtectedRoute><EnviadosAlmacen /></ProtectedRoute>} />
         <Route path="/material/almacen/stock" element={<ProtectedRoute><StockAlmacen /></ProtectedRoute>} />
       </Routes>

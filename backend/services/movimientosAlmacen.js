@@ -1,5 +1,6 @@
 const bc = require("./almacenBC");
-const businessCentral = require("./businessCentral");
+const EnvioAcopio = require("../models/EnvioAcopio");
+const { obtenerSolicitantesActivos } = require("./businessCentral");
 const { UUID } = bc;
 const fallo = (mensaje, status = 400, codigo = "MOVIMIENTO_INVALIDO") => Object.assign(new Error(mensaje), { status, seguro: true, codigo });
 const objeto = valor => valor && typeof valor === "object" && !Array.isArray(valor);
@@ -25,41 +26,85 @@ function validarDTO(datos) {
   }
   return datos;
 }
-function crearServicio({ catalogos = bc, proyectos = () => businessCentral.obtenerProyectos({ soloAbiertos: true }), recursos = () => businessCentral.obtenerSolicitantesActivos() } = {}) {
+function crearServicio({ historial = EnvioAcopio, cliente = bc, recursos = obtenerSolicitantesActivos } = {}) {
+  const alcance = usuario => {
+    if (!usuario?.email) throw fallo("Usuario no identificado.", 401);
+    bc.configuracionBC();
+    return { entorno: process.env.BC_ENVIRONMENT, empresa: process.env.BC_COMPANY_ID, creadoPor: usuario.email.toLowerCase(), confirmadoBC: true };
+  };
+  const respuesta = registro => ({ solicitudId: registro.solicitudId, estado: registro.estado, confirmadoBC: registro.confirmadoBC, bcId: registro.bcId, numero: registro.numero, registrado: registro.estado === "registrado", fechaRegistro: registro.fechaRegistro, comprobanteRegistro: registro.comprobanteRegistro });
+  const comprobarCreacion = (recibo, dto) => recibo?.creado === true && UUID.test(recibo.id || "") && UUID.test(recibo.idacopio || "") && recibo.claveintegracion?.toLowerCase() === dto.solicitudId.toLowerCase() && typeof recibo.numero === "string" && !!recibo.numero.trim();
+  const reciboUnico = async clave => {
+    const registros = await cliente.obtenerSolicitudAcopio(clave);
+    if (registros.length !== 1) throw fallo("BC no confirma una única solicitud de acopio. Conserva los datos y revisa el resultado.", 409, "GM_ACOPIO_REVIEW");
+    return registros[0];
+  };
   return {
-    preparar: async cuerpo => {
+    obtenerEnviados: usuario => historial.find(alcance(usuario)).sort({ fechaEnvio: -1 }).lean(),
+    obtenerDetalle: async (id, usuario) => {
+      if (!UUID.test(id || "")) throw fallo("Identificador de movimiento no válido.");
+      const envio = await historial.findOne({ ...alcance(usuario), bcId: id }).lean();
+      if (!envio) throw fallo("No se encontró el movimiento enviado.", 404);
+      return envio;
+    },
+    enviar: async (cuerpo, usuario) => {
       const dto = validarDTO(cuerpo);
-      const [almacenes, articulos, solicitantes, departamentos, tipos, obras] = await Promise.all([
-        catalogos.obtenerAlmacenesMovimiento(), catalogos.obtenerArticulosMovimiento(), recursos(), catalogos.obtenerDepartamentos(), catalogos.obtenerTiposProyecto(), proyectos()
-      ]);
-      const c = dto.cabecera;
-      for (const lado of ["origen", "destino"]) {
-        const existe = c[`tipo${lado}`] === "Location" ? almacenes.some(a => a.code === c[lado]) : obras.value.some(p => p.nomProyecto === c[lado]);
-        if (!existe) throw fallo(`El ${lado} ya no está disponible en BC. Actualiza los datos.`, 422);
+      const scope = alcance(usuario);
+      const identidad = { entorno: scope.entorno, empresa: scope.empresa, solicitudId: dto.solicitudId };
+      const op = await historial.findOneAndUpdate(identidad, { $setOnInsert: { ...identidad, creadoPor: scope.creadoPor, confirmadoBC: false, estado: "borrador", cabecera: dto.cabecera, lineas: dto.lineas, datosEnviados: dto } }, { upsert: true, new: true }).lean();
+      if (op.creadoPor !== scope.creadoPor) throw fallo("La clave corresponde a otra solicitud.", 403);
+      if (JSON.stringify(op.datosEnviados) !== JSON.stringify(dto)) throw fallo("La clave ya está vinculada a otros datos. No se creará un segundo movimiento.", 409, "GM_KEY_CONFLICT");
+      if (op.confirmadoBC) return respuesta(op);
+      let creacionRespondio = false;
+      try {
+        const activos = await recursos();
+        if (!activos.some(r => r.codigo === dto.cabecera.solicitante)) {
+          if (op.creacionIntentada) throw fallo("El solicitante ya no está activo y existe un envío pendiente de confirmar. Revisa la solicitud original.", 409, "GM_ACOPIO_REVIEW");
+          await historial.deleteOne({ ...identidad, confirmadoBC: false });
+          throw fallo("El solicitante no está activo en BC.", 422);
+        }
+        await historial.updateOne({ ...identidad, confirmadoBC: false }, { $set: { creacionIntentada: true } });
+        await cliente.crearAcopio(dto);
+        creacionRespondio = true;
+        const recibo = await reciboUnico(dto.solicitudId);
+        if (!comprobarCreacion(recibo, dto) || recibo.registrado === true) throw fallo("BC no confirma la creación pendiente de este acopio. Revisa la solicitud original.", 409, "GM_ACOPIO_REVIEW");
+        const [cabecera, lineas] = await Promise.all([cliente.obtenerCabeceraAcopio(recibo.idacopio), cliente.obtenerLineasAcopio(recibo.numero)]);
+        if (cabecera.id !== recibo.idacopio || lineas.length !== dto.lineas.length) throw fallo("La cabecera o las líneas no coinciden con el comprobante de creación.", 409, "GM_ACOPIO_REVIEW");
+        const cambios = { bcId: recibo.idacopio, bcRequestId: recibo.id, numero: recibo.numero, confirmadoBC: true, estado: "enviadoBC", fechaEnvio: new Date(), cabecera: { ...dto.cabecera, ...cabecera }, lineas, error: "" };
+        const confirmado = await historial.findOneAndUpdate({ ...identidad, creadoPor: scope.creadoPor }, { $set: cambios }, { new: true }).lean();
+        return respuesta(confirmado);
+      } catch (error) {
+        await historial.updateOne({ ...identidad, confirmadoBC: false }, { $set: { estado: "error", error: error.seguro ? error.message : "Resultado del envío pendiente de confirmar." } });
+        if (error.status === 404 && !creacionRespondio && !op.creacionIntentada) {
+          await historial.deleteOne({ ...identidad, confirmadoBC: false });
+          throw fallo("Instala API-GestionMaterial 1.1.6 en el sandbox para habilitar solicitudesAcopio. No se ha confirmado ningún envío.", 501, "ACOPIO_API_NO_PUBLICADA");
+        }
+        if (error.status === 404) throw fallo("No se encuentra el recurso de una solicitud previamente enviada. No se creará un sustituto.", 409, "GM_ACOPIO_REVIEW");
+        if (error.status === 400) {
+          const solicitudes = await cliente.obtenerSolicitudAcopio(dto.solicitudId);
+          if (solicitudes.length === 0 && !op.creacionIntentada) { await historial.deleteOne({ ...identidad, confirmadoBC: false }); throw error; }
+          throw fallo(error.message, 409, "GM_ACOPIO_REVIEW");
+        }
+        throw error;
       }
-      if (!solicitantes.some(r => r.codigo === c.solicitante)) throw fallo("El solicitante ya no está activo en BC.", 422);
-      if (!departamentos.some(d => d.code === c.departamento)) throw fallo("El departamento no existe en BC.", 422);
-      if (!["DIRECTO", "INDIRECTO"].includes(c.tipoproyectocodigo) || !tipos.some(t => t.codigo === c.tipoproyectocodigo && t.bloqueado !== true)) throw fallo("El tipo de proyecto no está disponible en BC.", 422);
-      const porNumero = new Map(articulos.map(a => [a.number, a]));
-      const lineas = dto.lineas.map(l => {
-        const articulo = porNumero.get(l.numprod);
-        if (!articulo || !articulo.baseUnitOfMeasureCode) throw fallo(`El artículo ${l.numprod} no está disponible o no tiene unidad base.`, 422);
-        return { idintegracion: l.id, numprod: l.numprod, cantidad: l.cantidad, codudmedida: articulo.baseUnitOfMeasureCode };
-      });
-      return {
-        solicitudId: dto.solicitudId, estado: "preparado", enviadoBC: false, registrado: false, contratoALConfirmado: false,
-        // Propuesta de mapeo, NO un POST válido para las páginas AL de solo lectura.
-        propuestaBC: { claveintegracion: dto.solicitudId, cabecera: { serie: "ACO-ALM", tipoorigen: c.tipoorigen, origen: c.origen, tipodestino: c.tipodestino, destino: c.destino, solicitante: c.solicitante }, dimensiones: [{ codigo: "TIPO PROYECTO", valor: c.tipoproyectocodigo }, { codigo: "DEPART", valor: c.departamento }], lineas },
-        advertencias: ["Datos contrastados con BC. El movimiento todavía no se ha enviado.", "Falta comprobar la disponibilidad del origen y las dimensiones obligatorias.", "La creación y el registro necesitan el contrato de escritura de la extensión AL."]
-      };
     },
-    enviar: async cuerpo => {
-      validarDTO(cuerpo);
-      throw fallo("La API AL de acopios solo admite consultas. No se ha creado ningún documento.", 501, "ACOPIO_CREACION_NO_DISPONIBLE");
-    },
-    registrar: async ({ id, claveintegracion } = {}) => {
+    registrar: async ({ id, claveintegracion } = {}, usuario) => {
       if (!UUID.test(id || "") || !UUID.test(claveintegracion || "")) throw fallo("Selecciona un documento de BC y su clave de integración.");
-      throw fallo("El registro de acopios requiere una rutina soportada del partner y un comprobante verificable. No se ha registrado el movimiento.", 501, "ACOPIO_REGISTRO_NO_DISPONIBLE");
+      const filtro = { ...alcance(usuario), bcId: id, solicitudId: claveintegracion };
+      const op = await historial.findOne(filtro).lean();
+      if (!op || !UUID.test(op.bcRequestId || "")) throw fallo("No se encontró una solicitud confirmada para este movimiento.", 404);
+      if (op.estado === "registrado" && op.comprobanteRegistro?.id) return respuesta(op);
+      try {
+        await cliente.registrarAcopio(op.bcRequestId);
+        const recibo = await reciboUnico(claveintegracion);
+        if (!comprobarCreacion(recibo, op) || recibo.idacopio !== id || recibo.registrado !== true || !UUID.test(recibo.idhistorico || "") || !Number.isFinite(Date.parse(recibo.fecharegistro)) || !(recibo.idmovproducto > 0 || recibo.idmovproyecto > 0)) throw fallo("BC no devuelve un comprobante verificable de registro para este acopio.", 409, "GM_ACOPIO_REVIEW");
+        const cambios = { estado: "registrado", fechaRegistro: new Date(recibo.fecharegistro), comprobanteRegistro: { id: recibo.id, historicoId: recibo.idhistorico, movimientoProducto: recibo.idmovproducto, movimientoProyecto: recibo.idmovproyecto }, error: "" };
+        const registrado = await historial.findOneAndUpdate(filtro, { $set: cambios }, { new: true }).lean();
+        return respuesta(registrado);
+      } catch (error) {
+        await historial.updateOne(filtro, { $set: { estado: "error", error: error.seguro ? error.message : "Registro pendiente de confirmar." } });
+        throw error;
+      }
     }
   };
 }

@@ -17,8 +17,8 @@ export function construirMovimiento(documento) {
   const c = documento.cabecera;
   return { solicitudId: documento.solicitudId, tipoOperacion: "acopio", serie: "ACO-ALM", cabecera: { tipoorigen: c.tipoorigen, origen: c.origen, tipodestino: c.tipodestino, destino: c.destino, solicitante: c.solicitante, tipoproyectocodigo: c.tipoproyectocodigo, departamento: c.departamento }, lineas: documento.lineas.map(l => ({ id: l.id, numprod: l.numprod, cantidad: Number(l.cantidad) })) };
 }
-// Preparar solo valida y consulta catálogos; no envía escrituras a BC.
-export const prepararMovimiento = documento => api.post("/api/almacen/movimientos/preparar", construirMovimiento(documento)).then(res => res.data);
 // Las rutas de escritura devuelven 501 hasta implementar el contrato AL.
-export const enviarMovimiento = documento => api.post("/api/almacen/movimientos", construirMovimiento(documento)).then(res => res.data);
+export const enviarMovimiento = documento => api.post("/api/almacen/movimientos", documento.cuerpoEnviado || construirMovimiento(documento)).then(res => res.data);
 export const registrarMovimiento = ({ id, claveintegracion }) => api.post(`/api/almacen/movimientos/${encodeURIComponent(id)}/registrar`, { claveintegracion }).then(res => res.data);
+export const obtenerMovimientosEnviados = () => api.get("/api/almacen/movimientos/enviados").then(res => res.data);
+export const obtenerDetalleMovimiento = id => api.get(`/api/almacen/movimientos/enviados/${encodeURIComponent(id)}`).then(res => res.data);

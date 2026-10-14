@@ -63,7 +63,7 @@ export default function BuscadorMovimiento({ opciones, value, onChange, label, d
     {abierto && !disabled && createPortal(<div ref={lista} id={`${id}-lista`} role="listbox" aria-label={`Coincidencias de ${label}`} className="movement-suggestions" style={posicion} onScroll={event => setScroll(event.currentTarget.scrollTop)}>
       {coincidencias.length ? <div style={{ height: coincidencias.length * ALTO, position: "relative" }}>{visibles.map(({ opcion }, index) => {
         const indice = desde + index;
-        return <div id={`${id}-${indice}`} key={opcion.codigo} role="option" aria-selected={indice === activo} aria-posinset={indice + 1} aria-setsize={coincidencias.length} className={indice === activo ? "movement-option active" : "movement-option"} style={{ position: "absolute", top: indice * ALTO, height: ALTO, left: 0, right: 0 }} onMouseDown={event => { event.preventDefault(); elegir(opcion); }}>{etiqueta(opcion)}</div>;
+        return <div id={`${id}-${indice}`} key={opcion.codigo} role="option" title={etiqueta(opcion)} aria-selected={indice === activo} aria-posinset={indice + 1} aria-setsize={coincidencias.length} className={indice === activo ? "movement-option active" : "movement-option"} style={{ position: "absolute", top: indice * ALTO, height: ALTO, left: 0, right: 0 }} onMouseDown={event => { event.preventDefault(); elegir(opcion); }} onClick={() => elegir(opcion)}>{etiqueta(opcion)}</div>;
       })}</div> : <div className="movement-no-matches">Sin coincidencias</div>}
     </div>, document.body)}
   </>;

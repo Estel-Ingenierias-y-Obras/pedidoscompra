@@ -67,6 +67,11 @@ test("stock consulta BC para los roles autorizados y propaga errores seguros", a
 
 test("almacén protege consultas y escrituras por rol", async () => {
   for (const role of [null, "Usuario", "Encargado"]) {
+    for (const [method, path] of [["GET", "movimientos/catalogos"], ["GET", "movimientos/enviados"], ["GET", "movimientos/enviados/18f1c681-7651-4b40-aef7-0f4481ec0402"], ["POST", "movimientos"], ["POST", "movimientos/18f1c681-7651-4b40-aef7-0f4481ec0402/registrar"]]) {
+      assert.equal((await request(role, method, `/api/almacen/${path}`)).status, role ? 403 : 401);
+    }
+  }
+  for (const role of [null, "Usuario", "Encargado"]) {
     for (const [method, path] of [["GET", "configuracion"], ["GET", "productos"], ["GET", "entradas"], ["GET", "entradas/507f1f77bcf86cd799439011"], ["POST", "entradas"], ["GET", "stock"], ["GET", "movimientos"], ["GET", "operaciones"], ["GET", "tipos-proyecto"], ["GET", "unidades-producto?numprod=1000"], ["GET", "movimientos-aplicables?numprod=1000"], ["GET", "almacenes"]]) {
       assert.equal((await request(role, method, `/api/almacen/${path}`)).status, role ? 403 : 401);
     }

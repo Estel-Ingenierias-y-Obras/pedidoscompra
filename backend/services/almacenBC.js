@@ -79,6 +79,23 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     obtenerArticulosMovimiento: () => coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,inventory" }),
     obtenerRecursosAcopio: () => coleccion("custom", "recursosCandidatosAcopio"),
     obtenerAcopios: () => coleccion("custom", "acopios"),
+    crearAcopio: cuerpo => ejecutar("POST", endpoint("custom", "solicitudesAcopio"), { claveintegracion: cuerpo.solicitudId, datos: JSON.stringify(cuerpo) }),
+    obtenerCabeceraAcopio: id => {
+      if (!UUID.test(id || "")) throw fallo("Identificador de acopio no válido.", 400);
+      return ejecutar("GET", endpoint("custom", `acopios(${id})`));
+    },
+    obtenerLineasAcopio: numero => {
+      if (typeof numero !== "string" || !numero || numero.length > 20) throw fallo("Número de acopio no válido.", 400);
+      return coleccion("custom", "lineasAcopio", { $filter: `numeroacopio eq '${numero.replace(/'/g, "''")}'` });
+    },
+    obtenerSolicitudAcopio: clave => {
+      if (!UUID.test(clave || "")) throw fallo("Clave de acopio no válida.", 400);
+      return coleccion("custom", "solicitudesAcopio", { $filter: `claveintegracion eq ${clave}` });
+    },
+    registrarAcopio: id => {
+      if (!UUID.test(id || "")) throw fallo("Identificador de solicitud AL no válido.", 400);
+      return ejecutar("POST", endpoint("custom", `solicitudesAcopio(${id})/Microsoft.NAV.registrar`));
+    },
     obtenerDepartamentos: async () => {
       const dimensiones = await coleccion("standard", "dimensions");
       const dimension = dimensiones.find(item => item.code === (process.env.BC_DEPARTMENT_DIMENSION || "DEPART"));
