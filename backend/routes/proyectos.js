@@ -18,13 +18,13 @@ router.get("/", async (req, res) => {
   try {
 
     const proyectos =
-      await obtenerProyectos();
+      await obtenerProyectos({ soloAbiertos: req.query.soloAbiertos === "true" });
 
     res.json(proyectos);
 
   } catch (error) {
 
-    console.error(error);
+    console.error("Consulta de proyectos BC fallida", { status: error.response?.status || error.status, codigo: error.code });
 
     responderErrorInterno(res, error, "Error interno en ruta:");
 

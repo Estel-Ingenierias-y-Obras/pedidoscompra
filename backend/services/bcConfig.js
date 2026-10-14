@@ -25,7 +25,9 @@ function configuracionBC(env = process.env) {
 function urlProyectos(env = process.env) {
   if (!env.BC_COMPANY_NAME) throw fallo("Configura BC_COMPANY_NAME con el nombre interno de la empresa para OData.");
   const empresa = encodeURIComponent(env.BC_COMPANY_NAME.replace(/'/g, "''")).replace(/'/g, "%27");
-  return `${baseBC(env)}/ODataV4/Company('${empresa}')/API_Proyectos`;
+  const servicio = env.BC_PROJECTS_SERVICE || "API_Proyectos";
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(servicio)) throw fallo("BC_PROJECTS_SERVICE debe ser un nombre de servicio OData válido.");
+  return `${baseBC(env)}/ODataV4/Company('${empresa}')/${servicio}`;
 }
 
 function logSolicitudBC(url, env = process.env) {

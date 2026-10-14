@@ -75,6 +75,16 @@ function crearCliente({ request = config => axios.request(config), token = () =>
   });
   return {
     destino: () => config().custom,
+    obtenerAlmacenesMovimiento: () => coleccion("standard", "locations"),
+    obtenerArticulosMovimiento: () => coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,inventory" }),
+    obtenerRecursosAcopio: () => coleccion("custom", "recursosCandidatosAcopio"),
+    obtenerAcopios: () => coleccion("custom", "acopios"),
+    obtenerDepartamentos: async () => {
+      const dimensiones = await coleccion("standard", "dimensions");
+      const dimension = dimensiones.find(item => item.code === (process.env.BC_DEPARTMENT_DIMENSION || "DEPART"));
+      if (!dimension || !UUID.test(dimension.id)) throw fallo("No se encontró la dimensión de departamentos en BC.", 502);
+      return coleccion("standard", `dimensions(${dimension.id})/dimensionValues`);
+    },
     obtenerStock: () => coleccion("custom", "productos"),
     obtenerProductos: () => coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,blocked" }),
     obtenerAlmacenes: () => coleccion("standard", "locations", { $filter: "code eq 'CENTRAL 3'" }),

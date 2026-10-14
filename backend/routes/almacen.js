@@ -3,6 +3,7 @@ const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const servicio = require("../services/almacen");
 const bc = require("../services/almacenBC");
 const registro = require("../services/registroAlmacen");
+const movimientos = require("../services/movimientosAlmacen");
 const router = express.Router();
 router.use(obtenerUsuarioActual, permitirRoles("Admin", "Comprador"));
 const lectura = fn => async (req, res, next) => { try { res.json(await fn(req)); } catch (error) { next(error); } };
@@ -31,7 +32,24 @@ router.post("/entradas/:id/registrar", async (req, res, next) => {
     res.status(resultado.estado === "creada" ? 200 : resultado.estado === "rechazada" ? 422 : resultado.estado === "bloqueada" ? 409 : 202).json(resultado);
   } catch (error) { next(error); }
 });
-router.get("/movimientos", (req, res) => res.status(501).json({ error: "Apartado previsto para una próxima fase" }));
+router.get("/movimientos", lectura(() => bc.obtenerAcopios()));
+router.post("/movimientos/preparar", lectura(req => movimientos.preparar(req.body)));
+router.post("/movimientos", lectura(req => movimientos.enviar(req.body)));
+router.post("/movimientos/:id/registrar", lectura(req => {
+  if (!req.body || Object.keys(req.body).some(key => key !== "claveintegracion")) throw Object.assign(new Error("El registro solo admite la clave de integración del documento."), { status: 400, seguro: true });
+  return movimientos.registrar({ id: req.params.id, claveintegracion: req.body.claveintegracion });
+}));
+router.get("/movimientos/catalogos", lectura(async () => {
+  const nombres = ["almacenes", "articulos", "recursos", "departamentos", "tiposProyecto"];
+  const resultados = await Promise.allSettled([bc.obtenerAlmacenesMovimiento(), bc.obtenerArticulosMovimiento(), require("../services/businessCentral").obtenerSolicitantesActivos(), bc.obtenerDepartamentos(), bc.obtenerTiposProyecto()]);
+  const datos = { errores: {}, capacidades: { crear: false, registrar: false, disponibilidad: false }, serie: "ACO-ALM" };
+  resultados.forEach((resultado, index) => {
+    const nombre = nombres[index];
+    datos[nombre] = resultado.status === "fulfilled" ? resultado.value : [];
+    if (resultado.status === "rejected") datos.errores[nombre] = resultado.reason.seguro ? resultado.reason.message : "No se pudo cargar este catálogo desde BC.";
+  });
+  return datos;
+}));
 router.use((error, req, res, next) => {
   // No devolver objetos Axios: contienen Authorization y configuración.
   res.status(error.status >= 400 && error.status <= 599 ? error.status : 503).json({ error: error.seguro ? error.message : "No se pudo completar la operación. Conserva los datos y reintenta la misma solicitud.", codigoError: error.codigo, definitivo: error.definitivo === true });
