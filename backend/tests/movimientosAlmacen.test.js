@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { crearServicio, validarDTO } = require("../services/movimientosAlmacen");
 const key = "18f1c681-7651-4b40-aef7-0f4481ec0402", doc = "28f1c681-7651-4b40-aef7-0f4481ec0402", request = "38f1c681-7651-4b40-aef7-0f4481ec0402";
 const usuario = { email: "user@example.com" };
-const datos = () => ({ solicitudId: key, tipoOperacion: "acopio", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "ART1", cantidad: 2 }] });
+const datos = () => ({ solicitudId: key, tipoOperacion: "acopio", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", zona: "EM-ESPAÑA", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "ART1", cantidad: 2 }] });
 let original;
 beforeEach(() => { original = { ...process.env }; Object.assign(process.env, { BC_TENANT_ID: key, BC_CLIENT_ID: "client", BC_CLIENT_SECRET: "test", BC_ENVIRONMENT: "Production-Estel-IT", BC_COMPANY_ID: key }); });
 afterEach(() => { for (const campo of Object.keys(process.env)) if (!(campo in original)) delete process.env[campo]; Object.assign(process.env, original); });
@@ -33,6 +33,8 @@ function escenario() {
   return { servicio, cliente, recibo, registro: () => registro, envios: () => envios, registros: () => registros };
 }
 test("rechaza payload manipulado y cantidades inválidas", () => {
+  const sinZona = datos(); delete sinZona.cabecera.zona;
+  assert.throws(() => validarDTO(sinZona), /zona/);
   for (const cantidad of [-1, 0, Infinity, "2", null]) assert.throws(() => validarDTO({ ...datos(), lineas: [{ id: "l1", numprod: "ART1", cantidad }] }));
   assert.throws(() => validarDTO({ ...datos(), lineas: [{ ...datos().lineas[0], precio: 5 }] }));
   assert.throws(() => validarDTO({ ...datos(), numero: "ACO-ALM" }));
@@ -65,6 +67,20 @@ test("registro sin histórico verificable produce error y no éxito", async () =
   e.cliente.registrarAcopio = async () => { e.recibo.registrado = true; };
   await assert.rejects(e.servicio.registrar({ id: doc, claveintegracion: key }, usuario), { status: 409 });
   assert.equal(e.registro().estado, "error");
+});
+test("un diálogo posterior al registro se reconcilia con evidencia sin volver a contabilizar", async () => {
+  const e = escenario(); await e.servicio.enviar(datos(), usuario);
+  let llamadas = 0, contabilizaciones = 0;
+  e.cliente.registrarAcopio = async () => {
+    llamadas++;
+    if (!e.recibo.registroiniciado) {
+      contabilizaciones++; e.recibo.registroiniciado = true;
+      throw Object.assign(new Error("Client callback: open history"), { status: 400, seguro: true });
+    }
+    Object.assign(e.recibo, { registrado: true, idhistorico: "48f1c681-7651-4b40-aef7-0f4481ec0402", idmovproducto: 123, fecharegistro: "2026-10-15T10:00:00Z" });
+  };
+  const resultado = await e.servicio.registrar({ id: doc, claveintegracion: key }, usuario);
+  assert.equal(resultado.registrado, true); assert.equal(llamadas, 2); assert.equal(contabilizaciones, 1);
 });
 test("historial exige identidad y respeta usuario, empresa y entorno", async () => {
   const e = escenario(); assert.throws(() => e.servicio.obtenerEnviados({}), { status: 401 });

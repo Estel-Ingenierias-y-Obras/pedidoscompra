@@ -1,7 +1,14 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { crearCliente } = require("../services/almacenBC");
+const { crearCliente, clasificarError } = require("../services/almacenBC");
 const standard = "https://example.test/api/v2.0/companies(company)";
+test("un permiso denegado en acopios señala su conjunto de permisos correcto", () => {
+  const error = { config: { url: "https://example.test/solicitudesAcopio" }, response: { status: 403, data: { error: { message: "TableData 60717 GM Acopio Request Insert" } } } };
+  const info = clasificarError(error);
+  assert.match(info.mensaje, /GM ACOPIO API/);
+  assert.match(info.mensaje, /60717/);
+  assert.equal(info.transitorio, false);
+});
 test("movimientos consulta todos los almacenes sin cambiar el filtro de Entradas", async () => {
   const urls = [];
   const bc = crearCliente({ token: async () => "test", config: () => ({ standard }), request: async config => { urls.push(new URL(config.url)); return { data: { value: [] } }; } });
@@ -9,14 +16,16 @@ test("movimientos consulta todos los almacenes sin cambiar el filtro de Entradas
   assert.equal(urls[0].searchParams.has("$filter"), false);
   assert.equal(urls[1].searchParams.get("$filter"), "code eq 'CENTRAL 3'");
 });
-test("departamentos resuelve el ID de la dimensión y no envía propiedades no soportadas", async () => {
-  const id = "80054f9a-643a-ed11-946f-000d3aa8196a", urls = [];
-  const bc = crearCliente({ token: async () => "test", config: () => ({ standard }), request: async config => {
+test("departamentos filtra por código de dimensión sin depender del enlace estándar incompleto", async () => {
+  const urls = [];
+  const bc = crearCliente({ token: async () => "test", config: () => ({ custom: standard }), request: async config => {
     urls.push(config.url);
-    return { data: { value: urls.length === 1 ? [{ id, code: "DEPART" }] : [{ code: "D1", displayName: "Departamento" }] } };
+    return { data: { value: [{ dimension: "DEPART", codigo: "SG-ALMACEN", nombre: "Almacén" }] } };
   } });
-  assert.deepEqual(await bc.obtenerDepartamentos(), [{ code: "D1", displayName: "Departamento" }]);
-  assert.equal(urls[1], `${standard}/dimensions(${id})/dimensionValues`);
+  const valores = await bc.obtenerDepartamentos();
+  assert.equal(valores[0].code, "SG-ALMACEN");
+  assert.equal(new URL(urls[0]).searchParams.get("$filter"), "dimension eq 'DEPART'");
+  assert.equal(new URL(urls[0]).pathname.endsWith("/valoresDimensionAcopio"), true);
 });
 test("artículos sigue la paginación completa y solo excluye bloqueados y tipos sin inventario", async () => {
   const urls = [];

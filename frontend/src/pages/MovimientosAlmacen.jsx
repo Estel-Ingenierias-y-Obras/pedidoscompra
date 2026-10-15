@@ -11,7 +11,7 @@ import { construirMovimiento, enviarMovimiento, validarMovimiento } from "../ser
 import "./Almacen.css";
 export { validarMovimiento } from "../services/movimientosAlmacen";
 
-const nuevo = () => ({ solicitudId: crypto.randomUUID(), estado: "borrador", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "", tipodestino: "Job", destino: "", solicitante: "", tipoproyectocodigo: "", departamento: "" }, lineas: [] });
+const nuevo = () => ({ solicitudId: crypto.randomUUID(), estado: "borrador", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "", tipodestino: "Job", destino: "", solicitante: "", tipoproyectocodigo: "", departamento: "", zona: "" }, lineas: [] });
 export default function MovimientosAlmacen() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();

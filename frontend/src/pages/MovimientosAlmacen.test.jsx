@@ -10,10 +10,10 @@ const montar = () => render(<MemoryRouter><AuthContext.Provider value={{ user: {
 beforeEach(() => {
   Object.defineProperty(window, "crypto", { configurable: true, value: { randomUUID: () => "18f1c681-7651-4b40-aef7-0f4481ec0402" } });
   localStorage.clear(); jest.clearAllMocks();
-  api.get.mockImplementation(url => Promise.resolve({ data: url === "/api/proyectos" ? [{ nomProyecto: "P1", descProyecto: "Obra" }] : { almacenes: [{ code: "A1", displayName: "Almacén" }], articulos: [{ id: "item1", number: "1000", displayName: "Cable", inventory: 12, baseUnitOfMeasureCode: "UD" }], recursos: [{ codigo: "R1", nombre: "Solicitante" }], departamentos: [{ code: "D1", displayName: "Departamento" }], tiposProyecto: [{ codigo: "INDIRECTO", nombre: "Indirecto" }], errores: {} } }));
+  api.get.mockImplementation(url => Promise.resolve({ data: url === "/api/proyectos" ? [{ nomProyecto: "P1", descProyecto: "Obra" }] : { almacenes: [{ code: "A1", displayName: "Almacén" }], articulos: [{ id: "item1", number: "1000", displayName: "Cable", inventory: 12, baseUnitOfMeasureCode: "UD" }], recursos: [{ codigo: "R1", nombre: "Solicitante" }], departamentos: [{ code: "D1", displayName: "Departamento" }], tiposProyecto: [{ codigo: "INDIRECTO", nombre: "Indirecto" }], zonas: [{ code: "EM-ESPAÑA", displayName: "España" }], errores: {} } }));
 });
 test("recupera borrador, completa descripción y unidad sin habilitar registros no soportados", async () => {
-  localStorage.setItem(key, JSON.stringify({ serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2", campoAntiguo: "eliminar" }] }));
+  localStorage.setItem(key, JSON.stringify({ serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", zona: "EM-ESPAÑA", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2", campoAntiguo: "eliminar" }] }));
   montar();
   await waitFor(() => expect(screen.getByRole("button", { name: /Nueva línea/ })).toBeEnabled());
   expect(screen.getByText("Cable", { selector: "td" })).toBeInTheDocument();
@@ -43,13 +43,13 @@ test("muestra SG-ALMACEN cuando BC lo devuelve", async () => {
   expect(await screen.findByRole("option", { name: "SG-ALMACEN · Almacén" })).toBeInTheDocument();
 });
 test("rechaza rutas iguales, líneas vacías y cantidades inválidas", () => {
-  const cabecera = { tipoorigen: "Location", origen: "A", tipodestino: "Location", destino: "B", solicitante: "R", departamento: "D", tipoproyectocodigo: "INDIRECTO" };
+  const cabecera = { tipoorigen: "Location", origen: "A", tipodestino: "Location", destino: "B", solicitante: "R", departamento: "D", zona: "EM-ESPAÑA", tipoproyectocodigo: "INDIRECTO" };
   expect(validarMovimiento({ cabecera: { ...cabecera, destino: "A" }, lineas: [] })).toMatch(/distintos/);
   expect(validarMovimiento({ cabecera, lineas: [] })).toMatch(/al menos/);
   for (const cantidad of ["", -1, 0, "NaN", Infinity]) expect(validarMovimiento({ cabecera, lineas: [{ numprod: "1", cantidad }] })).toMatch(/mayor que cero/);
 });
 test("envío conserva el borrador y muestra el error real sin confirmar un envío ficticio", async () => {
-  localStorage.setItem(key, JSON.stringify({ solicitudId: "18f1c681-7651-4b40-aef7-0f4481ec0402", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2" }] }));
+  localStorage.setItem(key, JSON.stringify({ solicitudId: "18f1c681-7651-4b40-aef7-0f4481ec0402", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", zona: "EM-ESPAÑA", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2" }] }));
   api.post.mockRejectedValue({ response: { status: 501, data: { error: "La API AL solo admite consultas." } } });
   montar();
   const enviar = screen.getByRole("button", { name: "Enviar a BC" });
@@ -63,7 +63,7 @@ test("envío conserva el borrador y muestra el error real sin confirmar un enví
   expect(JSON.parse(localStorage.getItem(key)).estado).toBe("borrador");
 });
 test("un timeout conserva el cuerpo e identidad y bloquea la edición para reintentar", async () => {
-  localStorage.setItem(key, JSON.stringify({ solicitudId: "18f1c681-7651-4b40-aef7-0f4481ec0402", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2" }] }));
+  localStorage.setItem(key, JSON.stringify({ solicitudId: "18f1c681-7651-4b40-aef7-0f4481ec0402", serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", zona: "EM-ESPAÑA", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2" }] }));
   api.post.mockRejectedValue(new Error("Conexión interrumpida"));
   montar();
   await waitFor(() => expect(screen.getByRole("button", { name: "Enviar a BC" })).toBeEnabled());

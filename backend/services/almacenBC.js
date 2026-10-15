@@ -15,7 +15,10 @@ function clasificarError(error) {
   const transitorio = !status || [408, 429, 500, 502, 503, 504].includes(status);
   let mensaje = "No se pudo confirmar el resultado en Business Central. Reintenta la misma operación.";
   if (status === 401) mensaje = "Business Central ha rechazado la autenticación de la aplicación. Revisa las credenciales del backend que estás utilizando.";
-  else if (status === 403) mensaje = "Business Central ha denegado un permiso a la aplicación de integración. Revisa GM ENTRADAS API en la empresa configurada.";
+  else if (status === 403) {
+    const permiso = /\/solicitudesAcopio(?:[(/?]|$)/i.test(error.config?.url || "") ? "GM ACOPIO API" : "GM ENTRADAS API";
+    mensaje = `Business Central ha denegado un permiso a la aplicación de integración. Revisa ${permiso} en la empresa configurada.`;
+  }
   else if (status === 404) mensaje = "No se encontró el recurso en Business Central. Revisa la publicación de la API y la empresa configurada.";
   if (!transitorio && texto && status !== 401) {
     const detalle = texto.split(/CorrelationId|Correlation ID/i)[0]
@@ -96,12 +99,8 @@ function crearCliente({ request = config => axios.request(config), token = () =>
       if (!UUID.test(id || "")) throw fallo("Identificador de solicitud AL no válido.", 400);
       return ejecutar("POST", endpoint("custom", `solicitudesAcopio(${id})/Microsoft.NAV.registrar`));
     },
-    obtenerDepartamentos: async () => {
-      const dimensiones = await coleccion("standard", "dimensions");
-      const dimension = dimensiones.find(item => item.code === (process.env.BC_DEPARTMENT_DIMENSION || "DEPART"));
-      if (!dimension || !UUID.test(dimension.id)) throw fallo("No se encontró la dimensión de departamentos en BC.", 502);
-      return coleccion("standard", `dimensions(${dimension.id})/dimensionValues`);
-    },
+    obtenerDepartamentos: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: `dimension eq '${(process.env.BC_DEPARTMENT_DIMENSION || "DEPART").replace(/'/g, "''")}'` })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
+    obtenerZonas: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: "dimension eq 'ZONA'" })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
     obtenerStock: () => coleccion("custom", "productos"),
     obtenerProductos: () => coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,blocked" }),
     obtenerAlmacenes: () => coleccion("standard", "locations", { $filter: "code eq 'CENTRAL 3'" }),

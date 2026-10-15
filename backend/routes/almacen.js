@@ -41,9 +41,9 @@ router.post("/movimientos/:id/registrar", lectura(req => {
   return movimientos.registrar({ id: req.params.id, claveintegracion: req.body.claveintegracion }, req.usuarioActual);
 }));
 router.get("/movimientos/catalogos", lectura(async () => {
-  const nombres = ["almacenes", "articulos", "recursos", "departamentos", "tiposProyecto"];
-  const resultados = await Promise.allSettled([bc.obtenerAlmacenesMovimiento(), bc.obtenerArticulosMovimiento(), require("../services/businessCentral").obtenerSolicitantesActivos(), bc.obtenerDepartamentos(), bc.obtenerTiposProyecto()]);
-  const datos = { errores: {}, capacidades: { crear: false, registrar: false, disponibilidad: false }, serie: "ACO-ALM" };
+  const nombres = ["almacenes", "articulos", "recursos", "departamentos", "tiposProyecto", "zonas"];
+  const resultados = await Promise.allSettled([bc.obtenerAlmacenesMovimiento(), bc.obtenerArticulosMovimiento(), require("../services/businessCentral").obtenerSolicitantesActivos(), bc.obtenerDepartamentos(), bc.obtenerTiposProyecto(), bc.obtenerZonas()]);
+  const datos = { errores: {}, capacidades: { crear: true, registrar: true, disponibilidad: false }, serie: "ACO-ALM" };
   resultados.forEach((resultado, index) => {
     const nombre = nombres[index];
     datos[nombre] = resultado.status === "fulfilled" ? resultado.value : [];

@@ -12,9 +12,9 @@ function validarDTO(datos) {
   if (!UUID.test(datos.solicitudId || "")) throw fallo("La solicitud debe tener una identidad UUID estable.");
   if (datos.tipoOperacion !== "acopio" || datos.serie !== "ACO-ALM") throw fallo("Esta operación debe ser un acopio de la serie ACO-ALM.");
   const c = datos.cabecera;
-  campos(c, ["tipoorigen", "origen", "tipodestino", "destino", "solicitante", "tipoproyectocodigo", "departamento"]);
+  campos(c, ["tipoorigen", "origen", "tipodestino", "destino", "solicitante", "tipoproyectocodigo", "departamento", "zona"]);
   for (const lado of ["origen", "destino"]) if (!["Location", "Job"].includes(c[`tipo${lado}`])) throw fallo("Tipo de origen o destino no válido.");
-  for (const campo of ["origen", "destino", "solicitante", "tipoproyectocodigo", "departamento"]) if (typeof c[campo] !== "string" || !c[campo].trim() || c[campo].length > 20) throw fallo(`Selecciona un valor válido para ${campo}.`);
+  for (const campo of ["origen", "destino", "solicitante", "tipoproyectocodigo", "departamento", "zona"]) if (typeof c[campo] !== "string" || !c[campo].trim() || c[campo].length > 20) throw fallo(`Selecciona un valor válido para ${campo}.`);
   if (c.tipoorigen === c.tipodestino && c.origen === c.destino) throw fallo("El origen y el destino deben ser distintos.");
   if (!Array.isArray(datos.lineas) || !datos.lineas.length) throw fallo("Añade al menos una línea.");
   const ids = new Set();
@@ -95,7 +95,18 @@ function crearServicio({ historial = EnvioAcopio, cliente = bc, recursos = obten
       if (!op || !UUID.test(op.bcRequestId || "")) throw fallo("No se encontró una solicitud confirmada para este movimiento.", 404);
       if (op.estado === "registrado" && op.comprobanteRegistro?.id) return respuesta(op);
       try {
-        await cliente.registrarAcopio(op.bcRequestId);
+        try {
+          await cliente.registrarAcopio(op.bcRequestId);
+        } catch (errorOriginal) {
+          // El partner puede confirmar movimientos y después fallar al abrir su
+          // diálogo de histórico. La rama AL registroiniciado solo verifica lo
+          // existente: nunca vuelve a ejecutar la codeunit del partner.
+          try {
+            const pendiente = await reciboUnico(claveintegracion);
+            if (!comprobarCreacion(pendiente, op) || pendiente.idacopio !== id || pendiente.registroiniciado !== true) throw errorOriginal;
+            await cliente.registrarAcopio(op.bcRequestId);
+          } catch (_) { throw errorOriginal; }
+        }
         const recibo = await reciboUnico(claveintegracion);
         if (!comprobarCreacion(recibo, op) || recibo.idacopio !== id || recibo.registrado !== true || !UUID.test(recibo.idhistorico || "") || !Number.isFinite(Date.parse(recibo.fecharegistro)) || !(recibo.idmovproducto > 0 || recibo.idmovproyecto > 0)) throw fallo("BC no devuelve un comprobante verificable de registro para este acopio.", 409, "GM_ACOPIO_REVIEW");
         const cambios = { estado: "registrado", fechaRegistro: new Date(recibo.fecharegistro), comprobanteRegistro: { id: recibo.id, historicoId: recibo.idhistorico, movimientoProducto: recibo.idmovproducto, movimientoProyecto: recibo.idmovproyecto }, error: "" };
