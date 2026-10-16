@@ -10,7 +10,9 @@ async function main() {
   const endpoints = [
     ["proyectos", urlProyectos()],
     ...["items", "locations"].map(nombre => [nombre, `${config.standard}/${nombre}`]),
-    ...["productos", "diarioProductos", "tiposProyecto", "registrosProducto"].map(nombre => [nombre, `${config.custom}/${nombre}`])
+    ...["productos", "diarioProductos", "tiposProyecto", "registrosProducto",
+      "acopios", "lineasAcopio", "solicitudesAcopio", "recursosCandidatosAcopio", "valoresDimensionAcopio"
+    ].map(nombre => [nombre, `${config.custom}/${nombre}`])
   ];
   if (process.env.BC_TEST_ITEM) {
     const unidades = new URL(`${config.custom}/unidadesProducto`);
