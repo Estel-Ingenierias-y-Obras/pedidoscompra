@@ -1,0 +1,32 @@
+{
+  "axios": {
+    "current": "1.18.1",
+    "wanted": "1.20.0",
+    "latest": "1.20.0",
+    "dependent": "backend"
+  },
+  "dotenv": {
+    "current": "17.4.2",
+    "wanted": "17.4.2",
+    "latest": "18.0.8",
+    "dependent": "backend"
+  },
+  "express": {
+    "current": "5.2.1",
+    "wanted": "5.3.0",
+    "latest": "5.3.0",
+    "dependent": "backend"
+  },
+  "mongoose": {
+    "current": "9.8.0",
+    "wanted": "9.11.2",
+    "latest": "9.11.2",
+    "dependent": "backend"
+  },
+  "multer": {
+    "current": "2.2.0",
+    "wanted": "2.4.0",
+    "latest": "2.4.0",
+    "dependent": "backend"
+  }
+}

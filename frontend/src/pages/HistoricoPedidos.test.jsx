@@ -48,10 +48,10 @@ test("Pedidos excluye archivados de proyectos, contadores y detalles", () => {
 
 test("Gestión excluye archivados incluso con datos mezclados y al buscar", async () => {
   mostrar(<ValidarSolicitudes />);
-  await waitFor(() => expect(api.get).toHaveBeenCalledWith("/api/proyectos"));
+  expect(await screen.findByText("Activo")).toBeInTheDocument();
   expect(screen.queryByText("Archivado")).not.toBeInTheDocument();
   expect(screen.queryByText("Antiguo")).not.toBeInTheDocument();
-  expect(within(screen.getAllByRole("combobox")[0]).queryByRole("option", { name: "Archivar" })).not.toBeInTheDocument();
+  expect(within(screen.queryAllByRole("combobox")[0]).queryByRole("option", { name: "Archivar" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Proyecto mixto" } });
   expect(screen.getByText("Activo")).toBeInTheDocument();
   expect(screen.queryByText("Archivado")).not.toBeInTheDocument();

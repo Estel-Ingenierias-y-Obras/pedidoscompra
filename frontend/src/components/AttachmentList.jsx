@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faDownload,
@@ -87,7 +88,7 @@ function AttachmentList({
     try {
       await accion(pedido, archivo);
     } catch (error) {
-      console.error("Error accediendo al adjunto:", error);
+      reportClientError();
     }
   };
 

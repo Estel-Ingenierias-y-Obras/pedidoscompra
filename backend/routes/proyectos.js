@@ -1,11 +1,13 @@
+const logger = require("../utils/logger");
 const express = require("express");
 
-const { obtenerUsuarioActual } = require("../middleware/auth");
+const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const { responderErrorInterno } = require("../utils/httpErrors");
 
 const router = express.Router();
 
 router.use(obtenerUsuarioActual);
+router.use(permitirRoles("Admin", "Comprador", "Usuario", "Encargado"));
 
 const {
   obtenerProyectos
@@ -24,7 +26,7 @@ router.get("/", async (req, res) => {
 
   } catch (error) {
 
-    console.error("Consulta de proyectos BC fallida", { status: error.response?.status || error.status, codigo: error.code });
+    logger.error("bc.error");
 
     responderErrorInterno(res, error, "Error interno en ruta:");
 

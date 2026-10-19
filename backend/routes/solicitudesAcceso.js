@@ -1,9 +1,10 @@
+const logger = require("../utils/logger");
 const express = require("express");
 const mongoose = require("mongoose");
 const SolicitudAcceso = require("../models/SolicitudAcceso");
 const Usuario = require("../models/Usuario");
 const DestinatarioAcceso = require("../models/DestinatarioAcceso");
-const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
+const { obtenerUsuarioActual, obtenerIdentidadMicrosoft, permitirRoles } = require("../middleware/auth");
 const { responderErrorInterno } = require("../utils/httpErrors");
 const {
   sendAccessApprovedNotification,
@@ -24,10 +25,8 @@ const buscarUsuarioPorEmail = (email) =>
     }
   });
 
-router.post("/", async (req, res) => {
-  const email = String(req.body.email || "").trim().toLowerCase();
-  const nombre = String(req.body.nombre || email).trim();
-  const tenantId = String(req.body.tenantId || "").trim();
+router.post("/", obtenerIdentidadMicrosoft, async (req, res) => {
+  const { email, nombre, tenantId } = req.identidadMicrosoft;
 
   if (!email || !nombre) {
     return res.status(400).json({
@@ -39,6 +38,7 @@ router.post("/", async (req, res) => {
     const usuario = await buscarUsuarioPorEmail(email);
 
     if (usuario) {
+      if (usuario.activo === false) return res.status(403).json({ error: "Acceso desactivado" });
       return res.json({
         autorizado: true,
         usuario: {
@@ -91,10 +91,7 @@ router.post("/", async (req, res) => {
           });
         }
       } catch (emailError) {
-        console.error(
-          `Error enviando nueva solicitud de acceso ${solicitud._id}:`,
-          emailError.response?.data || emailError.message
-        );
+        logger.error("application.error");
       }
     }
 
@@ -171,17 +168,14 @@ router.patch("/:id/aprobar", obtenerUsuarioActual, permitirRoles("Admin"), async
         rol
       });
     } catch (emailError) {
-      console.error(
-        `Error enviando acceso aprobado a ${solicitud.email}:`,
-        emailError.response?.data || emailError.message
-      );
+      logger.error("application.error");
     }
 
     res.json({ solicitud, usuario });
   } catch (error) {
     const status = error.code === 11000 ? 409 : 500;
     if (status === 409) {
-      return res.status(status).json({ error: error.message });
+      return res.status(status).json({ error: "Ya existe un usuario con este email" });
     }
 
     responderErrorInterno(res, error, "Error aprobando solicitud de acceso:");

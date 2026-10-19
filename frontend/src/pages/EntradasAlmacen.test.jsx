@@ -33,7 +33,7 @@ test("un borrador antiguo con importe usa ahora los valores de BC", async () => 
 test("doble clic envía una sola vez; timeout y recarga conservan cuerpo y operación", async () => {
   let rechazar;
   servicio.guardarEntrada.mockImplementation(() => new Promise((resolve, reject) => { rechazar = reject; }));
-  const vista = montar();
+  const view = montar();
   const crear = await screen.findByRole("button", { name: "Enviar a BC" });
   await waitFor(() => expect(crear).not.toBeDisabled());
   fireEvent.click(crear); fireEvent.click(crear);
@@ -42,7 +42,7 @@ test("doble clic envía una sola vez; timeout y recarga conservan cuerpo y opera
   expect(JSON.parse(localStorage.getItem(key))[0].cuerpoEnviado).toEqual(cuerpo);
   await act(async () => rechazar(new Error("timeout")));
   expect(screen.getByRole("button", { name: "Confirmar resultado / Reintentar" })).toBeInTheDocument();
-  vista.unmount();
+  view.unmount();
   servicio.guardarEntrada.mockResolvedValue({ estado: "creada", respuesta: { id: "bc-id", numdoc: "T00099", importe: 12.34, cantidad: 2, codalmacen: "CENTRAL 3" } });
   montar();
   const reintentar = screen.getByRole("button", { name: "Confirmar resultado / Reintentar" });
@@ -66,7 +66,7 @@ test.each(["GM_KEY_CONFLICT", "GM_ENTRY_GONE"])("%s conserva fila bloqueada sin 
 });
 
 test("permite eliminar un borrador y conserva la eliminación al recargar sin llamar a BC", async () => {
-  const vista = montar();
+  const view = montar();
   const eliminar = await screen.findByRole("button", { name: "Eliminar borrador 1" });
   await waitFor(() => expect(eliminar).toBeEnabled());
   expect(screen.getByRole("columnheader", { name: "Acciones" })).toBeInTheDocument();
@@ -74,7 +74,7 @@ test("permite eliminar un borrador y conserva la eliminación al recargar sin ll
   fireEvent.click(eliminar);
   expect(screen.queryByRole("row", { name: "Borrador 1" })).not.toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem(key))).toEqual([]);
-  vista.unmount();
+  view.unmount();
   montar();
   await waitFor(() => expect(screen.queryByText("Cargando diario y catálogos…")).not.toBeInTheDocument());
   expect(screen.queryByRole("button", { name: /Eliminar/ })).not.toBeInTheDocument();

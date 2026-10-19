@@ -2,13 +2,14 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "build": "npm --prefix ../frontend ci && npm --prefix ../frontend run build",
+    "build": "npm --prefix ../frontend ci --include=dev && npm --prefix ../frontend run build",
     "migrate:materials": "node migrations/20260904-ampliar-materiales.js",
     "prestart": "npm run migrate:materials",
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "verify:bc": "node scripts/verificar-bc.js"
   },
   "engines": {
     "node": ">=20.19.0"
@@ -18,14 +19,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "axios": "^1.18.1",
+    "axios": "^1.20.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "mongoose": "^9.8.0",
-    "multer": "^2.2.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.14"
+    "express": "^5.3.0",
+    "mongoose": "^9.11.2",
+    "multer": "^2.4.0"
   }
 }

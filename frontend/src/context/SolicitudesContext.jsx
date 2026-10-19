@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import {
   createContext,
   useState,
@@ -19,7 +20,7 @@ export function SolicitudesProvider({ children }) {
       const response = await api.get("/api/pedidos");
       setSolicitudes(response.data);
     } catch (error) {
-      console.error("Error cargando pedidos:", error);
+      reportClientError();
     }
   };
 

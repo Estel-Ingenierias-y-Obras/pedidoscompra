@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -53,7 +54,7 @@ function Configuracion() {
           setDestinatarios: setDestinatariosAcceso
         })
       ]).catch(error => {
-        console.error("Error cargando destinatarios:", error);
+        reportClientError();
         setMensaje({
           tipo: "error",
           texto: "No se pudieron cargar los destinatarios"

@@ -1,0 +1,518 @@
+[
+  {
+    "archivo": "frontend/src/App.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/App.test.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/api.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/authConfig.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/ActualizarDatosButton.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/AddPersonIconButton.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/AttachmentList.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/BuscadorMovimiento.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/BuscadorMovimiento.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/CabeceraMovimiento.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/DeleteIconButton.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/DiarioAlmacen.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/DiarioAlmacen.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/Layout.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/LineasMovimiento.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/LineasMovimiento.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/ModalShell.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/NotificationToast.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/OrderFilters.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/OrderSearch.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/OrderSearch.test.jsx",
+    "errores": 4,
+    "avisos": 0,
+    "mensajes": [
+      {
+        "regla": "testing-library/no-container",
+        "linea": 28,
+        "mensaje": "Avoid using container methods. Prefer using the methods from Testing Library, such as \"getByRole()\""
+      },
+      {
+        "regla": "testing-library/no-node-access",
+        "linea": 28,
+        "mensaje": "Avoid direct Node access. Prefer using the methods from Testing Library."
+      },
+      {
+        "regla": "testing-library/no-unnecessary-act",
+        "linea": 47,
+        "mensaje": "Avoid wrapping Testing Library util calls in `act`"
+      },
+      {
+        "regla": "testing-library/no-unnecessary-act",
+        "linea": 50,
+        "mensaje": "Avoid wrapping Testing Library util calls in `act`"
+      }
+    ]
+  },
+  {
+    "archivo": "frontend/src/components/OriginalRequestModal.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/ProjectOrderCard.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/ProjectSelector.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/RequestItems.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/RequestItems.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/Sidebar.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/components/Sidebar.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/context/AuthContext.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/context/MaterialesContext.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/context/SolicitudesContext.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/context/UsuariosContext.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/hooks/useProjectCatalog.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/hooks/useProjectCatalog.test.jsx",
+    "errores": 2,
+    "avisos": 0,
+    "mensajes": [
+      {
+        "regla": "testing-library/render-result-naming-convention",
+        "linea": 12,
+        "mensaje": "`primera` is not a recommended name for `render` returned value. Instead, you should destructure it, or name it using one of: `view`, or `utils`"
+      },
+      {
+        "regla": "testing-library/render-result-naming-convention",
+        "linea": 15,
+        "mensaje": "`segunda` is not a recommended name for `render` returned value. Instead, you should destructure it, or name it using one of: `view`, or `utils`"
+      }
+    ]
+  },
+  {
+    "archivo": "frontend/src/index.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/Almacen.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/Configuracion.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/EntradasAlmacen.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/EntradasAlmacen.test.jsx",
+    "errores": 2,
+    "avisos": 0,
+    "mensajes": [
+      {
+        "regla": "testing-library/render-result-naming-convention",
+        "linea": 36,
+        "mensaje": "`vista` is not a recommended name for `render` returned value. Instead, you should destructure it, or name it using one of: `view`, or `utils`"
+      },
+      {
+        "regla": "testing-library/render-result-naming-convention",
+        "linea": 69,
+        "mensaje": "`vista` is not a recommended name for `render` returned value. Instead, you should destructure it, or name it using one of: `view`, or `utils`"
+      }
+    ]
+  },
+  {
+    "archivo": "frontend/src/pages/EnviadosAlmacen.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/EnviadosAlmacen.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/HistoricoPedidos.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/HistoricoPedidos.test.jsx",
+    "errores": 1,
+    "avisos": 0,
+    "mensajes": [
+      {
+        "regla": "testing-library/prefer-presence-queries",
+        "linea": 54,
+        "mensaje": "Use `queryBy*` queries rather than `getBy*` for checking element is NOT present"
+      }
+    ]
+  },
+  {
+    "archivo": "frontend/src/pages/Login.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/Material.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/Materiales.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/MisSolicitudes.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/MisSolicitudes.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/MovimientosAlmacen.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/MovimientosAlmacen.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/MovimientosEnviados.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/MovimientosEnviados.test.jsx",
+    "errores": 8,
+    "avisos": 0,
+    "mensajes": [
+      {
+        "regla": "testing-library/no-node-access",
+        "linea": 31,
+        "mensaje": "Avoid direct Node access. Prefer using the methods from Testing Library."
+      },
+      {
+        "regla": "testing-library/no-node-access",
+        "linea": 66,
+        "mensaje": "Avoid direct Node access. Prefer using the methods from Testing Library."
+      },
+      {
+        "regla": "testing-library/no-node-access",
+        "linea": 67,
+        "mensaje": "Avoid direct Node access. Prefer using the methods from Testing Library."
+      },
+      {
+        "regla": "testing-library/no-node-access",
+        "linea": 72,
+        "mensaje": "Avoid direct Node access. Prefer using the methods from Testing Library."
+      },
+      {
+        "regla": "testing-library/no-unnecessary-act",
+        "linea": 85,
+        "mensaje": "Avoid wrapping empty function in `act`"
+      },
+      {
+        "regla": "testing-library/no-unnecessary-act",
+        "linea": 90,
+        "mensaje": "Avoid wrapping Testing Library util calls in `act`"
+      },
+      {
+        "regla": "testing-library/no-unnecessary-act",
+        "linea": 93,
+        "mensaje": "Avoid wrapping Testing Library util calls in `act`"
+      },
+      {
+        "regla": "testing-library/no-node-access",
+        "linea": 106,
+        "mensaje": "Avoid direct Node access. Prefer using the methods from Testing Library."
+      }
+    ]
+  },
+  {
+    "archivo": "frontend/src/pages/NuevaSolicitud.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/Pedidos.jsx",
+    "errores": 1,
+    "avisos": 0,
+    "mensajes": [
+      {
+        "regla": "no-undef",
+        "linea": 43,
+        "mensaje": "'pedido_id' is not defined."
+      }
+    ]
+  },
+  {
+    "archivo": "frontend/src/pages/StockAlmacen.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/StockAlmacen.test.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/Usuarios.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/pages/ValidarSolicitudes.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/reportWebVitals.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/routes/ProtectedRoute.jsx",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/routes/permissions.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/routes/permissions.test.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/serviceWorkerRegistration.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/services/almacen.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/services/almacen.test.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/services/almacenPayload.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/services/almacenPayload.test.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/services/movimientosAlmacen.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/setupTests.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  },
+  {
+    "archivo": "frontend/src/utils/reportClientError.js",
+    "errores": 0,
+    "avisos": 0,
+    "mensajes": []
+  }
+]

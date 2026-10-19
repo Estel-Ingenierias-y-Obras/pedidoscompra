@@ -9,11 +9,11 @@ test("reutiliza descripciones al navegar entre páginas sin repetir consultas", 
   const catalogo = [{ nomProyecto: "P1", descProyecto: "Energía" }];
   api.get.mockResolvedValue({ data: { value: catalogo } });
   const wrapper = ({ children }) => <AuthContext.Provider value={{ user: { email: "cache@example.com" } }}>{children}</AuthContext.Provider>;
-  const primera = renderHook(() => useProjectCatalog(), { wrapper });
-  await waitFor(() => expect(primera.result.current).toEqual(catalogo));
-  primera.unmount();
-  const segunda = renderHook(() => useProjectCatalog(), { wrapper });
-  await waitFor(() => expect(segunda.result.current).toEqual(catalogo));
+  const view = renderHook(() => useProjectCatalog(), { wrapper });
+  await waitFor(() => expect(view.result.current).toEqual(catalogo));
+  view.unmount();
+  const utils = renderHook(() => useProjectCatalog(), { wrapper });
+  await waitFor(() => expect(utils.result.current).toEqual(catalogo));
   expect(api.get).toHaveBeenCalledTimes(1);
 });
 

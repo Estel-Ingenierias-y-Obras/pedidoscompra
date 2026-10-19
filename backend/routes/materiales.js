@@ -31,6 +31,7 @@ const serializarMaterial = material => ({
 });
 
 router.use(obtenerUsuarioActual);
+router.use(permitirRoles("Admin", "Comprador", "Usuario", "Encargado"));
 
 router.get("/", async (req, res) => {
   try {
@@ -55,7 +56,7 @@ router.get("/:id", async (req, res) => {
     const material = await Material.findById(req.params.id)
       .select("nombre descripcion referencia unidadMedida activo createdAt updatedAt")
       .lean();
-    if (!material) return res.status(404).json({ error: "Material no encontrado" });
+    if (!material || (material.activo === false && !["Admin", "Comprador"].includes(req.usuarioActual.rol))) return res.status(404).json({ error: "Material no encontrado" });
     res.json(serializarMaterial(material));
   } catch (error) {
     responderErrorInterno(res, error, "Error obteniendo material:");

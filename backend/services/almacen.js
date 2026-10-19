@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const { randomUUID, createHash } = require("node:crypto");
 const Operacion = require("../models/OperacionAlmacen");
 const bc = require("./almacenBC");
@@ -67,14 +68,7 @@ function crearServicio({ modelo = Operacion, cliente = bc, uuid = randomUUID, ah
       const documentoPresente = typeof respuesta?.numdoc === "string" && !!respuesta.numdoc.trim();
       const operacionConfirmada = confirmar(respuesta, reclamada.cuerpo);
       if (!idValido || !documentoPresente || !operacionConfirmada) {
-        // Diagnóstico limitado al contrato: nunca imprimir la respuesta completa ni credenciales.
-        const diagnostico = { idValido, documentoPresente, operacionConfirmada };
-        if (Object.hasOwn(reclamada.cuerpo, "idlinea")) {
-          diagnostico.registrado = respuesta?.registrado === true;
-          diagnostico.idLineaCoincide = typeof respuesta?.idlinea === "string" && respuesta.idlinea.toLowerCase() === reclamada.cuerpo.idlinea.toLowerCase();
-          diagnostico.claveCoincide = typeof respuesta?.claveintegracion === "string" && respuesta.claveintegracion.toLowerCase() === reclamada.cuerpo.claveintegracion.toLowerCase();
-        }
-        console.warn("[BC_CONFIRMACION_INVALIDA]", JSON.stringify(diagnostico));
+        logger.warn("bc.confirmation_invalid");
         const faltan = [!idValido && "id válido", !documentoPresente && "numdoc", !operacionConfirmada && "confirmación de la operación"].filter(Boolean).join(", ");
         throw Object.assign(new Error(`La respuesta de BC no confirma la operación: falta ${faltan}. Reintenta la misma solicitud.`), { incierto: true, seguro: true });
       }

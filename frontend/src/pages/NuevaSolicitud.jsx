@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import { useContext, useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -237,7 +238,7 @@ function NuevaSolicitud() {
       const response = await api.get("/api/pedidos");
       setSolicitudes(response.data);
     } catch (error) {
-      console.error("Error creando pedido:", error);
+      reportClientError();
       return;
     }
 

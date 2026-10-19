@@ -1,4 +1,5 @@
-require("dotenv").config();
+const logger = require("../utils/logger");
+require("dotenv").config({ quiet: true });
 const mongoose = require("mongoose");
 
 const normalizarReferencia = valor => String(valor || "").trim().toLocaleUpperCase("es");
@@ -87,12 +88,12 @@ async function migrar() {
 
   await materiales.createIndex({ nombreNormalizado: 1 });
   await materiales.createIndex({ referenciaNormalizada: 1 }, { unique: true });
-  console.log(`Migración completada: ${actualizados} materiales revisados`);
+  logger.info("migration.completed");
 }
 
 migrar()
   .catch(error => {
-    console.error("Error ejecutando la migración de materiales:", error);
+    logger.error("migration.failed");
     process.exitCode = 1;
   })
   .finally(() => mongoose.disconnect());

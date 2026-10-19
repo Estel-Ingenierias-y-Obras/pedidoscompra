@@ -1,0 +1,74 @@
+[
+  {
+    "proyecto": "backend",
+    "paquete": "axios",
+    "antes": "1.18.1",
+    "despues": "1.20.0"
+  },
+  {
+    "proyecto": "backend",
+    "paquete": "express",
+    "antes": "5.2.1",
+    "despues": "5.3.0"
+  },
+  {
+    "proyecto": "backend",
+    "paquete": "mongoose",
+    "antes": "9.8.0",
+    "despues": "9.11.2"
+  },
+  {
+    "proyecto": "backend",
+    "paquete": "multer",
+    "antes": "2.2.0",
+    "despues": "2.4.0"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "@azure/msal-browser",
+    "antes": "5.17.1",
+    "despues": "5.25.1"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "@azure/msal-react",
+    "antes": "5.5.3",
+    "despues": "5.7.2"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "axios",
+    "antes": "1.18.1",
+    "despues": "1.20.0"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "react",
+    "antes": "19.2.7",
+    "despues": "19.3.1"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "react-dom",
+    "antes": "19.2.7",
+    "despues": "19.3.1"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "react-router-dom",
+    "antes": "7.18.1",
+    "despues": "7.18.4"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "@testing-library/dom",
+    "antes": "10.4.1",
+    "despues": "10.4.2"
+  },
+  {
+    "proyecto": "frontend",
+    "paquete": "@testing-library/react",
+    "antes": "16.3.2",
+    "despues": "16.3.3"
+  }
+]

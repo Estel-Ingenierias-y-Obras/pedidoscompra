@@ -15,6 +15,8 @@ jest.mock("./pages/Almacen", () => () => <div>Almacén</div>);
 jest.mock("./pages/EntradasAlmacen", () => () => <div>Entradas</div>);
 jest.mock("./pages/EnviadosAlmacen", () => () => <div>Enviados a BC</div>);
 jest.mock("./pages/StockAlmacen", () => () => <div>Stock actual</div>);
+jest.mock("./pages/MovimientosAlmacen", () => () => <div>Movimientos de almacén</div>);
+jest.mock("./pages/MovimientosEnviados", () => () => <div>Movimientos enviados</div>);
 
 test.each(["/usuarios", "/configuracion", "/nuevasolicitud", "/pedidos", "/missolicitudes", "/desconocida", "/USUARIOS/"])(
   "Comprador es redirigido desde %s a gestión", path => {

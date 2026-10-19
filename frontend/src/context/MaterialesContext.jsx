@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import api from "../api";
@@ -19,7 +20,7 @@ export function MaterialesProvider({ children }) {
       setMateriales([]);
       return;
     }
-    recargarMateriales().catch(error => console.error("Error cargando materiales:", error));
+    recargarMateriales().catch(error => reportClientError());
   }, [user, recargarMateriales]);
 
   return (

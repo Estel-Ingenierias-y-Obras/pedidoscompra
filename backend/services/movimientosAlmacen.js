@@ -1,4 +1,5 @@
 const bc = require("./almacenBC");
+const logger = require("../utils/logger");
 const EnvioAcopio = require("../models/EnvioAcopio");
 const { obtenerSolicitantesActivos } = require("./businessCentral");
 const { UUID } = bc;
@@ -112,6 +113,7 @@ function crearServicio({ historial = EnvioAcopio, cliente = bc, recursos = obten
         if (cabecera.id !== recibo.idacopio || lineas.length !== dto.lineas.length) throw fallo("La cabecera o las líneas no coinciden con el comprobante de creación.", 409, "GM_ACOPIO_REVIEW");
         const cambios = { bcId: recibo.idacopio, bcRequestId: recibo.id, numero: recibo.numero, confirmadoBC: true, estado: "enviadoBC", fechaEnvio: new Date(), cabecera: { ...dto.cabecera, ...cabecera }, lineas, error: "" };
         const confirmado = await historial.findOneAndUpdate({ ...identidad, creadoPor: scope.creadoPor }, { $set: cambios }, { new: true }).lean();
+        logger.info("bc.movement_sent");
         return respuesta(confirmado);
       } catch (error) {
         await historial.updateOne({ ...identidad, confirmadoBC: false }, { $set: {
@@ -154,6 +156,7 @@ function crearServicio({ historial = EnvioAcopio, cliente = bc, recursos = obten
         if (!comprobarCreacion(recibo, op) || recibo.idacopio !== id || recibo.registrado !== true || !UUID.test(recibo.idhistorico || "") || !Number.isFinite(Date.parse(recibo.fecharegistro)) || !(recibo.idmovproducto > 0 || recibo.idmovproyecto > 0)) throw fallo("BC no devuelve un comprobante verificable de registro para este acopio.", 409, "GM_ACOPIO_REVIEW");
         const cambios = { estado: "registrado", fechaRegistro: new Date(recibo.fecharegistro), comprobanteRegistro: { id: recibo.id, historicoId: recibo.idhistorico, movimientoProducto: recibo.idmovproducto, movimientoProyecto: recibo.idmovproyecto }, error: "" };
         const registrado = await historial.findOneAndUpdate(filtro, { $set: cambios }, { new: true }).lean();
+        logger.info("bc.movement_posted");
         return respuesta(registrado);
       } catch (error) {
         await historial.updateOne(filtro, { $set: { estado: "error", error: error.seguro ? error.message : "Registro pendiente de confirmar." } });

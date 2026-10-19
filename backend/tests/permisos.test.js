@@ -50,6 +50,16 @@ const request = (role, method = "GET", path = "/api/pedidos", body) => fetch(bas
   ...(body ? { body: JSON.stringify(body) } : {})
 });
 
+test("administración de usuarios rechaza roles desconocidos, operadores y campos no admitidos", async () => {
+  for (const body of [{ rol: "SUPER" }, { $unset: { rol: 1 } }, { rol: "Admin", configuracionInterna: true }, { activo: "false" }]) {
+    assert.equal((await request("Admin", "PUT", `/api/usuarios/${id}`, body)).status, 400);
+  }
+  let actualizado;
+  mock.method(Usuario, "findByIdAndUpdate", async (_, cambios, opciones) => { actualizado = cambios; assert.equal(opciones.runValidators, true); return { _id: id, rol: "Comprador" }; });
+  assert.equal((await request("Admin", "PUT", `/api/usuarios/${id}`, { rol: "Comprador" })).status, 200);
+  assert.deepEqual(actualizado, { $set: { rol: "Comprador" } });
+});
+
 test("stock consulta BC para los roles autorizados y propaga errores seguros", async () => {
   const bc = require("../services/almacenBC");
   const filas = [{ id: "producto", inventario: -2.12345 }];
@@ -93,6 +103,10 @@ for (const role of ["Usuario", "Comprador", "Admin", "Encargado"]) {
 test("lectura requiere autenticación y un rol conocido", async () => {
   assert.equal((await request(null)).status, 401);
   assert.equal((await request("Desconocido")).status, 403);
+});
+
+test("Usuario no accede al histórico mediante el parámetro de consulta", async () => {
+  assert.equal((await request("Usuario", "GET", "/api/pedidos?estado=Archivar")).status, 403);
 });
 
 test("registro contable requiere autenticación y rol de gestión", async () => {

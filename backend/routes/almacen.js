@@ -1,4 +1,5 @@
 const express = require("express");
+const logger = require("../utils/logger");
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const servicio = require("../services/almacen");
 const bc = require("../services/almacenBC");
@@ -53,6 +54,9 @@ router.get("/movimientos/catalogos", lectura(async () => {
   return datos;
 }));
 router.use((error, req, res, next) => {
+  const status = error.status >= 400 && error.status <= 599 ? error.status : 503;
+  if (status < 500) logger.warn("validation.rejected", { status });
+  else logger.error("bc.error", { status });
   // No devolver objetos Axios: contienen Authorization y configuración.
   res.status(error.status >= 400 && error.status <= 599 ? error.status : 503).json({ error: error.seguro ? error.message : "No se pudo completar la operación. Conserva los datos y reintenta la misma solicitud.", codigoError: error.codigo, definitivo: error.definitivo === true });
 });

@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import { useContext, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -357,7 +358,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
       cerrarEdicion();
       mostrarMensaje("Pedido actualizado correctamente");
     } catch (err) {
-      console.error("Error editando pedido:", err);
+      reportClientError();
       mostrarError(
         err.response?.data?.error || "No se pudo actualizar el pedido"
       );
@@ -377,7 +378,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
       setPedidoAEliminar(null);
       mostrarMensaje("Pedido eliminado correctamente");
     } catch (err) {
-      console.error("Error eliminando pedido:", err);
+      reportClientError();
       mostrarError(
         err.response?.data?.error || "No se pudo eliminar el pedido"
       );
@@ -428,7 +429,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
                     type="button"
                     onClick={() =>
                       visualizarAdjunto(pedidoAEditar, archivo).catch(err => {
-                        console.error("Error visualizando adjunto:", err);
+                        reportClientError();
                         mostrarError("No se pudo visualizar el adjunto");
                       })
                     }
@@ -441,7 +442,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
                     type="button"
                     onClick={() =>
                       descargarAdjunto(pedidoAEditar, archivo).catch(err => {
-                        console.error("Error descargando adjunto:", err);
+                        reportClientError();
                         mostrarError("No se pudo descargar el adjunto");
                       })
                     }

@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 // Solo GET: no crea ni registra entradas ni modifica existencias.
 require("dotenv").config({ path: require("node:path").join(__dirname, "../.env"), quiet: true });
 const axios = require("axios");
@@ -18,18 +19,19 @@ async function main() {
     const unidades = new URL(`${config.custom}/unidadesProducto`);
     unidades.search = new URLSearchParams({ $filter: `numprod eq '${process.env.BC_TEST_ITEM.replace(/'/g, "''")}'` }).toString();
     endpoints.push(["unidadesProducto", unidades.href], ["movimientosAplicables", unidades.href.replace("/unidadesProducto?", "/movimientosAplicables?")]);
-  } else console.log("Unidades: pendiente; definir BC_TEST_ITEM para consultar un material concreto.");
-  for (const [nombre, url] of endpoints) {
+  } else logger.info("diagnostic.optional_skipped");
+  for (const [, url] of endpoints) {
     logSolicitudBC(url);
     try {
       const response = await axios.get(url, { params: { $top: 1 }, headers: { Authorization: `Bearer ${token}` }, proxy: false, timeout: 15000, maxRedirects: 0 });
       const valido = Array.isArray(response.data?.value);
-      console.log(JSON.stringify({ endpoint: nombre, status: response.status, coleccionValida: valido }));
+      logger.info("diagnostic.endpoint_checked", { status: response.status });
       if (!valido) process.exitCode = 1;
     } catch (error) {
-      console.log(JSON.stringify({ endpoint: nombre, status: error.response?.status || "sin respuesta", codigo: error.response?.data?.error?.code || error.code }));
+      logger.warn("diagnostic.endpoint_failed", { status: error.response?.status });
       process.exitCode = 1;
     }
   }
+  logger.info("diagnostic.completed", { count: endpoints.length });
 }
-main().catch(error => { console.error(error.isAxiosError ? `Autenticación BC: HTTP ${error.response?.status || "sin respuesta"}` : error.message); process.exitCode = 1; });
+main().catch(error => { logger.error("diagnostic.failed"); process.exitCode = 1; });

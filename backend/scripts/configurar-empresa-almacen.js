@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 // Consulta de solo lectura en BC y configuración local. No crea líneas de diario.
 const fs = require("node:fs");
 const path = require("node:path");
@@ -37,10 +38,10 @@ async function main() {
     actualizado = patron.test(actualizado) ? actualizado.replace(patron, () => linea) : `${actualizado.trimEnd()}\n${linea}\n`;
   }
   fs.writeFileSync(archivo, actualizado, "utf8");
-  console.log(JSON.stringify({ entorno, empresa: encontrada.name, companyId: encontrada.id, configuracionLocal: "actualizada" }));
+  logger.info("bc.confirmation_invalid");
 }
 main().catch(error => {
   // Nunca imprimir el error Axios completo: incluye credenciales/cabeceras.
-  console.error(error.isAxiosError ? `Consulta BC fallida: HTTP ${error.response?.status || "sin respuesta"}; código ${error.code || "desconocido"}.` : error.message);
+  logger.error("bc.confirmation_invalid");
   process.exitCode = 1;
 });

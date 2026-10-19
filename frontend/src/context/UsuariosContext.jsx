@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import {
   createContext,
   useState,
@@ -27,7 +28,7 @@ export function UsuariosProvider({ children }) {
         const response = await api.get(endpoint);
         if (!cancelado) setUsuarios(response.data);
       } catch (error) {
-        if (!cancelado) console.error("Error cargando usuarios:", error);
+        if (!cancelado) reportClientError();
       }
     };
     cargarUsuarios();

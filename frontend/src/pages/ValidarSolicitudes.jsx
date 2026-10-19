@@ -1,4 +1,6 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import reportClientError from "../utils/reportClientError";
+import { useContext, useRef, useState } from "react";
+import useProjectCatalog from "../hooks/useProjectCatalog";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCirclePlus, faClipboardList, faFile, faPaperclip } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
@@ -29,31 +31,9 @@ function ValidarSolicitudes() {
   const [pedidoInfoCompras, setPedidoInfoCompras] = useState(null);
   const [comentarioCompras, setComentarioCompras] = useState("");
   const [adjuntosComprasNuevos, setAdjuntosComprasNuevos] = useState([]);
-  const [proyectos, setProyectos] = useState([]);
+  const proyectos = useProjectCatalog();
   const [mensaje, setMensaje] = useState("");
   const archivoComprasInputRef = useRef(null);
-
-  useEffect(() => {
-    if (!["Admin", "Comprador"].includes(user?.rol)) {
-      return;
-    }
-
-    const cargarProyectos = async () => {
-      try {
-        const response = await api.get("/api/proyectos");
-
-        setProyectos(
-          Array.isArray(response.data)
-            ? response.data
-            : response.data.value || []
-        );
-      } catch (error) {
-        console.error("Error cargando proyectos:", error);
-      }
-    };
-
-    cargarProyectos();
-  }, [user?.rol]);
 
   const obtenerProyectoCompleto = (codigoProyecto) => {
     const proyectoEncontrado = proyectos.find(
@@ -98,7 +78,7 @@ function ValidarSolicitudes() {
       const response = await api.get("/api/pedidos");
       setSolicitudes(response.data);
     } catch (error) {
-      console.error("Error cambiando estado:", error);
+      reportClientError();
     }
   };
 
@@ -113,7 +93,7 @@ function ValidarSolicitudes() {
       const response = await api.get("/api/pedidos");
       setSolicitudes(response.data);
     } catch (error) {
-      console.error("Error asignando comprador:", error);
+      reportClientError();
     }
   };
   const confirmarEliminacionAdmin = async () => {
@@ -129,7 +109,7 @@ function ValidarSolicitudes() {
       setPedidoAEliminar(null);
       setMensaje("Pedido eliminado correctamente");
     } catch (error) {
-      console.error("Error eliminando pedido:", error);
+      reportClientError();
     }
   };
 
@@ -231,7 +211,7 @@ function ValidarSolicitudes() {
     try {
       await guardarInfoCompras(pedidoInfoCompras.adjuntosCompras || []);
     } catch (error) {
-      console.error("Error guardando información de Compras:", error);
+      reportClientError();
     }
   };
 

@@ -1,3 +1,4 @@
+import reportClientError from "./utils/reportClientError";
 import axios from "axios";
 import { msalInstance } from "./authConfig";
 
@@ -95,7 +96,7 @@ const obtenerTokenMicrosoftActual = async () => {
 
     return tokenRenovado;
   } catch (error) {
-    console.error("Error renovando token Microsoft:", error);
+    reportClientError();
     finalizarSesionExpirada();
     return null;
   }

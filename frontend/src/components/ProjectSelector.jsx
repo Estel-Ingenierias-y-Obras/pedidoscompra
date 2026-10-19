@@ -1,29 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import api from "../api";
+import useProjectCatalog from "../hooks/useProjectCatalog";
 
 function ProjectSelector({ value, onChange, inputId = "buscador-proyecto" }) {
-  const [proyectos, setProyectos] = useState([]);
+  const proyectos = useProjectCatalog();
   const [busquedaProyecto, setBusquedaProyecto] = useState(value || "");
   const [mostrarResultados, setMostrarResultados] = useState(false);
   const [indiceActivo, setIndiceActivo] = useState(-1);
-
-  useEffect(() => {
-    const cargarProyectos = async () => {
-      try {
-        const response = await api.get("/api/proyectos");
-
-        setProyectos(
-          Array.isArray(response.data)
-            ? response.data
-            : response.data.value || []
-        );
-      } catch (error) {
-        console.error("Error cargando proyectos:", error);
-      }
-    };
-
-    cargarProyectos();
-  }, []);
 
   useEffect(() => {
     if (!value) {

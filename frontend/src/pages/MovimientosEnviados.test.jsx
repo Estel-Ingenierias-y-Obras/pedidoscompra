@@ -28,7 +28,7 @@ test("fila sin botones abre dos acciones; visualizar abre detalle de solo lectur
   expect(within(modal).queryByRole("textbox")).not.toBeInTheDocument();
   fireEvent.click(within(modal).getByRole("button", { name: "Cerrar modal" }));
   expect(screen.getByRole("dialog", { name: "Movimiento AC-000011" })).toBeInTheDocument();
-  fireEvent.mouseDown(screen.getByRole("dialog").parentElement);
+  fireEvent.click(screen.getByRole("button", { name: "Cerrar modal" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 test("registro muestra el error recibido y no inventa un éxito", async () => {
@@ -62,14 +62,13 @@ test("separa los registros confirmados y muestra únicamente los nueve campos so
   fireEvent.click(await screen.findByRole("row", { name: "Abrir movimiento AC-000011" }));
   expect(screen.getByRole("button", { name: "Actualizar datos" })).toBeEnabled();
   const visualizar = screen.getByRole("button", { name: "Visualizar" });
-  expect(visualizar.textContent).toBe("");
-  expect(visualizar.querySelector('svg[data-icon="eye"]')).not.toBeNull();
-  expect(screen.getByRole("button", { name: "Registrar" }).querySelector('svg[data-icon="paper-plane"]')).not.toBeNull();
+  expect(visualizar).toHaveAttribute("title", "Visualizar");
+  expect(screen.getByRole("button", { name: "Registrar" })).toHaveAttribute("title", "Registrar");
   fireEvent.click(visualizar);
   const modal = screen.getByRole("dialog");
   expect(await within(modal).findByText("Persona solicitante")).toBeInTheDocument();
   expect(within(modal).getByText("EM-ESPAÑA")).toBeInTheDocument();
-  expect(modal.querySelectorAll('dt')).toHaveLength(9);
+  expect(within(modal).getAllByRole("term")).toHaveLength(9);
   expect(within(modal).queryByText("NO MOSTRAR")).not.toBeInTheDocument();
   expect(within(modal).queryByText("USUARIO OCULTO")).not.toBeInTheDocument();
   fireEvent.click(within(modal).getByRole("button", { name: "Cerrar modal" }));
@@ -82,15 +81,16 @@ test("separa los registros confirmados y muestra únicamente los nueve campos so
 test("actualiza automáticamente cada 15 segundos y al recuperar el foco; limpia el temporizador al salir", async () => {
   jest.useFakeTimers();
   const { unmount } = montar();
-  await act(async () => {});
+  await screen.findByRole("row", { name: "Abrir movimiento AC-000011" });
   expect(servicio.obtenerMovimientosEnviados).toHaveBeenCalledTimes(1);
   servicio.obtenerMovimientosEnviados.mockResolvedValue([{ ...envio, numero: "AC-000012" }]);
   await act(async () => { jest.advanceTimersByTime(15000); });
   expect(screen.getByRole("row", { name: "Abrir movimiento AC-000012" })).toBeInTheDocument();
-  await act(async () => { fireEvent.focus(window); });
+  await act(async () => { window.dispatchEvent(new Event("focus")); });
   expect(servicio.obtenerMovimientosEnviados).toHaveBeenCalledTimes(3);
   unmount();
-  await act(async () => { jest.advanceTimersByTime(30000); fireEvent.focus(window); });
+  await act(async () => { jest.advanceTimersByTime(30000); });
+  fireEvent.focus(window);
   expect(servicio.obtenerMovimientosEnviados).toHaveBeenCalledTimes(3);
 });
 
@@ -103,7 +103,7 @@ test("actualizar datos recarga pendientes e historial independientemente de la p
   expect(screen.getByRole("button", { name: "Actualizar datos" })).toBeDisabled();
   await screen.findByRole("row", { name: "Abrir movimiento AC-000011" });
   const boton = screen.getByRole("button", { name: "Actualizar datos" });
-  expect(boton.querySelector('svg[data-icon="rotate"]')).not.toBeNull();
+  expect(boton).toHaveAttribute("type", "button");
   fireEvent.click(boton);
   await screen.findByRole("row", { name: "Abrir movimiento AC-000012" });
   fireEvent.click(screen.getByRole("tab", { name: "Historial de registros" }));

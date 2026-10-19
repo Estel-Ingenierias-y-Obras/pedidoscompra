@@ -30,11 +30,9 @@ function urlProyectos(env = process.env) {
   return `${baseBC(env)}/ODataV4/Company('${empresa}')/${servicio}`;
 }
 
-function logSolicitudBC(url, env = process.env) {
-  if (env.BC_LOG_REQUESTS !== "true") return;
-  const destino = new URL(url);
-  console.info("[BC]", JSON.stringify({ Tenant: identidadBC(env).tenant, Environment: env.BC_ENVIRONMENT,
-    Company: env.BC_COMPANY_ID, URL: `${destino.origin}${destino.pathname}` }));
+function logSolicitudBC(_url, env = process.env) {
+  if (env.NODE_ENV === "production" || env.BC_LOG_REQUESTS !== "true") return;
+  require("../utils/logger").info("bc.request");
 }
 
 module.exports = { identidadBC, baseBC, configuracionBC, urlProyectos, logSolicitudBC };

@@ -44,7 +44,8 @@ const obtenerJwks = async () => {
   const { tenantId } = obtenerConfiguracionEntra();
 
   const response = await fetch(
-    `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`
+    `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`,
+    { signal: AbortSignal.timeout(10000) }
   );
 
   if (!response.ok) {
@@ -109,11 +110,11 @@ const validarTokenMicrosoft = async (token) => {
     throw new Error("Audience del token no permitida");
   }
 
-  if (payload.exp && payload.exp <= ahora) {
+  if (!Number.isFinite(payload.exp) || payload.exp <= ahora) {
     throw new Error("Token expirado");
   }
 
-  if (payload.nbf && payload.nbf > ahora) {
+  if (payload.nbf !== undefined && (!Number.isFinite(payload.nbf) || payload.nbf > ahora)) {
     throw new Error("Token todavía no válido");
   }
 
@@ -132,7 +133,8 @@ const validarTokenMicrosoft = async (token) => {
     email,
     tenantId: payload.tid,
     audience: payload.aud,
-    issuer: payload.iss
+    issuer: payload.iss,
+    nombre: typeof payload.name === "string" ? payload.name : email
   };
 };
 
@@ -145,7 +147,7 @@ const buscarUsuarioAutorizado = async (email) =>
     activo: { $ne: false }
   });
 
-const obtenerUsuarioActual = async (req, res, next) => {
+const obtenerIdentidadMicrosoft = async (req, res, next) => {
   const authorization = String(req.get("authorization") || "").trim();
   const bearerPrefix = "Bearer ";
 
@@ -156,6 +158,17 @@ const obtenerUsuarioActual = async (req, res, next) => {
   try {
     const token = authorization.slice(bearerPrefix.length).trim();
     const identidad = await validarTokenMicrosoft(token);
+    req.identidadMicrosoft = identidad;
+    next();
+  } catch (error) {
+    require("../utils/logger").warn("auth.rejected");
+    res.status(401).json({ error: "Unauthorized" });
+  }
+};
+
+const obtenerUsuarioActual = (req, res, next) => obtenerIdentidadMicrosoft(req, res, async () => {
+  try {
+    const identidad = req.identidadMicrosoft;
     const email = identidad.email;
 
     const usuario = await buscarUsuarioAutorizado(email);
@@ -168,10 +181,10 @@ const obtenerUsuarioActual = async (req, res, next) => {
     req.metodoAutenticacion = "token";
     next();
   } catch (error) {
-    console.error("[AUTH] Token Microsoft rechazado:", error.message);
-    res.status(401).json({ error: "Unauthorized" });
+    require("../utils/logger").error("auth.lookup_failed");
+    res.status(503).json({ error: "No se pudo verificar el acceso. Inténtalo de nuevo." });
   }
-};
+});
 
 const permitirRoles = (...rolesPermitidos) => (req, res, next) => {
   if (!req.usuarioActual || !rolesPermitidos.includes(req.usuarioActual.rol)) {
@@ -183,6 +196,7 @@ const permitirRoles = (...rolesPermitidos) => (req, res, next) => {
 
 module.exports = {
   obtenerUsuarioActual,
+  obtenerIdentidadMicrosoft,
   permitirRoles,
   validarTokenMicrosoft
 };

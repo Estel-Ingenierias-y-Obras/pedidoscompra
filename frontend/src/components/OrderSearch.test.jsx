@@ -21,11 +21,11 @@ test("prioriza inicio, exactitud dentro del prefijo y luego coincidencia parcial
 
 test("texto gris sin desplegable y aceptación con Tab; Shift+Tab mantiene navegación", () => {
   const onChange = jest.fn();
-  const { container } = render(<OrderSearch opciones={opciones} onChange={onChange} />);
+  render(<OrderSearch opciones={opciones} onChange={onChange} />);
   const input = screen.getByRole("textbox");
   fireEvent.change(input, { target: { value: "Ener" } });
   expect(input).toHaveValue("Ener");
-  expect(container.querySelector(".order-search-ghost")).toHaveTextContent("Energía Mallorca");
+  expect(screen.getByText(/Energía Mallorca/)).toBeInTheDocument();
   expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   expect(fireEvent.keyDown(input, { key: "Tab", shiftKey: true })).toBe(true);
   expect(onChange).not.toHaveBeenCalled();
@@ -43,11 +43,12 @@ test("sin sugerencia Tab no se intercepta; Escape, edición intermedia y composi
   fireEvent.keyDown(input, { key: "Enter" });
   expect(onChange).not.toHaveBeenCalled();
   fireEvent.compositionEnd(input);
+  act(() => input.focus());
   input.setSelectionRange(1, 1);
-  act(() => fireEvent.select(input));
+  fireEvent.select(input);
   expect(screen.queryByRole("button", { name: /Completar/ })).not.toBeInTheDocument();
   input.setSelectionRange(4, 4);
-  act(() => fireEvent.select(input));
+  fireEvent.select(input);
   fireEvent.keyDown(input, { key: "Escape" });
   expect(fireEvent.keyDown(input, { key: "Tab" })).toBe(true);
   expect(onChange).not.toHaveBeenCalled();

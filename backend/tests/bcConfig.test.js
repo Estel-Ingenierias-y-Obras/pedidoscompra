@@ -29,7 +29,10 @@ test("logs desactivables sin secretos ni parámetros", () => {
     assert.equal(logs.length, 0);
     logSolicitudBC(`${urlProyectos(env)}?access_token=privado`, { ...env, BC_LOG_REQUESTS: "true" });
     assert.equal(logs.length, 1);
-    assert.ok(logs[0].includes('"Environment":"Production"'));
+    assert.ok(logs[0].includes('"event":"bc.request"'));
+    assert.ok(!logs[0].includes(env.BC_TENANT_ID) && !logs[0].includes(env.BC_COMPANY_ID) && !logs[0].includes("https://"));
     assert.ok(!logs[0].includes("privado") && !logs[0].includes("secret"));
+    logSolicitudBC(urlProyectos(env), { ...env, BC_LOG_REQUESTS: "true", NODE_ENV: "production" });
+    assert.equal(logs.length, 1);
   } finally { console.info = original; }
 });

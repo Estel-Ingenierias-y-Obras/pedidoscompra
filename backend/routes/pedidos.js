@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
@@ -34,7 +35,10 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024,
-    files: 10
+    files: 10,
+    fields: 30,
+    parts: 40,
+    fieldNameSize: 100
   },
   fileFilter: (req, file, callback) => {
     if (!TIPOS_PERMITIDOS.has(file.mimetype)) {
@@ -280,6 +284,9 @@ const esPropietarioPedido = (pedido, usuario) =>
   String(pedido.email || "").toLowerCase() === String(usuario?.email || "").toLowerCase();
 
 router.get("/", async (req, res) => {
+  if (req.query.estado === "Archivar" && !["Admin", "Comprador", "Encargado"].includes(req.usuarioActual.rol)) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
   try {
     const filtro = req.query.estado === "Archivar"
       ? { estado: "Archivar" }
@@ -364,10 +371,7 @@ router.post("/", permitirRoles("Usuario", "Admin", "Encargado"), recibirArchivos
         await sendPurchaseRequestNotification(pedido, recipients);
       }
     } catch (emailError) {
-      console.error(
-        `Error enviando notificación del pedido ${pedido._id}:`,
-        emailError.response?.data || emailError.message
-      );
+      logger.error("application.error");
     }
 
     res.status(201).json(pedido);
@@ -376,10 +380,7 @@ router.post("/", permitirRoles("Usuario", "Admin", "Encargado"), recibirArchivos
       try {
         await eliminarArchivo(archivoGuardado.fileId);
       } catch (cleanupError) {
-        console.error(
-          "Error eliminando archivo huérfano:",
-          cleanupError
-        );
+        logger.error("application.error");
       }
     }
 
@@ -455,7 +456,7 @@ router.get("/:pedidoId/archivos/:fileId", async (req, res) => {
     bucket
       .openDownloadStream(gridFile._id)
       .on("error", (streamError) => {
-        console.error("Error leyendo archivo:", streamError);
+        logger.error("application.error");
 
         if (!res.headersSent) {
           res.status(500).json({
@@ -690,10 +691,7 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       try {
         await eliminarArchivo(archivo.fileId);
       } catch (cleanupError) {
-        console.error(
-          "Error eliminando adjunto retirado del pedido:",
-          cleanupError
-        );
+        logger.error("application.error");
       }
     }
 
@@ -701,10 +699,7 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       try {
         await sendStatusChangeNotification(pedido);
       } catch (emailError) {
-        console.error(
-          `Error enviando actualización de estado del pedido ${pedido._id}:`,
-          emailError.response?.data || emailError.message
-        );
+        logger.error("application.error");
       }
     }
 
@@ -714,10 +709,7 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       try {
         await eliminarArchivo(archivoGuardado.fileId);
       } catch (cleanupError) {
-        console.error(
-          "Error eliminando archivo huérfano:",
-          cleanupError
-        );
+        logger.error("application.error");
       }
     }
 

@@ -14,6 +14,7 @@ function Login() {
   const { setUser } = useContext(AuthContext);
   const [estadoSolicitud, setEstadoSolicitud] = useState(null);
   const [sesionExpirada, setSesionExpirada] = useState(false);
+  const [errorLogin, setErrorLogin] = useState("");
 
 const { instance } = useMsal();
 
@@ -31,6 +32,7 @@ const { instance } = useMsal();
   const loginMicrosoft = async () => {
 
   setSesionExpirada(false);
+  setErrorLogin("");
 
   try {
 
@@ -46,6 +48,7 @@ const { instance } = useMsal();
 
     const email =
       response.account.username;
+    if (response.idToken) localStorage.setItem("microsoftAuthToken", response.idToken);
 
     const acceso = await api.post(
       "/api/solicitudes-acceso",
@@ -80,10 +83,7 @@ const { instance } = useMsal();
 
   } catch (error) {
 
-    console.error(
-      "Error login Microsoft:",
-      error
-    );
+    setErrorLogin("No se pudo iniciar sesión. Vuelve a intentarlo.");
 
   }
 
@@ -109,6 +109,7 @@ const { instance } = useMsal();
         y seguimiento de compras
       </p>
 
+      {errorLogin && <p role="alert">{errorLogin}</p>}
       {sesionExpirada && (
         <div
           className="login-access-message login-session-expired-message"

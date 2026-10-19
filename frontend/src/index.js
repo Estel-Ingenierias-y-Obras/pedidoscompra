@@ -1,3 +1,4 @@
+import reportClientError from "./utils/reportClientError";
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
@@ -13,7 +14,7 @@ import { registerServiceWorker } from "./serviceWorkerRegistration.js";
 
 if (window.location.pathname === "/redirect") {
   broadcastResponseToMainFrame().catch((error) => {
-    console.error("Error procesando el retorno de Microsoft:", error);
+    reportClientError();
   });
 } else {
   const root = ReactDOM.createRoot(

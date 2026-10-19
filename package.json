@@ -1,5 +1,11 @@
 {
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.3.1"
+  "name": "pedidoscompra-workspace",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:backend && npm run test:frontend",
+    "audit:production": "npm --prefix backend audit --omit=dev --audit-level=moderate && npm --prefix frontend audit --omit=dev --audit-level=moderate",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend test -- --watchAll=false --runInBand",
+    "lint": "npm --prefix frontend run lint"
   }
 }

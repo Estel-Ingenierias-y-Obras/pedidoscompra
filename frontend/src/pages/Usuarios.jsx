@@ -1,3 +1,4 @@
+import reportClientError from "../utils/reportClientError";
 import Layout from "../components/Layout";
 import DeleteIconButton from "../components/DeleteIconButton";
 import AddPersonIconButton from "../components/AddPersonIconButton";
@@ -53,9 +54,7 @@ function Usuarios() {
     }
 
     cargarSolicitudes().catch(error =>
-      console.error(
-        "Error cargando solicitudes de acceso:", error
-      )
+      reportClientError()
     );
   }, [user?.rol]);
 
@@ -90,10 +89,7 @@ function Usuarios() {
 
   } catch (error) {
 
-    console.error(
-      "Error actualizando rol:",
-      error
-    );
+    reportClientError();
 
   }
 
@@ -129,10 +125,7 @@ const agregarUsuario = async () => {
 
   } catch (error) {
 
-    console.error(
-      "Error creando usuario:",
-      error
-    );
+    reportClientError();
 
   }
 
@@ -181,10 +174,7 @@ const confirmarEliminacion = async () => {
 
   } catch (error) {
 
-    console.error(
-      "Error eliminando usuario:",
-      error
-    );
+    reportClientError();
 
   }
 
@@ -220,7 +210,7 @@ const aprobarSolicitud = async () => {
     setSolicitudSeleccionada(null);
     mostrarNotificacion("Solicitud aprobada y usuario creado correctamente");
   } catch (error) {
-    console.error("Error aprobando solicitud de acceso:", error);
+    reportClientError();
     mostrarNotificacion(
       error.response?.data?.error || "No se pudo aprobar la solicitud",
       "error"
@@ -237,7 +227,7 @@ const rechazarSolicitud = async (solicitud) => {
     setSolicitudSeleccionada(null);
     mostrarNotificacion("Solicitud rechazada");
   } catch (error) {
-    console.error("Error rechazando solicitud de acceso:", error);
+    reportClientError();
     mostrarNotificacion(
       error.response?.data?.error || "No se pudo rechazar la solicitud",
       "error"

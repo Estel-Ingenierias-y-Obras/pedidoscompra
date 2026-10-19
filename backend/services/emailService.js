@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const axios = require("axios");
 
 const GRAPH_SCOPE = "https://graph.microsoft.com/.default";
@@ -16,11 +17,10 @@ const getAccessToken = async () => {
     scope: GRAPH_SCOPE,
     grant_type: "client_credentials"
   });
-  console.log("[EMAIL] Obteniendo token Microsoft Graph");
   const response = await axios.post(
     `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`,
     body.toString(),
-    { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 15000, maxRedirects: 0, proxy: false }
   );
   return response.data.access_token;
 };
@@ -306,14 +306,11 @@ const sendMail = async ({
   recipient,
   subject,
   body,
-  startMessage,
-  recipients,
-  successMessage
+  recipients
 }) => {
   const sender = requiredEnv("GRAPH_SENDER_EMAIL");
   const accessToken = await getAccessToken();
 
-  console.log(startMessage);
   const recipientList = recipients || [recipient];
 
   await axios.post(
@@ -332,10 +329,10 @@ const sendMail = async ({
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json"
-      }
+      }, timeout: 15000, maxRedirects: 0, proxy: false
     }
   );
-  console.log(successMessage);
+  logger.info("email.sent");
 };
 
 const sendPurchaseRequestNotification = async (pedido, recipients) => {
@@ -344,10 +341,7 @@ const sendPurchaseRequestNotification = async (pedido, recipients) => {
   await sendMail({
     recipients,
     subject: `Nueva solicitud de compra - ${pedido.proyecto}`,
-    body: buildPurchaseRequestBody(pedido, frontendUrl),
-    startMessage: `[EMAIL] Enviando notificación del pedido ${pedido._id}`,
-    successMessage:
-      `[EMAIL] Notificación enviada correctamente para el pedido ${pedido._id}`
+    body: buildPurchaseRequestBody(pedido, frontendUrl)
   });
 };
 
@@ -357,11 +351,7 @@ const sendStatusChangeNotification = async (pedido) => {
   await sendMail({
     recipient: pedido.email,
     subject: `Actualización de solicitud de compra - ${pedido.proyecto}`,
-    body: buildStatusChangeBody(pedido, frontendUrl),
-    startMessage:
-      `[EMAIL] Enviando actualización de estado del pedido ${pedido._id}`,
-    successMessage:
-      `[EMAIL] Actualización de estado enviada para el pedido ${pedido._id}`
+    body: buildStatusChangeBody(pedido, frontendUrl)
   });
 };
 
@@ -371,9 +361,7 @@ const sendAccessApprovedNotification = async ({ email, rol }) => {
   await sendMail({
     recipient: email,
     subject: "Acceso aprobado - Plataforma de Compras",
-    body: buildAccessApprovedBody(rol, frontendUrl),
-    startMessage: `[EMAIL] Enviando acceso aprobado a ${email}`,
-    successMessage: `[EMAIL] Acceso aprobado enviado a ${email}`
+    body: buildAccessApprovedBody(rol, frontendUrl)
   });
 };
 
@@ -383,11 +371,7 @@ const sendAccessRequestNotification = async ({ solicitud, recipients }) => {
   await sendMail({
     recipients,
     subject: "Nueva solicitud de acceso a la plataforma",
-    body: buildAccessRequestBody(solicitud, frontendUrl),
-    startMessage:
-      `[EMAIL] Enviando solicitud de acceso ${solicitud._id}`,
-    successMessage:
-      `[EMAIL] Solicitud de acceso enviada a ${recipients.length} destinatarios`
+    body: buildAccessRequestBody(solicitud, frontendUrl)
   });
 };
 

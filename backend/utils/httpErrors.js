@@ -1,10 +1,8 @@
-const obtenerMensajeErrorInterno = (error) =>
-  process.env.NODE_ENV === "production"
-    ? "Error interno del servidor"
-    : error.message;
+const logger = require("./logger");
+const obtenerMensajeErrorInterno = () => "No se pudo completar la operación. Inténtalo de nuevo.";
 
 const responderErrorInterno = (res, error, contexto = "Error interno") => {
-  console.error(contexto, error);
+  logger.error("application.error", { status: error.status || error.response?.status });
   res.status(500).json({ error: obtenerMensajeErrorInterno(error) });
 };
 
