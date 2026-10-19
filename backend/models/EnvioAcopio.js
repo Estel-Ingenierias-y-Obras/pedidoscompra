@@ -10,6 +10,7 @@ const schema = new mongoose.Schema({
   bcId: String,
   bcRequestId: String,
   creacionIntentada: { type: Boolean, default: false },
+  rechazoCreacion: { type: Boolean, default: false },
   numero: String,
   estado: { type: String, enum: ["borrador", "enviadoBC", "registrado", "error"], required: true },
   confirmadoBC: { type: Boolean, default: false, required: true },

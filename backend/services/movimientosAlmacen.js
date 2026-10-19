@@ -40,7 +40,47 @@ function crearServicio({ historial = EnvioAcopio, cliente = bc, recursos = obten
     return registros[0];
   };
   return {
-    obtenerEnviados: usuario => historial.find(alcance(usuario)).sort({ fechaEnvio: -1 }).lean(),
+    recuperarBorrador: async (solicitudId, usuario) => {
+      if (!UUID.test(solicitudId || "")) throw fallo("Referencia de envío no válida.");
+      const { confirmadoBC, ...scope } = alcance(usuario);
+      const op = await historial.findOne({ ...scope, solicitudId }).lean();
+      if (!op) throw fallo("No se encontró el envío original.", 404);
+      // Guardar el rechazo HTTP de creación permite recuperar cualquier validación,
+      // sin depender del idioma o formato del mensaje de BC. Los patrones solo
+      // cubren incidencias antiguas anteriores a ese dato persistido.
+      const rechazoProyecto = /Status\s+must\s+be\s+equal\s+to\s+['"]Open['"]\s+in\s+(?:Job|Project)\b/i.test(op.error || "");
+      const rechazoStock = /The\s+Total\s+Requested\s+quantity\s+of\s+item\b[\s\S]*\bexceeds\s+the\s+quantity\s+in\s+location\b/i.test(op.error || "");
+      const revision = () => fallo("El intento anterior requiere revisión en BC antes de volver a enviar. Puedes seguir editando el borrador.", 409, "GM_ACOPIO_REVIEW");
+      if (op.confirmadoBC || op.estado !== "error" || !(op.rechazoCreacion === true || rechazoProyecto || rechazoStock)) throw revision();
+      const solicitudes = await cliente.obtenerSolicitudAcopio(solicitudId);
+      if (solicitudes.length > 1) throw revision();
+      if (solicitudes.length === 1) {
+        const recibo = solicitudes[0];
+        if (recibo.claveintegracion?.toLowerCase() !== solicitudId.toLowerCase()
+          || recibo.creado !== false || recibo.registroiniciado !== false || recibo.registrado !== false
+          || !UUID.test(recibo.idacopio || "") || !recibo.numero) throw revision();
+        let ausente = false;
+        try { await cliente.obtenerCabeceraAcopio(recibo.idacopio); }
+        catch (error) { if (error.status !== 404) throw error; ausente = true; }
+        if (!ausente || (await cliente.obtenerLineasAcopio(recibo.numero)).length) throw revision();
+      }
+      // No borrar ni reutilizar la solicitud rechazada: AL conserva su recibo.
+      return { solicitudId, editable: true };
+    },
+    obtenerEnviados: async usuario => {
+      const envios = await historial.find(alcance(usuario)).sort({ fechaEnvio: -1 }).lean();
+      const registrado = envio => envio.estado === "registrado" && !!envio.comprobanteRegistro?.id && !!envio.fechaRegistro;
+      if (!envios.some(envio => !registrado(envio))) return envios;
+      // La existencia del borrador se consulta en BC, no en el recibo de creación:
+      // ese recibo se conserva incluso después de borrar o registrar el acopio.
+      const acopios = await cliente.obtenerAcopios();
+      if (!Array.isArray(acopios) || acopios.some(acopio => !UUID.test(acopio?.id || ""))) {
+        throw fallo("BC no devolvió una lista válida de acopios. No se pudo actualizar el listado.", 502);
+      }
+      const actuales = new Map(acopios.map(acopio => [acopio.id.toLowerCase(), acopio]));
+      return envios.filter(envio => registrado(envio) || actuales.has(envio.bcId?.toLowerCase()))
+        .map(envio => registrado(envio) ? envio : { ...envio, cabecera: { ...envio.cabecera, ...actuales.get(envio.bcId.toLowerCase()) } });
+    },
     obtenerDetalle: async (id, usuario) => {
       if (!UUID.test(id || "")) throw fallo("Identificador de movimiento no válido.");
       const envio = await historial.findOne({ ...alcance(usuario), bcId: id }).lean();
@@ -74,7 +114,10 @@ function crearServicio({ historial = EnvioAcopio, cliente = bc, recursos = obten
         const confirmado = await historial.findOneAndUpdate({ ...identidad, creadoPor: scope.creadoPor }, { $set: cambios }, { new: true }).lean();
         return respuesta(confirmado);
       } catch (error) {
-        await historial.updateOne({ ...identidad, confirmadoBC: false }, { $set: { estado: "error", error: error.seguro ? error.message : "Resultado del envío pendiente de confirmar." } });
+        await historial.updateOne({ ...identidad, confirmadoBC: false }, { $set: {
+          estado: "error", error: error.seguro ? error.message : "Resultado del envío pendiente de confirmar.",
+          rechazoCreacion: op.rechazoCreacion === true || (!creacionRespondio && error.status === 400 && !error.incierto)
+        } });
         if (error.status === 404 && !creacionRespondio && !op.creacionIntentada) {
           await historial.deleteOne({ ...identidad, confirmadoBC: false });
           throw fallo("Instala API-GestionMaterial 1.1.6 en el sandbox para habilitar solicitudesAcopio. No se ha confirmado ningún envío.", 501, "ACOPIO_API_NO_PUBLICADA");

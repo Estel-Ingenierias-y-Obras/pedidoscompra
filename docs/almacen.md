@@ -1,8 +1,63 @@
 # Integración del diario de almacén
 
+## Acopios en producción — 19/10/2026
+
+La página Movimientos de almacén crea un acopio completo con sus líneas mediante
+`POST solicitudesAcopio`. Desde Enviados a BC se registra mediante
+`POST solicitudesAcopio({idSolicitudAL})/Microsoft.NAV.registrar`. El registro
+continúa siendo una acción separada del envío.
+
+La única fuente de la extensión está en
+`C:\Users\javier.costa\Documents\AL\API-GestionMaterial`, versión
+`1.1.9.20261019`, basada en la versión 1.1.8 del mismo proyecto.
+La web no mantiene una copia de la extensión AL en su repositorio.
+Elimina la restricción `RequireSandbox` para crear y registrar; conserva los
+permisos, validaciones, claves de integración y comprobantes de la versión probada.
+Depende de Estel Customization de Dynasoft Spain SLU, versión mínima 1.6.8.20260727.
+
+Verificación GET en Production: proyectos, items, locations y las APIs anteriores
+del diario responden 200. acopios, lineasAcopio, solicitudesAcopio,
+recursosCandidatosAcopio y valoresDimensionAcopio responden 404.
+Se requiere instalar la extensión actualizada para poder enviar y registrar acopios.
+
+Secuencia de puesta en servicio:
+
+1. Abrir `C:\Users\javier.costa\Documents\AL\API-GestionMaterial` en VS Code
+   y compilar con AL: Package, o ejecutar
+   `scripts/Build-Posting.ps1 -Compiler <ruta-a-alc.exe>` desde ese proyecto,
+   usando los símbolos de producción y la dependencia Dynasoft.
+2. Instalar/actualizar el paquete 1.1.9.20261019 en el entorno Production de BC.
+3. Asignar GM ACOPIO LECTURA y GM ACOPIO API a la aplicación Entra en la empresa
+   ESTEL INGENIERIA Y OBRAS, junto con los permisos requeridos por el registro
+   estándar/partner. No conceder SUPER como sustituto.
+4. En backend/.env local y en las variables del backend desplegado, establecer
+   BC_ENVIRONMENT=Production, BC_COMPANY_ID=e2747643-9342-ed11-946f-000d3aa816c0
+   y BC_COMPANY_NAME="ESTEL INGENIERIA Y OBRAS". No cambiar credenciales de acceso
+   web ni trasladar secretos al frontend. Reiniciar el backend.
+5. Ejecutar `node backend/scripts/verificar-bc.js`; debe responder 200 también
+   para los cinco recursos de acopios. El script solo realiza consultas GET.
+6. Crear desde Movimientos de almacén un acopio real con datos elegidos por el
+   usuario; revisar en BC y registrar desde Enviados a BC. Verificar el histórico
+   y los movimientos antes de ampliar el uso.
+
+El `backend/.env` local está configurado para `Production`.
+`.env.example` es únicamente una plantilla sin valores de empresa ni entorno.
+El backend requiere un reinicio para cargar el cambio. Si se ejecuta en Render,
+actualizar también sus variables de entorno: el .env local no cambia el servidor.
+El cambio de BC_ENVIRONMENT afecta también a los demás módulos BC del backend.
+No trasladar al entorno real documentos, claves ni reintentos pendientes del sandbox.
+El historial del servidor está separado por entorno y empresa.
+
+Limitación heredada de las pruebas de 1.1.8: la rutina de registro del partner
+dejó Location Code vacío tanto en registro manual como API. Esta versión conserva
+ese comportamiento; no incorpora una corrección del stock por almacén. Las pruebas
+funcionales documentadas cubren Almacén → Proyecto; los otros recorridos requieren
+verificación específica. Un intento de registro de resultado desconocido se revisa
+en BC: no se borra ni reinicia su solicitud para repetir la contabilización.
+
 La versión AL 1.1.4.20261009 añade `ZONA = EM-ESPAÑA` a las dimensiones fijas, junto con `PROYECTO = ACEES24-001`. Se aplica al crear y al registrar líneas pendientes anteriores, conservando las demás dimensiones. El valor debe existir en BC, ser estándar y no estar bloqueado. Paquete compilado localmente; requiere instalación en el entorno de destino para aplicar la corrección.
 
-La extensión AL 1.1.3.20261009, disponible en `integrations/business-central`, asigna la dimensión fija `PROYECTO = ACEES24-001` después de producto, almacén y dimensiones globales. Conserva las demás dimensiones y valida que el valor exista, sea estándar y no esté bloqueado. Al registrar también aplica el valor al buffer de las líneas pendientes creadas por versiones anteriores, sin cambiar documento, SystemId ni clave de integración. No altera las solicitudes persistidas ni el contrato JSON de Node. Debe instalarse el paquete actualizado en BC antes de reintentar el registro; compilarlo no actualiza la extensión instalada.
+La extensión AL 1.1.3.20261009, conservada históricamente en el proyecto de Documents/AL, asigna la dimensión fija `PROYECTO = ACEES24-001` después de producto, almacén y dimensiones globales. Conserva las demás dimensiones y valida que el valor exista, sea estándar y no esté bloqueado. Al registrar también aplica el valor al buffer de las líneas pendientes creadas por versiones anteriores, sin cambiar documento, SystemId ni clave de integración. No altera las solicitudes persistidas ni el contrato JSON de Node. Debe instalarse el paquete actualizado en BC antes de reintentar el registro; compilarlo no actualiza la extensión instalada.
 
 La web vuelve al contrato del diario de productos restaurado por el usuario, conservando la corrección de registro de BC 1.0.4. El README-API.md disponible describe la creación anterior; README-REGISTRO.md no está en este repositorio. El contrato de registro se ha contrastado con la solicitud de restauración.
 

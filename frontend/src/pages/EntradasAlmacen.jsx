@@ -5,7 +5,8 @@ import Layout from "../components/Layout";
 import DiarioAlmacen from "../components/DiarioAlmacen";
 import NotificationToast from "../components/NotificationToast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faRotate, faCheck, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faCheck, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
+import ActualizarDatosButton from "../components/ActualizarDatosButton";
 import * as servicio from "../services/almacen";
 import { prepararEntrada, filaDesdeOperacion } from "../services/almacenPayload";
 import "./Almacen.css";
@@ -100,7 +101,7 @@ export default function EntradasAlmacen() {
     <div className="page-content bc-journal-card">
     <div className="bc-command-bar">
       <button onClick={nueva} disabled={cargando || ocupado || !!error || !!errorStorage || !productos.length || !tiposProyecto.length}><FontAwesomeIcon icon={faPlus} /> Nueva línea</button>
-      <button disabled={ocupado || cargando} onClick={() => setIntento(valor => valor + 1)}><FontAwesomeIcon icon={faRotate} /> Actualizar datos</button>
+      <ActualizarDatosButton disabled={ocupado || cargando} onClick={() => setIntento(valor => valor + 1)} />
       <Link className="bc-command-link" to="/material/almacen/enviados"><FontAwesomeIcon icon={faClockRotateLeft} /> Enviados a BC</Link>
       <span className="bc-save-state"><FontAwesomeIcon icon={faCheck} /> {ocupado ? "Procesando…" : filas.length ? "Borradores conservados" : "Actualizado"}</span>
     </div>

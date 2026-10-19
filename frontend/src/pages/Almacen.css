@@ -10,6 +10,21 @@
 .bc-command-bar .movement-send { background: var(--brand-navy); color: white; }
 .bc-command-bar .movement-send svg { color: white; }
 .movement-detail { max-height: 65vh; overflow: auto; }
+.movement-detail .movement-readonly-data { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+.journal-actions.movement-modal-actions button { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-width: 44px; height: 40px; padding: 0; font-size: 18px; }
+.movement-sent-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.bc-command-bar [role="tablist"] button[role="tab"] { background: transparent; color: var(--brand-navy); }
+.bc-command-bar [role="tablist"] button[aria-selected="true"] { background: var(--brand-navy); color: white; }
+@media (min-width: 901px) {
+  .warehouse-entries-table.gestion-pedidos-table.movement-sent-table th,
+  .warehouse-entries-table.gestion-pedidos-table.movement-sent-table td { width: auto; min-width: 0; padding: 10px 12px; text-align: left; }
+  .movement-sent-table .movement-col-date { width: 17%; }
+  .movement-sent-table .movement-col-number { width: 12%; }
+  .movement-sent-table .movement-col-route { width: 16%; }
+  .movement-sent-table .movement-col-applicant { width: 26%; }
+  .movement-sent-table .movement-col-status { width: 13%; }
+}
+@media (max-width: 600px) { .movement-detail .movement-readonly-data { grid-template-columns: minmax(0, 1fr); } }
 .movement-readonly-data { margin: 0 0 16px; }
 .movement-readonly-data > div { padding: 6px 0; border-bottom: 1px solid var(--border-soft); }
 .movement-readonly-data dt { font-weight: 600; color: var(--brand-navy); }
@@ -67,6 +82,9 @@ a.module-card:hover, a.module-card:focus-visible { background: #eff8f8; border-c
 .bc-command-bar button:hover:not(:disabled) { background: var(--surface-muted); color: var(--brand-navy); }
 .bc-command-bar button:first-child:hover:not(:disabled) { background: var(--brand-blue-hover); color: white; }
 .bc-command-bar button:disabled { opacity: .45; cursor: not-allowed; }
+.bc-command-bar button.bc-refresh-button { background: transparent; color: var(--brand-navy); }
+.bc-command-bar button.bc-refresh-button svg { color: var(--brand-navy); }
+.bc-command-bar button.bc-refresh-button:hover:not(:disabled) { background: var(--surface-muted); color: var(--brand-navy); }
 .bc-command-bar .bc-command-link { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 4px; color: var(--brand-navy); font-size: 15px; text-decoration: none; }
 .bc-command-bar .bc-command-link:hover { background: var(--surface-muted); }
 .bc-command-bar .bc-command-link:focus-visible { outline: 2px solid #008489; outline-offset: 2px; }

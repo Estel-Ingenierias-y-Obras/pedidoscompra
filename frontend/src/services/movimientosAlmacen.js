@@ -20,6 +20,7 @@ export function construirMovimiento(documento) {
 }
 // La creación y el registro son llamadas separadas; nunca se registra al enviar.
 export const enviarMovimiento = documento => api.post("/api/almacen/movimientos", documento.cuerpoEnviado || construirMovimiento(documento)).then(res => res.data);
+export const recuperarBorradorMovimiento = id => api.get(`/api/almacen/movimientos/solicitudes/${encodeURIComponent(id)}/recuperacion`).then(res => res.data);
 export const registrarMovimiento = ({ id, claveintegracion }) => api.post(`/api/almacen/movimientos/${encodeURIComponent(id)}/registrar`, { claveintegracion }).then(res => res.data);
 export const obtenerMovimientosEnviados = () => api.get("/api/almacen/movimientos/enviados").then(res => res.data);
 export const obtenerDetalleMovimiento = id => api.get(`/api/almacen/movimientos/enviados/${encodeURIComponent(id)}`).then(res => res.data);

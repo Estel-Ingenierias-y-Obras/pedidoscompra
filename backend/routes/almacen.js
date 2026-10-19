@@ -33,6 +33,7 @@ router.post("/entradas/:id/registrar", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 router.get("/movimientos", lectura(() => bc.obtenerAcopios()));
+router.get("/movimientos/solicitudes/:id/recuperacion", lectura(req => movimientos.recuperarBorrador(req.params.id, req.usuarioActual)));
 router.get("/movimientos/enviados", lectura(req => movimientos.obtenerEnviados(req.usuarioActual)));
 router.get("/movimientos/enviados/:id", lectura(req => movimientos.obtenerDetalle(req.params.id, req.usuarioActual)));
 router.post("/movimientos", lectura(req => movimientos.enviar(req.body, req.usuarioActual)));

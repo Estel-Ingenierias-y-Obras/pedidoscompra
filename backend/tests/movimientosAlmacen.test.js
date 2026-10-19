@@ -23,6 +23,7 @@ function escenario() {
   };
   const recibo = { id: request, claveintegracion: key, idacopio: doc, numero: "AC-000011", creado: true, registrado: false };
   const cliente = {
+    obtenerAcopios: async () => [{ id: doc, numero: "AC-000011", origen: "A1", destino: "P1" }],
     crearAcopio: async cuerpo => { envios++; assert.equal(cuerpo.solicitudId, key); },
     obtenerSolicitudAcopio: async () => [recibo],
     obtenerCabeceraAcopio: async () => ({ id: doc, origen: "A1", destino: "P1" }),
@@ -83,9 +84,116 @@ test("un diálogo posterior al registro se reconcilia con evidencia sin volver a
   assert.equal(resultado.registrado, true); assert.equal(llamadas, 2); assert.equal(contabilizaciones, 1);
 });
 test("historial exige identidad y respeta usuario, empresa y entorno", async () => {
-  const e = escenario(); assert.throws(() => e.servicio.obtenerEnviados({}), { status: 401 });
+  const e = escenario(); await assert.rejects(e.servicio.obtenerEnviados({}), { status: 401 });
   await e.servicio.enviar(datos(), usuario);
   assert.equal((await e.servicio.obtenerEnviados(usuario)).length, 1);
   assert.deepEqual(await e.servicio.obtenerEnviados({ email: "otro@example.com" }), []);
   await assert.rejects(e.servicio.obtenerDetalle(doc, { email: "otro@example.com" }), { status: 404 });
+});
+
+test("actualizar enviados consulta BC y oculta los acopios borrados conservando la auditoría", async () => {
+  const e = escenario(); await e.servicio.enviar(datos(), usuario);
+  assert.equal((await e.servicio.obtenerEnviados(usuario)).length, 1);
+  e.registro().estado = "error";
+  e.cliente.obtenerAcopios = async () => [];
+  const original = structuredClone(e.registro());
+  assert.deepEqual(await e.servicio.obtenerEnviados(usuario), []);
+  assert.deepEqual(e.registro(), original);
+});
+
+test("el historial conserva los registros confirmados aunque ya no exista el borrador en BC", async () => {
+  const e = escenario(); await e.servicio.enviar(datos(), usuario);
+  await e.servicio.registrar({ id: doc, claveintegracion: key }, usuario);
+  e.cliente.obtenerAcopios = async () => [];
+  const envios = await e.servicio.obtenerEnviados(usuario);
+  assert.equal(envios.length, 1);
+  assert.equal(envios[0].estado, "registrado");
+  assert.ok(envios[0].comprobanteRegistro.id);
+});
+
+test("los fallos de BC no se interpretan como acopios borrados", async () => {
+  const e = escenario(); await e.servicio.enviar(datos(), usuario);
+  e.cliente.obtenerAcopios = async () => { throw Object.assign(new Error("Sin permiso"), { status: 403 }); };
+  await assert.rejects(e.servicio.obtenerEnviados(usuario), { status: 403 });
+  assert.equal(e.registro().confirmadoBC, true);
+  e.cliente.obtenerAcopios = async () => [{ numero: "sin identificador" }];
+  await assert.rejects(e.servicio.obtenerEnviados(usuario), { status: 502 });
+});
+
+test("actualiza los datos visibles con BC y compara los UUID sin distinguir mayúsculas", async () => {
+  const e = escenario(); await e.servicio.enviar(datos(), usuario);
+  e.cliente.obtenerAcopios = async () => [{ id: doc.toUpperCase(), origen: "NUEVO", nombresolicitante: "Nombre actual" }];
+  const envios = await e.servicio.obtenerEnviados(usuario);
+  assert.equal(envios.length, 1);
+  assert.equal(envios[0].cabecera.origen, "NUEVO");
+  assert.equal(envios[0].cabecera.nombresolicitante, "Nombre actual");
+  assert.equal(e.registro().cabecera.origen, "A1");
+});
+
+async function rechazoProyecto(e) {
+  e.cliente.crearAcopio = async () => { throw Object.assign(new Error("Status must be equal to 'Open'  in Project: No.=PSOS25-413. Current value is 'Completed'.  "), { status: 400, seguro: true }); };
+  Object.assign(e.recibo, { creado: false, registroiniciado: false, registrado: false });
+  await assert.rejects(e.servicio.enviar(datos(), usuario), { status: 409 });
+}
+
+test("recupera proyecto cerrado solo tras comprobar que no hay cabecera ni líneas, conservando la solicitud", async () => {
+  const e = escenario(); await rechazoProyecto(e);
+  e.cliente.obtenerCabeceraAcopio = async () => { throw Object.assign(new Error("No existe"), { status: 404 }); };
+  e.cliente.obtenerLineasAcopio = async () => [];
+  const original = structuredClone(e.registro());
+  assert.deepEqual(await e.servicio.recuperarBorrador(key, usuario), { solicitudId: key, editable: true });
+  assert.deepEqual(e.registro(), original);
+  assert.equal(e.registros(), 0);
+  await assert.rejects(e.servicio.recuperarBorrador(key, { email: "otro@example.com" }), { status: 404 });
+});
+
+test("recuperación no desbloquea si hay documentos, líneas, registro iniciado o una consulta falla", async () => {
+  const e = escenario(); await rechazoProyecto(e);
+  await assert.rejects(e.servicio.recuperarBorrador(key, usuario), { status: 409 });
+  e.cliente.obtenerCabeceraAcopio = async () => { throw Object.assign(new Error("No existe"), { status: 404 }); };
+  await assert.rejects(e.servicio.recuperarBorrador(key, usuario), { status: 409 });
+  e.cliente.obtenerLineasAcopio = async () => [];
+  e.recibo.registroiniciado = true;
+  await assert.rejects(e.servicio.recuperarBorrador(key, usuario), { status: 409 });
+  e.recibo.registroiniciado = false;
+  e.cliente.obtenerCabeceraAcopio = async () => { throw Object.assign(new Error("Sin permiso"), { status: 403 }); };
+  await assert.rejects(e.servicio.recuperarBorrador(key, usuario), { status: 403 });
+});
+
+test("un timeout no puede convertirse en un borrador editable", async () => {
+  const e = escenario();
+  e.cliente.crearAcopio = async () => { throw Object.assign(new Error("Sin respuesta"), { incierto: true }); };
+  await assert.rejects(e.servicio.enviar(datos(), usuario));
+  await assert.rejects(e.servicio.recuperarBorrador(key, usuario), { status: 409 });
+});
+
+test("una validación de creación permite corregir otros datos sin depender del texto del error", async () => {
+  const e = escenario();
+  e.cliente.crearAcopio = async () => { throw Object.assign(new Error("Validación de dimensiones"), { status: 400, seguro: true, incierto: false }); };
+  Object.assign(e.recibo, { creado: false, registroiniciado: false, registrado: false });
+  await assert.rejects(e.servicio.enviar(datos(), usuario), { status: 409 });
+  assert.equal(e.registro().rechazoCreacion, true);
+  e.cliente.obtenerCabeceraAcopio = async () => { throw Object.assign(new Error("No existe"), { status: 404 }); };
+  e.cliente.obtenerLineasAcopio = async () => [];
+  assert.equal((await e.servicio.recuperarBorrador(key, usuario)).editable, true);
+});
+
+test("recupera el rechazo histórico de existencias sin flag, sin borrar ni repetir el intento", async () => {
+  const e = escenario(); await rechazoProyecto(e);
+  e.registro().rechazoCreacion = undefined;
+  e.registro().error = "The Total Requested quantity of item ARTEL000000179 (1) exceeds the quantity in location ALM.ESPAÑA (0)  ";
+  e.cliente.obtenerCabeceraAcopio = async () => { throw Object.assign(new Error("No existe"), { status: 404 }); };
+  e.cliente.obtenerLineasAcopio = async () => [];
+  assert.equal((await e.servicio.recuperarBorrador(key, usuario)).editable, true);
+  assert.ok(e.registro());
+  assert.equal(e.registros(), 0);
+});
+
+test("una validación después de un timeout no demuestra que el primer intento no se ejecutó", async () => {
+  const e = escenario();
+  e.cliente.crearAcopio = async () => { throw Object.assign(new Error("Validación"), { status: 400, seguro: true, incierto: true }); };
+  Object.assign(e.recibo, { creado: false, registroiniciado: false, registrado: false });
+  await assert.rejects(e.servicio.enviar(datos(), usuario));
+  assert.equal(e.registro().rechazoCreacion, false);
+  await assert.rejects(e.servicio.recuperarBorrador(key, usuario), { status: 409 });
 });

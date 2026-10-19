@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRotate } from "@fortawesome/free-solid-svg-icons";
+import ActualizarDatosButton from "../components/ActualizarDatosButton";
 import Layout from "../components/Layout";
 import { obtenerStock } from "../services/almacen";
 import "./Almacen.css";
@@ -47,7 +46,7 @@ export default function StockAlmacen() {
       <header className="page-header"><Link className="back-link" to="/material/almacen">← Almacén</Link><h1>Stock actual</h1><p className="page-subtitle">Almacén CENTRAL 3 · Existencias en unidad de medida base</p></header>
       <div className="page-content bc-journal-card">
         <div className="bc-command-bar">
-          <button disabled={cargando} onClick={() => setIntento(valor => valor + 1)}><FontAwesomeIcon icon={faRotate} /> Actualizar datos</button>
+          <ActualizarDatosButton disabled={cargando} onClick={() => setIntento(valor => valor + 1)} />
         </div>
         <div className="bc-journal-content warehouse-page" aria-busy={cargando}>
           <div className="stock-search">
