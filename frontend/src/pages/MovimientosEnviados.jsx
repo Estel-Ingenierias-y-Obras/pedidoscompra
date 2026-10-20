@@ -57,8 +57,8 @@ export default function MovimientosEnviados() {
       .finally(() => { if (activo) setCargandoDetalle(false); });
     return () => { activo = false; };
   }, [seleccion, vista]);
-  const abrir = movimiento => { if (!cargando && !enVuelo.current) { setSeleccion(movimiento); setVista("acciones"); setErrorModal(""); } };
-  const cerrar = () => { if (!enVuelo.current) { if (vista === "detalle") setVista("acciones"); else setSeleccion(null); } };
+  const abrir = movimiento => { if (!cargando && !enVuelo.current) { setSeleccion(movimiento); setVista(historial ? "detalle" : "acciones"); setErrorModal(""); } };
+  const cerrar = () => { if (!enVuelo.current) { if (vista === "detalle" && !historial) setVista("acciones"); else setSeleccion(null); } };
   const registrar = async () => {
     if (enVuelo.current || seleccion?.estado === "registrado") return;
     enVuelo.current = true; versionDatos.current++; setRegistrando(true); setErrorModal(""); setMensaje("");
@@ -75,6 +75,7 @@ export default function MovimientosEnviados() {
     } finally { enVuelo.current = false; setRegistrando(false); }
   };
   const visibles = movimientos.filter(m => historial ? registroConfirmado(m) : !registroConfirmado(m));
+  const datosDetalle = detalle?.bcId === seleccion?.bcId ? detalle : seleccion;
   if (historial) visibles.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
   return <Layout><NotificationToast message={mensaje} onClose={() => setMensaje("")} /><section className="bc-journal-page">
     <header className="page-header"><Link className="back-link" to="/material/almacen/movimientos">← Movimientos de Almacén</Link><h1>Enviados a BC</h1><p className="page-subtitle">Movimientos de almacén · tus envíos confirmados</p></header>
@@ -86,19 +87,18 @@ export default function MovimientosEnviados() {
       </div>
     </div>
       {error && <p role="alert" className="journal-error">{error}</p>}{cargando && <p role="status">Cargando movimientos enviados…</p>}
-      <div className="warehouse-table-container" role="tabpanel" id="acopios-listado" aria-labelledby={historial ? "acopios-historial" : "acopios-pendientes"}><table className="warehouse-entries-table gestion-pedidos-table movement-sent-table"><colgroup><col className="movement-col-date" /><col className="movement-col-number" /><col className="movement-col-route" /><col className="movement-col-route" /><col className="movement-col-applicant" /><col className="movement-col-status" /></colgroup><thead><tr>{[historial ? "Fecha de registro" : "Fecha", "Nº Movimiento", "Origen", "Destino", "Solicitante", "Estado"].map(c => <th key={c} scope="col">{c}</th>)}</tr></thead><tbody>
+      <div className="warehouse-table-container" role="tabpanel" id="acopios-listado" aria-labelledby={historial ? "acopios-historial" : "acopios-pendientes"}><table className="warehouse-entries-table gestion-pedidos-table movement-sent-table"><colgroup><col className="movement-col-date" /><col className="movement-col-number" /><col className="movement-col-route" /><col className="movement-col-route" /><col className="movement-col-applicant" />{!historial && <col className="movement-col-status" />}</colgroup><thead><tr>{[historial ? "Fecha de registro" : "Fecha", "Nº Movimiento", "Origen", "Destino", "Solicitante", ...(!historial ? ["Estado"] : [])].map(c => <th key={c} scope="col">{c}</th>)}</tr></thead><tbody>
         {visibles.map(m => <tr key={m.bcId} tabIndex={cargando ? -1 : 0} aria-label={`Abrir movimiento ${m.numero}`} onClick={() => abrir(m)} onKeyDown={event => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); abrir(m); } }}>
-          <td data-label={historial ? "Fecha de registro" : "Fecha"}>{fecha(historial ? m.fechaRegistro : m.fechaEnvio)}</td><td data-label="Nº Movimiento">{m.numero}</td><td data-label="Origen">{m.cabecera.origen}</td><td data-label="Destino">{m.cabecera.destino}</td><td data-label="Solicitante">{m.cabecera.nombresolicitante || m.cabecera.solicitante}</td><td data-label="Estado">{estados[m.estado] || "Error"}</td>
+          <td data-label={historial ? "Fecha de registro" : "Fecha"}>{fecha(historial ? m.fechaRegistro : m.fechaEnvio)}</td><td data-label="Nº Movimiento">{m.numero}</td><td data-label="Origen">{m.cabecera.origen}</td><td data-label="Destino">{m.cabecera.destino}</td><td data-label="Solicitante">{m.cabecera.nombresolicitante || m.cabecera.solicitante}</td>{!historial && <td data-label="Estado">{estados[m.estado] || "Error"}</td>}
         </tr>)}
-        {!cargando && !error && !visibles.length && <tr><td colSpan={6}>{historial ? "No hay acopios registrados." : "No hay movimientos pendientes de registrar."}</td></tr>}
+        {!cargando && !error && !visibles.length && <tr><td colSpan={historial ? 5 : 6}>{historial ? "No hay acopios registrados." : "No hay movimientos pendientes de registrar."}</td></tr>}
       </tbody></table></div>
     </div>
     {seleccion && <ModalShell key={vista} onClose={cerrar} ariaLabel={vista === "acciones" ? `Movimiento ${seleccion.numero}` : `Visualizar movimiento ${seleccion.numero}`}>
       <h2>{seleccion.numero}</h2>
       {errorModal && <p role="alert" className="journal-error">{errorModal}</p>}
       {vista === "acciones" ? <><p>{estados[seleccion.estado]}</p><div className="journal-actions movement-modal-actions"><button aria-label="Visualizar" title="Visualizar" onClick={() => { setVista("detalle"); setErrorModal(""); }} disabled={registrando}><FontAwesomeIcon icon={faEye} /></button>{!registroConfirmado(seleccion) && <button aria-label={registrando ? "Registrando…" : "Registrar"} title="Registrar" onClick={registrar} disabled={registrando || seleccion.estado === "registrado"}><FontAwesomeIcon icon={faPaperPlane} /></button>}</div></> : <>
-        {cargandoDetalle && <p role="status">Cargando detalle…</p>}
-        {detalle && <div className="movement-detail"><DatosEnviados datos={{ ...detalle.datosEnviados?.cabecera, ...detalle.cabecera }} /></div>}
+        <div className="movement-detail" aria-busy={cargandoDetalle}><DatosEnviados datos={{ ...datosDetalle.datosEnviados?.cabecera, ...datosDetalle.cabecera }} /></div>
       </>}
     </ModalShell>}
   </section></Layout>;

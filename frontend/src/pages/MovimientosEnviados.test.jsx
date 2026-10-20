@@ -45,10 +45,15 @@ test("registro necesita comprobante verificable antes de actualizar el estado", 
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(screen.queryByRole("row", { name: "Abrir movimiento AC-000011" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: "Historial de registros" }));
-  expect(within(screen.getByRole("row", { name: "Abrir movimiento AC-000011" })).getByText("Registrado")).toBeInTheDocument();
+  expect(screen.getByRole("row", { name: "Abrir movimiento AC-000011" })).toBeInTheDocument();
+  expect(screen.queryByRole("columnheader", { name: "Estado" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("row", { name: "Abrir movimiento AC-000011" }));
-  expect(screen.getByRole("button", { name: "Visualizar" })).toBeInTheDocument();
+  const modal = screen.getByRole("dialog", { name: "Visualizar movimiento AC-000011" });
+  expect(await within(modal).findByText("Tipo de origen")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Visualizar" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Registrar" })).not.toBeInTheDocument();
+  fireEvent.click(within(modal).getByRole("button", { name: "Cerrar modal" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
 test("separa los registros confirmados y muestra únicamente los nueve campos solicitados", async () => {

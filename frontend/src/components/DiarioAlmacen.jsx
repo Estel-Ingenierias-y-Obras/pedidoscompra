@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { modosMonetarios } from "../services/almacenPayload";
 import DeleteIconButton from "./DeleteIconButton";
+import BuscadorMovimiento from "./BuscadorMovimiento";
 import * as servicio from "../services/almacen";
 
 export const columnasDiario = [
@@ -28,6 +29,7 @@ function SelectorDiario({ children, ...props }) {
 }
 
 function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, guardar, corregir, ocupado, seleccion, seleccionar, columnas, informarCatalogos }) {
+  const opcionesProductos = useMemo(() => productos.map(item => ({ codigo: item.numprod, nombre: item.descripcion })), [productos]);
   const [catalogos, setCatalogos] = useState({ producto: "", unidades: [], movimientos: [], cargando: false, error: "" });
   const [intento, setIntento] = useState(0);
   const bloqueada = fila.estado !== "borrador";
@@ -75,9 +77,7 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
     let control;
     if (Object.prototype.hasOwnProperty.call(fijos, campo)) control = fijos[campo];
     else if (bloqueada) control = ["preciounitario", "importe", "costeunitario"].includes(campo) ? (fila.modoMonetario === campo ? fila.valorMonetario : "") : fila[campo] || (campo === "codudmedida" ? "Inicializa BC" : "—");
-    else if (campo === "numprod") control = <SelectorDiario aria-label={label} disabled={deshabilitado} value={fila.numprod} onChange={e => modificar({ numprod: e.target.value, codudmedida: "", liqpornumorden: 0 })}>
-      <option value="">Seleccionar producto</option>{productos.map(item => <option key={item.id || item.numprod} value={item.numprod}>{item.numprod} · {item.descripcion}</option>)}
-    </SelectorDiario>;
+    else if (campo === "numprod") control = <BuscadorMovimiento label={label} opciones={opcionesProductos} disabled={deshabilitado} value={fila.numprod} onChange={codigo => modificar({ numprod: codigo, codudmedida: "", liqpornumorden: 0 })} />;
     else if (campo === "codudmedida" && !catalogos.unidades.length) control = "";
     else if (campo === "codudmedida") control = <SelectorDiario aria-label={label} disabled={deshabilitado || catalogos.cargando} value={fila.codudmedida} onChange={e => modificar({ codudmedida: e.target.value })}>
       <option value="">Inicializa BC{producto?.codudmedida ? ` (${producto.codudmedida})` : ""}</option>{catalogos.unidades.map(item => <option key={item.id || item.codigo} value={item.codigo}>{item.codigo} · factor {item.factor}</option>)}

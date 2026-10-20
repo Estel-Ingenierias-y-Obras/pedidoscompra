@@ -11,7 +11,11 @@ test("producto limpia unidad y movimiento; proyectos muestran nombres y respetan
   await waitFor(() => expect(screen.getByRole("button", { name: "Enviar a BC" })).not.toBeDisabled());
   expect(screen.getByRole("option", { name: "Estructura (INDIRECTO)" })).toHaveValue("INDIRECTO");
   expect(screen.queryByRole("option", { name: "Obra (DIRECTO)" })).not.toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText("Nº producto, fila 1"), { target: { value: "B" } });
+  const buscador = screen.getByRole("combobox", { name: "Nº producto, fila 1" });
+  fireEvent.focus(buscador);
+  fireEvent.change(buscador, { target: { value: "caja" } });
+  expect(screen.queryByRole("option", { name: "A · Cable" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("option", { name: "B · Caja" }));
   expect(opciones.cambiar).toHaveBeenCalledWith("fila-1", { numprod: "B", codudmedida: "", liqpornumorden: 0 });
   expect(screen.queryByLabelText("Importe dto., fila 1")).not.toBeInTheDocument();
 });
