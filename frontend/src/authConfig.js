@@ -11,9 +11,8 @@ export const msalConfig = {
         process.env.REACT_APP_ENTRA_TENANT_ID ||
         "39ccbc87-eacc-4a33-bafb-312252fe0725"
       }`,
-    redirectUri:
-      process.env.REACT_APP_ENTRA_REDIRECT_URI ||
-      `${window.location.origin}/redirect`
+    // El bridge usa BroadcastChannel: debe compartir origen con la ventana principal.
+    redirectUri: `${window.location.origin}/redirect`
   }
 };
 

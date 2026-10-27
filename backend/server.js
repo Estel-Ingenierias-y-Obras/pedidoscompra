@@ -19,28 +19,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 const frontendBuildPath = path.join(__dirname, "../frontend/build");
 
-const configurarCors = () => {
-  const origenesPermitidos = new Set(process.env.NODE_ENV === "production" ? [] : [
-    "http://localhost:3000", "http://localhost:5000"
-  ]);
-
-  if (process.env.FRONTEND_URL) {
-    origenesPermitidos.add(process.env.FRONTEND_URL);
-  }
-
-  return {
-    origin: (origin, callback) => {
-      if (!origin || origenesPermitidos.has(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("Origen no permitido por CORS"));
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  };
-};
+const { configurarCors } = require("./services/webConfig");
 
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -126,7 +105,7 @@ if (process.env.NODE_ENV === "production") {
 app.use((error, req, res, next) => {
   logger.error("http.request_failed", { status: error.status });
   if (res.headersSent) return next(error);
-  res.status(error.status === 413 ? 413 : error.status === 400 ? 400 : 500)
+  res.status(error.status === 413 ? 413 : error.status === 400 ? 400 : error.status === 403 ? 403 : 500)
     .json({ error: error.status === 413 ? "La solicitud supera el tamaño permitido" : "No se pudo procesar la solicitud" });
 });
 

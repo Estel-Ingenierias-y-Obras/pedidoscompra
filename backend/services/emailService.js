@@ -1,3 +1,4 @@
+const { frontendOrigin } = require("./webConfig");
 const logger = require("../utils/logger");
 const axios = require("axios");
 
@@ -336,7 +337,7 @@ const sendMail = async ({
 };
 
 const sendPurchaseRequestNotification = async (pedido, recipients) => {
-  const frontendUrl = requiredEnv("FRONTEND_URL");
+  const frontendUrl = frontendOrigin();
 
   await sendMail({
     recipients,
@@ -346,7 +347,7 @@ const sendPurchaseRequestNotification = async (pedido, recipients) => {
 };
 
 const sendStatusChangeNotification = async (pedido) => {
-  const frontendUrl = requiredEnv("FRONTEND_URL");
+  const frontendUrl = frontendOrigin();
 
   await sendMail({
     recipient: pedido.email,
@@ -356,7 +357,7 @@ const sendStatusChangeNotification = async (pedido) => {
 };
 
 const sendAccessApprovedNotification = async ({ email, rol }) => {
-  const frontendUrl = requiredEnv("FRONTEND_URL");
+  const frontendUrl = frontendOrigin();
 
   await sendMail({
     recipient: email,
@@ -366,7 +367,7 @@ const sendAccessApprovedNotification = async ({ email, rol }) => {
 };
 
 const sendAccessRequestNotification = async ({ solicitud, recipients }) => {
-  const frontendUrl = requiredEnv("FRONTEND_URL");
+  const frontendUrl = frontendOrigin();
 
   await sendMail({
     recipients,

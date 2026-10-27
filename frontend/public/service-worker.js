@@ -1,4 +1,4 @@
-const CACHE_NAME = "pedidos-compra-shell-v1";
+const CACHE_NAME = "pedidos-compra-shell-v3";
 const APP_SHELL = ["/", "/manifest.json", "/android-chrome-192x192.png"];
 
 self.addEventListener("install", (event) => {
@@ -20,7 +20,9 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
-  if (request.method !== "GET" || request.mode !== "navigate") {
+  if (request.method !== "GET" || request.mode !== "navigate" ||
+      new URL(request.url).pathname === "/redirect" ||
+      new URL(request.url).pathname.startsWith("/api/")) {
     return;
   }
 
