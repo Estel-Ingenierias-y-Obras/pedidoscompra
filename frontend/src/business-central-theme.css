@@ -976,7 +976,7 @@ table select {
 
   .edit-order-modal-wide .request-lines-header,
   .edit-order-modal-wide .request-line {
-    grid-template-columns: minmax(150px, 1.5fr) minmax(100px, 0.8fr) minmax(85px, 0.65fr) 80px minmax(110px, 1fr) 38px;
+    grid-template-columns: minmax(150px, 1.5fr) minmax(100px, 0.8fr) minmax(140px, 1fr) 80px minmax(110px, 1fr) 38px;
   }
 
   .edit-order-modal-wide .request-line > label {
@@ -5730,7 +5730,7 @@ table .delete-icon-button {
 .request-lines-header,
 .request-line {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) 112px 105px 90px minmax(150px, 1fr) 38px;
+  grid-template-columns: minmax(180px, 1.2fr) 112px minmax(150px, 1fr) 90px minmax(150px, 1fr) 38px;
   gap: 0;
   align-items: stretch;
 }
@@ -5898,7 +5898,7 @@ table .delete-icon-button {
 .request-items-table-header,
 .request-items-table-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(100px, 0.6fr) 76px minmax(80px, 0.5fr);
+  grid-template-columns: minmax(150px, 1fr) minmax(100px, 0.6fr) minmax(150px, 1fr) 76px;
   gap: 10px;
   align-items: center;
   padding: 9px 11px;
@@ -5993,6 +5993,7 @@ table .delete-icon-button {
     text-transform: uppercase;
   }
   .request-line-material,
+  .request-line-description,
   .request-line-observation { grid-column: 1 / -1; }
   .request-line-readonly {
     display: grid;

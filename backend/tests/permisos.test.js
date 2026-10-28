@@ -17,6 +17,7 @@ auth.obtenerUsuarioActual = (req, res, next) => {
   next();
 };
 emails.sendStatusChangeNotification = async () => {};
+emails.sendPurchaseRequestNotification = async () => {};
 const app = express();
 app.use(express.json());
 app.use("/api/pedidos", require("../routes/pedidos"));
@@ -48,6 +49,59 @@ const request = (role, method = "GET", path = "/api/pedidos", body) => fetch(bas
   method,
   headers: { ...(role ? { "x-test-role": role } : {}), "Content-Type": "application/json" },
   ...(body ? { body: JSON.stringify(body) } : {})
+});
+
+test("catálogo admite cantidad y coste cero sin nombre ni unidad y valida valores", async () => {
+  let recibido;
+  mock.method(Material, "create", async datos => { recibido = datos; return { _id: id, ...datos }; });
+  const datos = { referencia: "MAT001", descripcion: "Cable", cantidad: 0, coste: 0 };
+  const respuesta = await request("Admin", "POST", "/api/materiales", datos);
+  assert.equal(respuesta.status, 201);
+  assert.equal((await respuesta.json()).cantidad, 0);
+  assert.equal(recibido.referencia, "MAT001");
+  for (const cantidad of [-1, "2", null]) {
+    assert.equal((await request("Admin", "POST", "/api/materiales", { ...datos, cantidad })).status, 400);
+  }
+  assert.equal((await request("Usuario", "POST", "/api/materiales/importar")).status, 403);
+});
+
+test("crear y editar pedidos de catálogo no exige unidad y conserva las unidades antiguas", async () => {
+  const material = { _id: id, referencia: "CAB-01", descripcion: "Cable", unidadMedida: "Metros" };
+  mock.method(Material, "find", () => ({ select: () => ({ lean: async () => [material] }) }));
+  mock.method(DestinatarioCompra, "find", () => ({ select: () => ({ lean: async () => [] }) }));
+  let creado;
+  mock.method(Pedido.prototype, "save", async function () { creado = this; return this; });
+  const datos = { proyecto: "Obra", elementos: [{ materialId: id, elemento: "Cable", referencia: "CAB-01", cantidad: 2.5 }] };
+  const respuesta = await request("Usuario", "POST", "/api/pedidos", datos);
+  assert.equal(respuesta.status, 201);
+  assert.equal(creado.elementos[0].elemento, "CAB-01");
+  assert.equal(creado.elementos[0].descripcionMaterial, "Cable");
+  assert.equal((await request("Usuario", "PUT", `/api/pedidos/${id}`, datos)).status, 200);
+  datos.elementos[0].unidadMedida = "Metros";
+  const editado = await request("Usuario", "PUT", `/api/pedidos/${id}`, datos);
+  assert.equal(editado.status, 200);
+  assert.equal((await editado.json()).elementos[0].unidadMedida, "Metros");
+});
+
+test("importación multipart crea registros reales y devuelve resumen de duplicados", async () => {
+  const ExcelJS = require("exceljs");
+  const libro = new ExcelJS.Workbook();
+  const hoja = libro.addWorksheet("Materiales");
+  hoja.addRow(["Referencia", "Descripción", "Cantidad", "Coste"]);
+  hoja.addRow(["MAT1", "Cable", 2, 1.25]);
+  hoja.addRow(["mat1", "Duplicado", 4, 5]);
+  let creados = 0;
+  mock.method(Material, "create", async datos => {
+    if (creados++) throw Object.assign(new Error(), { code: 11000 });
+    assert.equal(datos.coste, 1.25);
+    return datos;
+  });
+  const datos = new FormData();
+  datos.append("archivo", new Blob([await libro.xlsx.writeBuffer()]), "materiales.xlsx");
+  const respuesta = await fetch(base + "/api/materiales/importar", { method: "POST", headers: { "x-test-role": "Admin" }, body: datos });
+  assert.equal(respuesta.status, 200);
+  const resumen = await respuesta.json();
+  assert.deepEqual([resumen.importados, resumen.omitidos, resumen.errores], [1, 1, 0]);
 });
 
 test("administración de usuarios rechaza roles desconocidos, operadores y campos no admitidos", async () => {

@@ -28,12 +28,12 @@ export const normalizarElementos = elementos =>
 
 export const elementosATexto = elementos =>
   normalizarElementos(elementos)
-    .map(item => `${item.elemento}${item.referencia ? ` (${item.referencia})` : ""}: ${item.cantidad}${item.unidadMedida ? ` ${item.unidadMedida}` : ""}${item.descripcion ? ` - ${item.descripcion}` : ""}`)
+    .map(item => `${item.elemento}${item.referencia && item.referencia !== item.elemento ? ` (${item.referencia})` : ""}: ${item.cantidad}${item.descripcionMaterial ? ` - ${item.descripcionMaterial}` : ""}${item.descripcion ? ` - ${item.descripcion}` : ""}`)
     .join("\n");
 
 export const elementosTienenVariantesValidas = elementos =>
   normalizarElementos(elementos).every(item =>
-    Boolean(item.referencia) && Boolean(item.unidadMedida)
+    Boolean(item.referencia)
   );
 
 export const obtenerElementosCompatibles = (elementos, textoLegacy) => {
@@ -50,14 +50,14 @@ function MaterialAutocomplete({ item, onChange, materiales }) {
   const normalizar = valor => String(valor || "").trim().toLocaleLowerCase("es");
   const termino = normalizar(item.elemento);
   const nombresUnicos = [...new Map(
-    materiales.map(material => [normalizar(material.nombre), material.nombre])
+    materiales.map(material => [normalizar(material.referencia), material.referencia])
   ).values()];
   const sugerencias = termino
-    ? nombresUnicos.filter(nombre => normalizar(nombre).includes(termino)).slice(0, 8)
+    ? nombresUnicos.filter(nombre => normalizar(nombre).includes(termino) || materiales.some(material => material.referencia === nombre && normalizar(material.descripcion).includes(termino))).slice(0, 8)
     : nombresUnicos.slice(0, 8);
 
   const seleccionar = nombre => {
-    const registros = materiales.filter(material => normalizar(material.nombre) === normalizar(nombre));
+    const registros = materiales.filter(material => normalizar(material.referencia) === normalizar(nombre));
     const registroUnico = registros.length === 1 ? registros[0] : null;
     onChange({
       ...item,
@@ -65,7 +65,6 @@ function MaterialAutocomplete({ item, onChange, materiales }) {
       catalogoSeleccionado: true,
       elemento: nombre,
       referencia: registroUnico?.referencia || "",
-      unidadMedida: registroUnico?.unidadMedida || "",
       descripcionMaterial: registroUnico?.descripcion || ""
     });
     setAbierto(false);
@@ -108,7 +107,7 @@ function MaterialAutocomplete({ item, onChange, materiales }) {
               onMouseDown={event => event.preventDefault()}
               onClick={() => seleccionar(nombre)}
             >
-              <strong>{nombre}</strong>
+              <strong>{nombre}</strong><small>{materiales.find(material => material.referencia === nombre)?.descripcion}</small>
             </button>
           ))}
         </div>
@@ -132,14 +131,13 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
   const seleccionarReferencia = (indice, referencia) => {
     const elemento = elementos[indice];
     const registro = materiales.find(material =>
-      material.nombre.toLocaleLowerCase("es") === elemento.elemento.toLocaleLowerCase("es") &&
+      material.referencia.toLocaleLowerCase("es") === elemento.elemento.toLocaleLowerCase("es") &&
       material.referencia === referencia
     );
     onChange(elementos.map((item, index) => index === indice ? {
       ...item,
       materialId: registro?._id || null,
       referencia: registro?.referencia || "",
-      unidadMedida: registro?.unidadMedida || "",
       descripcionMaterial: registro?.descripcion || ""
     } : item));
   };
@@ -155,7 +153,7 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
         <div className="request-lines-header" role="row">
           <span>Material</span>
           <span>Referencia</span>
-          <span>U. medida</span>
+          <span>Descripción</span>
           <span>Cantidad</span>
           <span>Observación</span>
           <span className="sr-only">Eliminar</span>
@@ -164,11 +162,9 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
           // El ID persiste al guardar; la marca cubre la selección pendiente de referencia.
           const esCatalogo = Boolean(item.materialId || item.catalogoSeleccionado);
           const registrosMaterial = materiales.filter(material =>
-            material.nombre.toLocaleLowerCase("es") === item.elemento.trim().toLocaleLowerCase("es")
+            material.referencia.toLocaleLowerCase("es") === item.elemento.trim().toLocaleLowerCase("es")
           );
           const referencias = [...new Set(registrosMaterial.map(material => material.referencia))];
-          const registroExacto = registrosMaterial.find(material => material.referencia === item.referencia);
-          const unidadSeleccionada = registroExacto?.unidadMedida || item.unidadMedida;
           return <div className="request-line" role="row" key={item._id || indice}>
             <label className="request-line-material">
               <span>Material</span>
@@ -186,13 +182,7 @@ export function RequestItemsEditor({ value, onChange, label = "Elementos solicit
                 {referencias.map(referencia => <option value={referencia} key={referencia}>{referencia}</option>)}
               </select> : <input type="text" value={item.referencia || ""} onChange={event => actualizar(indice, "referencia", event.target.value)} placeholder="Referencia" required />}
             </label>
-            <label className="request-line-unit">
-              <span>U. medida</span>
-              {esCatalogo ? <select value={unidadSeleccionada} disabled required>
-                {!unidadSeleccionada && <option value="">—</option>}
-                {unidadSeleccionada && <option value={unidadSeleccionada}>{unidadSeleccionada}</option>}
-              </select> : <input type="text" value={item.unidadMedida || ""} onChange={event => actualizar(indice, "unidadMedida", event.target.value)} placeholder="Unidad de medida" required />}
-            </label>
+            <label className="request-line-description"><span>Descripción</span><input value={item.descripcionMaterial || ""} readOnly={esCatalogo} onChange={event => actualizar(indice, "descripcionMaterial", event.target.value)} /></label>
             <label className="request-line-quantity">
               <span>Cantidad</span>
               <input
@@ -255,14 +245,14 @@ export function RequestItemsList({ elementos, textoLegacy }) {
   return (
     <div className="request-items-table" role="table" aria-label="Elementos solicitados">
       <div className="request-items-table-header" role="row">
-        <span>Material</span><span>Referencia</span><span>Cantidad</span><span>Unidad</span>
+        <span>Material</span><span>Referencia</span><span>Descripción</span><span>Cantidad</span>
       </div>
       {items.map((item, indice) => (
         <div className="request-items-table-row" role="row" key={`${item.elemento}-${indice}`}>
           <div><strong>{item.elemento}</strong>{item.descripcion && <small>{item.descripcion}</small>}</div>
           <span>{item.referencia || "—"}</span>
+          <span>{item.descripcionMaterial || ""}</span>
           <span>{item.cantidad}</span>
-          <span>{item.unidadMedida || "—"}</span>
         </div>
       ))}
     </div>

@@ -10,7 +10,7 @@ jest.mock("../api", () => ({ get: jest.fn() }));
 
 const materiales = [
   { _id: "mat-1", nombre: "Cable", referencia: "CAB-1", unidadMedida: "Metros", descripcion: "Cable fino" },
-  { _id: "mat-2", nombre: "Cable", referencia: "CAB-2", unidadMedida: "Bobinas", descripcion: "Cable grueso" },
+  { _id: "mat-2", nombre: "Cable", referencia: "CAB-2", descripcion: "Cable grueso" },
   { _id: "mat-3", nombre: "Tornillo", referencia: "TOR-1", unidadMedida: "Unidades", descripcion: "Tornillo M8" }
 ];
 
@@ -36,37 +36,32 @@ test.each(["Elementos solicitados", "Elementos urgentes", "Elementos planificabl
     cambiar("Material", "Pieza a medida");
     expect(screen.getByTestId("valid")).toHaveTextContent("false");
     cambiar("Referencia", " PIEZA-01 ");
-    cambiar("U. medida", " Cajas ");
     cambiar("Cantidad", "2.5");
     cambiar("Observación", "Según plano");
     expect(screen.getByTestId("valid")).toHaveTextContent("true");
-    expect(datos()[0]).toMatchObject({ materialId: null, elemento: "Pieza a medida", referencia: "PIEZA-01", unidadMedida: "Cajas", cantidad: 2.5, descripcion: "Según plano" });
+    expect(datos()[0]).toMatchObject({ materialId: null, elemento: "Pieza a medida", referencia: "PIEZA-01", cantidad: 2.5, descripcion: "Según plano" });
     cambiar("Material", "Pieza a medida revisada");
     expect(screen.getByLabelText("Referencia")).toHaveValue(" PIEZA-01 ");
-    expect(screen.getByLabelText("U. medida")).toHaveValue(" Cajas ");
   }
 );
 
 test("seleccionar catálogo autocompleta y cambiar a manual elimina los datos vinculados", () => {
   render(<Editor />);
-  seleccionar("Tornillo");
+  seleccionar("TOR-1 Tornillo M8");
   expect(screen.getByLabelText("Referencia").tagName).toBe("SELECT");
-  expect(screen.getByLabelText("U. medida")).toHaveValue("Unidades");
   expect(datos()[0]).toMatchObject({ materialId: "mat-3", referencia: "TOR-1", descripcionMaterial: "Tornillo M8" });
   cambiar("Material", "Tornillo especial");
   expect(screen.getByLabelText("Referencia").tagName).toBe("INPUT");
   expect(datos()[0]).toMatchObject({ materialId: null, referencia: "", unidadMedida: "", descripcionMaterial: "" });
 });
 
-test("catálogo con varias referencias exige elegir una y actualiza la unidad", () => {
+test("seleccionar una referencia identifica un material concreto", () => {
   render(<Editor />);
-  seleccionar("Cable");
+  seleccionar("CAB-2 Cable grueso");
   expect(screen.getByLabelText("Referencia").tagName).toBe("SELECT");
-  expect(screen.getByTestId("valid")).toHaveTextContent("false");
-  cambiar("Referencia", "CAB-2");
-  expect(datos()[0]).toMatchObject({ materialId: "mat-2", unidadMedida: "Bobinas" });
-  cambiar("Referencia", "CAB-1");
-  expect(datos()[0]).toMatchObject({ materialId: "mat-1", unidadMedida: "Metros" });
+  expect(screen.getByTestId("valid")).toHaveTextContent("true");
+  expect(datos()[0]).toMatchObject({ materialId: "mat-2", descripcionMaterial: "Cable grueso" });
+
   expect(screen.getByTestId("valid")).toHaveTextContent("true");
 });
 
@@ -74,19 +69,18 @@ test("un material manual guardado sigue siendo editable aunque coincida con un n
   const manual = { ...crearElementoVacio(), elemento: "Cable", referencia: "LIBRE-1", unidadMedida: "Rollos", cantidad: 3, descripcion: "Especial" };
   const { unmount } = render(<Editor initial={normalizarElementos([manual])} />);
   expect(screen.getByLabelText("Referencia").tagName).toBe("INPUT");
-  cambiar("U. medida", "Cajas");
   const guardados = datos();
-  expect(elementosATexto(guardados)).toBe("Cable (LIBRE-1): 3 Cajas - Especial");
+  expect(elementosATexto(guardados)).toBe("Cable (LIBRE-1): 3 - Especial");
   unmount();
   render(<RequestItemsList elementos={guardados} />);
   expect(screen.getByText("LIBRE-1")).toBeInTheDocument();
-  expect(screen.getByText("Cajas")).toBeInTheDocument();
   expect(screen.getByText("Especial")).toBeInTheDocument();
 });
 
 test("un material de catálogo guardado conserva sus desplegables al editar", () => {
-  render(<Editor initial={[{ ...crearElementoVacio(), elemento: "Cable", materialId: "mat-2", referencia: "CAB-2", unidadMedida: "Bobinas" }]} />);
+  render(<Editor initial={[{ ...crearElementoVacio(), elemento: "Cable", materialId: "mat-2", referencia: "CAB-2" }]} />);
   expect(screen.getByLabelText("Referencia").tagName).toBe("SELECT");
   expect(screen.getByLabelText("Referencia")).toHaveValue("CAB-2");
-  expect(screen.getByLabelText("U. medida")).toHaveValue("Bobinas");
 });
+
+ test("las unidades antiguas no aparecen en las vistas ni los resúmenes", () => { const elementos = [{ elemento: "Cable", referencia: "C1", cantidad: 2, unidadMedida: "Metros", descripcionMaterial: "Cable fino" }]; render(<RequestItemsList elementos={elementos} />); expect(screen.queryByText("Metros")).not.toBeInTheDocument(); expect(elementosATexto(elementos)).not.toContain("Metros"); });

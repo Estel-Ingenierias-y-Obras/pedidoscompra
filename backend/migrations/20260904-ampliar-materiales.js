@@ -53,6 +53,8 @@ async function migrar() {
         descripcion,
         referencia: principal.referencia,
         referenciaNormalizada: normalizarReferencia(principal.referencia),
+        cantidad: material.cantidad ?? 0,
+        coste: material.coste ?? 0,
         unidadMedida: principal.unidadMedida
       },
       $unset: { referencias: "" }
@@ -68,6 +70,8 @@ async function migrar() {
           descripcion,
           referencia: variante.referencia,
           referenciaNormalizada,
+          cantidad: material.cantidad ?? 0,
+          coste: material.coste ?? 0,
           unidadMedida: variante.unidadMedida,
           activo: material.activo !== false,
           createdAt: material.createdAt || new Date(),

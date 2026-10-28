@@ -144,7 +144,7 @@ const completarDatosMateriales = async value => {
   if (ids.length === 0) return elementos;
 
   const materiales = await Material.find({ _id: { $in: ids } })
-    .select("nombre descripcion referencia unidadMedida")
+    .select("descripcion referencia")
     .lean();
   const porId = new Map(materiales.map(material => [material._id.toString(), material]));
 
@@ -157,21 +157,15 @@ const completarDatosMateriales = async value => {
       throw error;
     }
     if (material.referencia.toLocaleUpperCase("es") !== item.referencia.toLocaleUpperCase("es")) {
-      const error = new Error(`Selecciona una referencia válida para ${material.nombre}`);
-      error.status = 400;
-      throw error;
-    }
-    if (material.unidadMedida.toLocaleLowerCase("es") !== item.unidadMedida.toLocaleLowerCase("es")) {
-      const error = new Error(`Selecciona una unidad válida para ${material.nombre} (${material.referencia})`);
+      const error = new Error(`Selecciona una referencia válida para ${material.referencia}`);
       error.status = 400;
       throw error;
     }
     return {
       ...item,
-      elemento: material.nombre,
+      elemento: material.referencia,
       descripcionMaterial: material.descripcion,
-      referencia: material.referencia,
-      unidadMedida: material.unidadMedida
+      referencia: material.referencia
     };
   });
 };

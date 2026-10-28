@@ -1,12 +1,15 @@
 const mongoose = require("mongoose");
 
 const materialSchema = new mongoose.Schema({
-  nombre: { type: String, required: true, trim: true },
-  nombreNormalizado: { type: String, required: true, index: true },
+  // Campos históricos opcionales: se conservan para evitar pérdida de información.
+  nombre: { type: String, default: "", trim: true },
+  nombreNormalizado: { type: String, default: "", index: true },
   descripcion: { type: String, required: true, trim: true },
   referencia: { type: String, required: true, trim: true },
   referenciaNormalizada: { type: String, required: true, unique: true, index: true },
-  unidadMedida: { type: String, required: true, trim: true },
+  unidadMedida: { type: String, default: "", trim: true },
+  cantidad: { type: Number, default: 0, min: 0, validate: Number.isFinite },
+  coste: { type: Number, default: 0, min: 0, validate: Number.isFinite },
   activo: { type: Boolean, default: true, index: true }
 }, { timestamps: true, collection: "materiales" });
 

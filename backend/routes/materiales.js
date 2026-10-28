@@ -1,22 +1,24 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Material = require("../models/Material");
+const multer = require("multer");
+const { leerMateriales, importarFilas } = require("../services/importarMateriales");
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const { responderErrorInterno } = require("../utils/httpErrors");
 
 const router = express.Router();
 const rolesGestores = permitirRoles("Admin", "Comprador");
 const obtenerDatosMaterial = body => ({
-  nombre: String(body?.nombre || "").trim(),
   descripcion: String(body?.descripcion || "").trim(),
   referencia: String(body?.referencia || "").trim(),
-  unidadMedida: String(body?.unidadMedida || "").trim()
+  cantidad: body?.cantidad,
+  coste: body?.coste
 });
 
 const validarDatosMaterial = datos => {
-  return Object.values(datos).every(Boolean)
-    ? null
-    : "Material, descripción, referencia y unidades son obligatorios";
+  if (!datos.referencia || !datos.descripcion) return "Referencia y descripción son obligatorias";
+  if (![datos.cantidad, datos.coste].every(v => typeof v === "number" && Number.isFinite(v) && v >= 0)) return "Cantidad y coste deben ser números no negativos";
+  return null;
 };
 
 const serializarMaterial = material => ({
@@ -24,7 +26,8 @@ const serializarMaterial = material => ({
   nombre: material.nombre,
   descripcion: material.descripcion,
   referencia: material.referencia,
-  unidadMedida: material.unidadMedida,
+  cantidad: material.cantidad ?? 0,
+  coste: material.coste ?? 0,
   activo: material.activo,
   createdAt: material.createdAt,
   updatedAt: material.updatedAt
@@ -33,13 +36,27 @@ const serializarMaterial = material => ({
 router.use(obtenerUsuarioActual);
 router.use(permitirRoles("Admin", "Comprador", "Usuario", "Encargado"));
 
+const uploadExcel = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0 } }).single("archivo");
+router.post("/importar", rolesGestores, (req, res, next) => {
+  uploadExcel(req, res, error => error
+    ? res.status(error.code === "LIMIT_FILE_SIZE" ? 413 : 400).json({ error: "Excel no válido o superior a 5 MB" })
+    : next());
+}, async (req, res) => {
+  if (!req.file || !/\.xlsx$/i.test(req.file.originalname)) return res.status(400).json({ error: "Selecciona un archivo Excel .xlsx" });
+  let filas;
+  try { filas = await leerMateriales(req.file.buffer); }
+  catch (error) { return res.status(400).json({ error: `No se pudo leer el Excel: ${error.message}` }); }
+  try { res.json(await importarFilas(filas, Material)); }
+  catch (error) { responderErrorInterno(res, error, "Error importando materiales:"); }
+});
+
 router.get("/", async (req, res) => {
   try {
     const puedeGestionar = ["Admin", "Comprador"].includes(req.usuarioActual.rol);
     const incluirInactivos = puedeGestionar && req.query.incluirInactivos === "1";
     const materiales = await Material.find(incluirInactivos ? {} : { activo: true })
-      .select("nombre descripcion referencia unidadMedida activo createdAt updatedAt")
-      .sort({ nombre: 1 })
+      .select("nombre descripcion referencia cantidad coste activo createdAt updatedAt")
+      .sort({ referencia: 1 })
       .lean();
     res.json(materiales.map(serializarMaterial));
   } catch (error) {
@@ -54,7 +71,7 @@ router.get("/:id", async (req, res) => {
 
   try {
     const material = await Material.findById(req.params.id)
-      .select("nombre descripcion referencia unidadMedida activo createdAt updatedAt")
+      .select("nombre descripcion referencia cantidad coste activo createdAt updatedAt")
       .lean();
     if (!material || (material.activo === false && !["Admin", "Comprador"].includes(req.usuarioActual.rol))) return res.status(404).json({ error: "Material no encontrado" });
     res.json(serializarMaterial(material));
@@ -91,7 +108,6 @@ router.put("/:id", rolesGestores, async (req, res) => {
       req.params.id,
       {
         ...datos,
-        nombreNormalizado: datos.nombre.toLocaleLowerCase("es"),
         referenciaNormalizada: datos.referencia.toLocaleUpperCase("es"),
         activo: req.body.activo !== false
       },
