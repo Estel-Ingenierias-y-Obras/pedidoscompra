@@ -1,3 +1,4 @@
+import DownloadRequestButton from "../components/DownloadRequestButton";
 import reportClientError from "../utils/reportClientError";
 import { useContext, useRef, useState } from "react";
 import useProjectCatalog from "../hooks/useProjectCatalog";
@@ -566,6 +567,7 @@ function ValidarSolicitudes() {
               </section>
             </div>
 
+            <DownloadRequestButton pedido={pedidoInfoCompras || pedidoSeleccionado} />
         </ModalShell>
       )}
     </Layout>

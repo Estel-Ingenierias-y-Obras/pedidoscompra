@@ -8,6 +8,8 @@ import { SolicitudesContext } from "../context/SolicitudesContext";
 import { UsuariosContext } from "../context/UsuariosContext";
 import api from "../api";
 
+jest.mock("../utils/solicitudPdf", () => ({ descargarSolicitudPdf: jest.fn().mockResolvedValue() }));
+
 jest.mock("../api", () => ({ get: jest.fn(), put: jest.fn() }));
 jest.mock("../components/ProjectSelector", () => () => <div>Selector proyecto</div>);
 jest.mock("../hooks/useProjectCatalog", () => () => [
@@ -137,3 +139,20 @@ test.each([false, true])("Buscador único en histórico=%s: tipos, selección y 
   expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   expect(api.get).toHaveBeenCalledTimes(llamadas);
 });
+
+ test.each([false, true])("Descarga PDF y solo Visualizar en detalle, hist?rico=%s", async historico => {
+ const { descargarSolicitudPdf } = require("../utils/solicitudPdf");
+ const pedido = { ...pedidos[2], estado: historico ? "Archivar" : "Pendiente" };
+ if (historico) {
+ api.get.mockResolvedValue({ data: [pedido] }); mostrar(<HistoricoPedidos />);
+ fireEvent.click(await screen.findByRole("button", { name: "Abrir Proyecto mixto, 1 pedidos" }));
+ fireEvent.click(screen.getByRole("listitem", { name: "Ver solicitud original de Archivado" }));
+ } else {
+ mostrar(<ValidarSolicitudes />, jest.fn(), "Admin", [pedido]);
+ fireEvent.click(await screen.findByText("Archivado"));
+ }
+ expect(screen.getByRole("button", { name: "Visualizar urgente.pdf" })).toBeInTheDocument();
+ expect(screen.queryByRole("button", { name: "Descargar urgente.pdf" })).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole("button", { name: /Descargar Solicitud/ }));
+ await waitFor(() => expect(descargarSolicitudPdf).toHaveBeenCalledWith(pedido));
+ });

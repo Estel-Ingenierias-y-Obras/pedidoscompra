@@ -1,3 +1,4 @@
+import DownloadRequestButton from "./DownloadRequestButton";
 import AttachmentList from "./AttachmentList";
 import ModalShell from "./ModalShell";
 import { RequestItemsList } from "./RequestItems";
@@ -70,6 +71,7 @@ function OriginalRequestModal({ pedido, onClose }) {
           )}
         </div>
 
+        <DownloadRequestButton pedido={pedido} />
     </ModalShell>
   );
 }

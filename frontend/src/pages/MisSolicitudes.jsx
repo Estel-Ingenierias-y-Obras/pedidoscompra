@@ -2,7 +2,6 @@ import reportClientError from "../utils/reportClientError";
 import { useContext, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faDownload,
   faEye,
   faFile,
   faFileImage,
@@ -14,7 +13,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import AttachmentList, {
-  descargarAdjunto,
   formatearTamanoArchivo,
   visualizarAdjunto
 } from "../components/AttachmentList";
@@ -437,19 +435,6 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
                     aria-label={`Visualizar ${archivo.nombre}`}
                   >
                     <FontAwesomeIcon icon={faEye} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      descargarAdjunto(pedidoAEditar, archivo).catch(err => {
-                        reportClientError();
-                        mostrarError("No se pudo descargar el adjunto");
-                      })
-                    }
-                    title="Descargar adjunto"
-                    aria-label={`Descargar ${archivo.nombre}`}
-                  >
-                    <FontAwesomeIcon icon={faDownload} />
                   </button>
                   <DeleteIconButton
                     label={`Eliminar ${archivo.nombre}`}

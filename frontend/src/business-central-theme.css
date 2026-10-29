@@ -7091,3 +7091,7 @@ table .delete-icon-button {
   .order-search-field { flex-basis: 100%; }
   .order-search-field input, .order-search-ghost { font-size: 16px; }
 }
+
+.order-detail-modal .download-request-actions {
+  margin-bottom: 20px;
+}

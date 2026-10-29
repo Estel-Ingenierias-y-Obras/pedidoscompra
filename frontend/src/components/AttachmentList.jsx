@@ -1,7 +1,6 @@
 import reportClientError from "../utils/reportClientError";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faDownload,
   faEye,
   faFile,
   faFileImage,
@@ -121,14 +120,6 @@ function AttachmentList({
                 aria-label={`Visualizar ${archivo.nombre}`}
               >
                 <FontAwesomeIcon icon={faEye} />
-              </button>
-              <button
-                type="button"
-                onClick={() => ejecutarAccionAdjunto(descargarAdjunto, archivo)}
-                title="Descargar adjunto"
-                aria-label={`Descargar ${archivo.nombre}`}
-              >
-                <FontAwesomeIcon icon={faDownload} />
               </button>
               {canDelete && (
                 <DeleteIconButton
