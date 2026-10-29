@@ -1,3 +1,4 @@
+import { referenciaTlm } from "../utils/referenciaTlm";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -60,7 +61,7 @@ export default function EnviadosAlmacen() {
       const idsVigentes = new Set(diario.map(linea => linea.id.toLowerCase()));
       if (activo) {
         const vigentes = operaciones.filter(op => typeof op.respuesta?.id === "string" && idsVigentes.has(op.respuesta.id.toLowerCase()));
-        setEntradas(vigentes.map(op => ({ ...op.cuerpo, ...op.respuesta, claveintegracion: op.respuesta.claveintegracion || op.claveintegracion || op.cuerpo?.claveintegracion, solicitudId: op.solicitudId, fechaEnvio: op.createdAt })));
+        setEntradas(vigentes.map(op => ({ ...op.cuerpo, ...op.respuesta, referenciaTlm: diario.find(linea => linea.id.toLowerCase() === op.respuesta.id.toLowerCase())?.referenciaTlm || "", claveintegracion: op.respuesta.claveintegracion || op.claveintegracion || op.cuerpo?.claveintegracion, solicitudId: op.solicitudId, fechaEnvio: op.createdAt })));
         setSeleccion(anterior => vigentes.some(op => op.respuesta.id === anterior) ? anterior : null);
         setLineaRegistro(anterior => anterior && idsVigentes.has(anterior.id.toLowerCase()) ? anterior : null);
         setCargado(true);
@@ -88,7 +89,7 @@ export default function EnviadosAlmacen() {
       </div>
       {lineaRegistro && <ModalShell onClose={cerrarRegistro} ariaLabel="Registrar entrada en BC">
         <h2>Registrar entrada</h2>
-        <p><strong>Documento:</strong> {lineaRegistro.numdoc}<br /><strong>Producto:</strong> {lineaRegistro.numprod} · {lineaRegistro.descripcion}<br /><strong>Cantidad:</strong> {lineaRegistro.cantidad} {lineaRegistro.codudmedida}</p>
+        <p><strong>Documento:</strong> {lineaRegistro.numdoc}<br /><strong>Referencia:</strong> {referenciaTlm(lineaRegistro)} · {lineaRegistro.descripcion}<br /><strong>Cantidad:</strong> {lineaRegistro.cantidad} {lineaRegistro.codudmedida}</p>
         {!lineaRegistro.claveintegracion && <p role="alert" className="journal-error">Esta línea no tiene clave de integración. Actualiza los datos antes de registrarla.</p>}
         {errorRegistro && <p role="alert" className="journal-error">{errorRegistro}</p>}
         {registrando && <p role="status">Registrando en Business Central…</p>}

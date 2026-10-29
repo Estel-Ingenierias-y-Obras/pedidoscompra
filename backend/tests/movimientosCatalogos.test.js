@@ -11,14 +11,14 @@ test("un permiso denegado en acopios señala su conjunto de permisos correcto", 
 });
 test("movimientos consulta todos los almacenes sin cambiar el filtro de Entradas", async () => {
   const urls = [];
-  const bc = crearCliente({ token: async () => "test", config: () => ({ standard }), request: async config => { urls.push(new URL(config.url)); return { data: { value: [] } }; } });
+  const bc = crearCliente({ referencias: async () => [], token: async () => "test", config: () => ({ standard }), request: async config => { urls.push(new URL(config.url)); return { data: { value: [] } }; } });
   await bc.obtenerAlmacenesMovimiento(); await bc.obtenerAlmacenes();
   assert.equal(urls[0].searchParams.has("$filter"), false);
   assert.equal(urls[1].searchParams.get("$filter"), "code eq 'CENTRAL 3'");
 });
 test("departamentos filtra por código de dimensión sin depender del enlace estándar incompleto", async () => {
   const urls = [];
-  const bc = crearCliente({ token: async () => "test", config: () => ({ custom: standard }), request: async config => {
+  const bc = crearCliente({ referencias: async () => [], token: async () => "test", config: () => ({ custom: standard }), request: async config => {
     urls.push(config.url);
     return { data: { value: [{ dimension: "DEPART", codigo: "SG-ALMACEN", nombre: "Almacén" }] } };
   } });
@@ -29,11 +29,11 @@ test("departamentos filtra por código de dimensión sin depender del enlace est
 });
 test("artículos sigue la paginación completa y solo excluye bloqueados y tipos sin inventario", async () => {
   const urls = [];
-  const bc = crearCliente({ token: async () => "test", config: () => ({ standard }), request: async config => {
+  const bc = crearCliente({ referencias: async () => [], token: async () => "test", config: () => ({ standard }), request: async config => {
     urls.push(new URL(config.url));
     return { data: urls.length === 1 ? { value: [{ number: "P1" }], "@odata.nextLink": "?$skiptoken=segunda" } : { value: [{ number: "P2" }] } };
   } });
-  assert.deepEqual(await bc.obtenerArticulosMovimiento(), [{ number: "P1" }, { number: "P2" }]);
+  assert.deepEqual(await bc.obtenerArticulosMovimiento(), [{ number: "P1", referenciaTlm: "" }, { number: "P2", referenciaTlm: "" }]);
   assert.equal(urls[0].searchParams.get("$filter"), "blocked eq false and type eq 'Inventory'");
   assert.equal(urls[0].searchParams.has("$top"), false);
   assert.equal(urls[1].searchParams.get("$skiptoken"), "segunda");

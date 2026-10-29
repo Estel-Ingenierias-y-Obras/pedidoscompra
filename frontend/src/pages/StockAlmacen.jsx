@@ -1,3 +1,4 @@
+import { referenciaTlm } from "../utils/referenciaTlm";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ActualizarDatosButton from "../components/ActualizarDatosButton";
@@ -38,7 +39,7 @@ export default function StockAlmacen() {
   }, [intento]);
   const filtrados = useMemo(() => {
     const texto = normalizar(busqueda.trim());
-    return productos.filter(producto => normalizar(producto.numprod).includes(texto) || normalizar(producto.descripcion).includes(texto));
+    return productos.filter(producto => normalizar(producto.referenciaTlm || "").includes(texto) || normalizar(producto.descripcion).includes(texto));
   }, [productos, busqueda]);
 
   return <Layout>
@@ -50,8 +51,8 @@ export default function StockAlmacen() {
         </div>
         <div className="bc-journal-content warehouse-page" aria-busy={cargando}>
           <div className="stock-search">
-            <label htmlFor="stock-busqueda">Buscar por código o descripción</label>
-            <input id="stock-busqueda" type="search" value={busqueda} onChange={event => setBusqueda(event.target.value)} placeholder="Código o descripción…" />
+            <label htmlFor="stock-busqueda">Buscar por referencia o descripción</label>
+            <input id="stock-busqueda" type="search" value={busqueda} onChange={event => setBusqueda(event.target.value)} placeholder="Referencia o descripción…" />
           </div>
           {cargando && <p role="status">Cargando existencias de CENTRAL 3…</p>}
           {error && <p role="alert" className="journal-error">{error}{cargado && " Se muestran los datos de la última carga correcta; pueden no estar actualizados."}</p>}
@@ -59,9 +60,9 @@ export default function StockAlmacen() {
             <div className="warehouse-table-container" tabIndex="0" role="region" aria-label="Existencias de CENTRAL 3">
               <table className="gestion-pedidos-table warehouse-entries-table stock-table">
                 <caption>Stock actual del almacén CENTRAL 3</caption>
-                <thead><tr><th scope="col">Código</th><th scope="col">Descripción</th><th scope="col">Unidad de medida</th><th scope="col">Existencias</th></tr></thead>
+                <thead><tr><th scope="col">Referencia</th><th scope="col">Descripción</th><th scope="col">Unidad de medida</th><th scope="col">Existencias</th></tr></thead>
                 <tbody>{filtrados.map(producto => <tr key={producto.id}>
-                  <td data-label="Código">{producto.numprod}</td>
+                  <td data-label="Referencia">{referenciaTlm(producto)}</td>
                   <td data-label="Descripción">{producto.descripcion}</td>
                   <td data-label="Unidad de medida">{producto.codudmedida}</td>
                   <td data-label="Existencias" className="stock-quantity">{cantidades.format(producto.inventario)}</td>

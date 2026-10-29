@@ -33,7 +33,7 @@ function clasificarError(error) {
   return { mensaje, status: status === 401 || status === 403 ? 502 : status || 502, codigo: "BC_ERROR", transitorio, incierto: !status || status >= 500 || status === 408, retryMs };
 }
 
-function crearCliente({ request = config => axios.request(config), token = () => authBC.obtenerToken(), config = () => configuracionBC(), esperar = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+function crearCliente({ request = config => axios.request(config), token = () => authBC.obtenerToken(), config = () => configuracionBC(), esperar = ms => new Promise(resolve => setTimeout(resolve, ms)), referencias = () => authBC.obtenerReferenciasTlm() } = {}) {
   async function ejecutar(method, url, data) {
     let huboIncertidumbre = false;
     for (let intento = 0; intento < 3; intento++) {
@@ -73,13 +73,22 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     if (typeof numprod !== "string" || !numprod.trim() || numprod.length > 20) throw fallo("Selecciona un único producto válido.", 400);
     return { $filter: `numprod eq '${numprod.replace(/'/g, "''")}'` };
   };
+  async function conReferencias(consulta) {
+    const [productos, fichas] = await Promise.all([consulta, referencias()]);
+    const porNumero = new Map();
+    for (const ficha of fichas) {
+      if (typeof ficha.No !== "string" || typeof ficha.Referencia_TLM !== "string") throw fallo("BC devolvió una referencia TLM no válida.", 502);
+      porNumero.set(ficha.No, ficha.Referencia_TLM.trim());
+    }
+    return productos.map(producto => ({ ...producto, referenciaTlm: porNumero.get(producto.numprod || producto.number) || "" }));
+  }
   const recibos = cuerpo => coleccion("custom", "registrosProducto", {
     $filter: `claveintegracion eq ${cuerpo.claveintegracion}${cuerpo.idlinea ? ` and idlinea eq ${cuerpo.idlinea}` : ""}`
   });
   return {
     destino: () => config().custom,
     obtenerAlmacenesMovimiento: () => coleccion("standard", "locations"),
-    obtenerArticulosMovimiento: () => coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,inventory" }),
+    obtenerArticulosMovimiento: () => conReferencias(coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,inventory" })),
     obtenerRecursosAcopio: () => coleccion("custom", "recursosCandidatosAcopio"),
     obtenerAcopios: () => coleccion("custom", "acopios"),
     crearAcopio: cuerpo => ejecutar("POST", endpoint("custom", "solicitudesAcopio"), { claveintegracion: cuerpo.solicitudId, datos: JSON.stringify(cuerpo) }),
@@ -101,13 +110,13 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     },
     obtenerDepartamentos: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: `dimension eq '${(process.env.BC_DEPARTMENT_DIMENSION || "DEPART").replace(/'/g, "''")}'` })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
     obtenerZonas: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: "dimension eq 'ZONA'" })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
-    obtenerStock: () => coleccion("custom", "productos"),
-    obtenerProductos: () => coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,blocked" }),
+    obtenerStock: () => conReferencias(coleccion("custom", "productos")),
+    obtenerProductos: () => conReferencias(coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,blocked" })),
     obtenerAlmacenes: () => coleccion("standard", "locations", { $filter: "code eq 'CENTRAL 3'" }),
     obtenerTiposProyecto: () => coleccion("custom", "tiposProyecto"),
     obtenerUnidades: numprod => coleccion("custom", "unidadesProducto", filtroProducto(numprod)),
     obtenerMovimientosAplicables: numprod => coleccion("custom", "movimientosAplicables", filtroProducto(numprod)),
-    obtenerEntradas: () => coleccion("custom", "diarioProductos"),
+    obtenerEntradas: () => conReferencias(coleccion("custom", "diarioProductos")),
     obtenerEntrada: id => {
       if (!UUID.test(id)) throw fallo("Identificador de entrada no válido.", 400);
       return ejecutar("GET", endpoint("custom", `diarioProductos(${id})`));

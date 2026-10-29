@@ -1,10 +1,11 @@
+import { referenciaTlm } from "../utils/referenciaTlm";
 import { useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import BuscadorMovimiento from "./BuscadorMovimiento";
 export default function LineasMovimiento({ lineas, articulos, cambiar, quitar }) {
-  const opciones = useMemo(() => articulos.map(item => ({ codigo: item.number, nombre: item.displayName })), [articulos]);
-  return <div className="warehouse-journal-scroll movement-lines"><table className="journal-table"><caption>Líneas de movimiento · cantidades en la unidad base del artículo</caption><thead><tr>{["Nº artículo", "Descripción", "Inventario", "Cantidad disponible", "Cantidad", "Unidad de medida", "Acciones"].map((titulo, index) => <th key={index} scope="col">{titulo}</th>)}</tr></thead>
+  const opciones = useMemo(() => articulos.map(item => ({ codigo: item.number, referencia: referenciaTlm(item), nombre: item.displayName })), [articulos]);
+  return <div className="warehouse-journal-scroll movement-lines"><table className="journal-table"><caption>Líneas de movimiento · cantidades en la unidad base del artículo</caption><thead><tr>{["Referencia", "Descripción", "Inventario", "Cantidad disponible", "Cantidad", "Unidad de medida", "Acciones"].map((titulo, index) => <th key={index} scope="col">{titulo}</th>)}</tr></thead>
     <tbody>{lineas.map((linea, index) => {
       const item = articulos.find(articulo => articulo.number === linea.numprod);
       return <tr key={linea.id}>

@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const normalizar = texto => String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es").trim();
-const etiqueta = opcion => opcion ? `${opcion.codigo}${opcion.nombre ? ` · ${opcion.nombre}` : ""}` : "";
+const etiqueta = opcion => opcion ? `${opcion.referencia ?? opcion.codigo}${opcion.nombre ? ` · ${opcion.nombre}` : ""}` : "";
 const ALTO = 44;
 
 export default function BuscadorMovimiento({ opciones, value, onChange, label, disabled = false }) {
@@ -13,7 +13,7 @@ export default function BuscadorMovimiento({ opciones, value, onChange, label, d
   const [activo, setActivo] = useState(0);
   const [scroll, setScroll] = useState(0);
   const [posicion, setPosicion] = useState({});
-  const datos = useMemo(() => opciones.map((opcion, index) => ({ opcion, index, codigo: normalizar(opcion.codigo), nombre: normalizar(opcion.nombre) })), [opciones]);
+  const datos = useMemo(() => opciones.map((opcion, index) => ({ opcion, index, codigo: normalizar(opcion.referencia ?? opcion.codigo), nombre: normalizar(opcion.nombre) })), [opciones]);
   const coincidencias = useMemo(() => {
     const busqueda = normalizar(texto);
     if (!busqueda || (value && texto === etiqueta(seleccion))) return datos;

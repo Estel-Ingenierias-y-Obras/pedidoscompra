@@ -9,7 +9,7 @@ function Editor() {
 
 test("añade varios correos, normaliza espacios y mayúsculas, evita duplicados y permite quitar", () => {
   render(<Editor />);
-  const input = screen.getByLabelText("Correo electrónico");
+  const input = screen.getByLabelText("Personas a notificar");
   fireEvent.change(input, { target: { value: " JUAN@empresa.com " } });
   fireEvent.keyDown(input, { key: "Enter" });
   fireEvent.change(input, { target: { value: "maria@externa.org" } });

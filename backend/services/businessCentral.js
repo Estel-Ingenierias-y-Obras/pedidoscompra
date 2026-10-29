@@ -26,7 +26,7 @@ async function obtenerToken() {
   return response.data.access_token;
 }
 
-async function obtenerColeccionOData({ request = (url, options) => axios.get(url, options), token = obtenerToken, env = process.env, servicio, params = {} } = {}) {
+async function obtenerColeccionOData({ request = (url, options) => axios.get(url, options), token = obtenerToken, env = process.env, servicio, params = {}, tamanoPagina, timeout = 15000 } = {}) {
   const raiz = new URL(urlProyectos(env));
   if (servicio) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(servicio)) throw new Error("Servicio OData no válido.");
@@ -43,7 +43,7 @@ async function obtenerColeccionOData({ request = (url, options) => axios.get(url
     if (url.origin !== raiz.origin || url.pathname !== raiz.pathname || url.username || url.password || visitadas.has(url.href) || visitadas.size >= 1000) throw fallo("BC devolvió una paginación de proyectos no válida.");
     visitadas.add(url.href);
     logSolicitudBC(url.href, env);
-    const { data } = await request(url.href, { headers: { Authorization: `Bearer ${credencial}` }, proxy: false, timeout: 15000, maxRedirects: 0 });
+    const { data } = await request(url.href, { headers: { Authorization: `Bearer ${credencial}`, ...(tamanoPagina ? { Prefer: `odata.maxpagesize=${tamanoPagina}` } : {}) }, proxy: false, timeout, maxRedirects: 0 });
     if (!Array.isArray(data?.value)) throw fallo("BC devolvió un catálogo de proyectos no válido.");
     proyectos.push(...data.value);
     siguiente = data["@odata.nextLink"] ? new URL(data["@odata.nextLink"], url).href : null;
@@ -78,5 +78,6 @@ async function obtenerSolicitantesActivos(opciones = {}) {
 module.exports = {
   obtenerToken,
   obtenerProyectos,
-  obtenerSolicitantesActivos
+  obtenerSolicitantesActivos,
+  obtenerReferenciasTlm: opciones => obtenerColeccionOData({ ...opciones, servicio: "Ficha_producto_Excel", tamanoPagina: 1000, timeout: 60000, params: { $select: "No,Referencia_TLM", $filter: "Referencia_TLM ne ''" } })
 };

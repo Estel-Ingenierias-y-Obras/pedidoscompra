@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { crearCliente } = require("../services/almacenBC");
 const raiz = "https://api.businesscentral.dynamics.com/v2.0/tenant/Production/api/Estel/GestionMaterial/v1.0/companies(company)";
-const cliente = request => crearCliente({ request, token: async () => "token-prueba", config: () => ({ custom: raiz }) });
+const cliente = request => crearCliente({ referencias: async () => [], request, token: async () => "token-prueba", config: () => ({ custom: raiz }) });
 
 test("stock recupera todas las páginas de productos, incluidos negativos y decimales", async () => {
   const llamadas = [];
@@ -11,7 +11,7 @@ test("stock recupera todas las páginas de productos, incluidos negativos y deci
     llamadas.push(config);
     return { data: llamadas.length === 1 ? { value: [filas[0]], "@odata.nextLink": "?$skiptoken=pagina2" } : { value: [filas[1]] } };
   });
-  assert.deepEqual(await bc.obtenerStock(), filas);
+  assert.deepEqual(await bc.obtenerStock(), filas.map(f => ({ ...f, referenciaTlm: "" })));
   assert.deepEqual(llamadas.map(c => [c.method, c.url]), [["GET", `${raiz}/productos`], ["GET", `${raiz}/productos?$skiptoken=pagina2`]]);
 });
 

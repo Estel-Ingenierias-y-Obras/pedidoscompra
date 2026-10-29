@@ -225,7 +225,7 @@ test("backend conserva Retry-After entre llamadas del navegador", async () => {
 });
 
 const raices = { custom: "https://api.businesscentral.dynamics.com/v2.0/tenant/sandbox/api/Estel/GestionMaterial/v1.0/companies(empresa)", standard: "https://api.businesscentral.dynamics.com/v2.0/tenant/sandbox/api/v2.0/companies(empresa)" };
-const clienteHTTP = (request, esperar = async () => {}) => crearCliente({ request, esperar, token: async () => "token-test", config: () => raices });
+const clienteHTTP = (request, esperar = async () => {}) => crearCliente({ referencias: async () => [], request, esperar, token: async () => "token-test", config: () => raices });
 
 test("registro confirma el comprobante persistido cuando el POST devuelve un buffer incompleto", async () => {
   const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };

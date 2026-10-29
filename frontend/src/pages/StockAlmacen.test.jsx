@@ -6,24 +6,31 @@ import { puedeAcceder } from "../routes/permissions";
 import { obtenerStock } from "../services/almacen";
 jest.mock("../components/Layout", () => ({ children }) => <div>{children}</div>);
 jest.mock("../services/almacen", () => ({ obtenerStock: jest.fn() }));
-const producto = (id, inventario = 1) => ({ id, numprod: `COD-${id}`, descripcion: `Descripción ${id}`, codudmedida: "UD", inventario });
+const producto = (id, inventario = 1) => ({ id, numprod: `INTERNO-${id}`, referenciaTlm: `TLM-${id}`, descripcion: `Descripción ${id}`, codudmedida: "UD", inventario });
 const montar = () => render(<MemoryRouter><StockAlmacen /></MemoryRouter>);
 beforeEach(() => jest.resetAllMocks());
+
+test("muestra una referencia vacía explícita y no sustituye TLM por el número interno", async () => {
+  obtenerStock.mockResolvedValue([{ ...producto("1"), referenciaTlm: "" }]);
+  montar();
+  expect(await screen.findByText("Sin referencia")).toBeInTheDocument();
+  expect(screen.queryByText("INTERNO-1")).not.toBeInTheDocument();
+});
 
 test("muestra solo existencias >= 1, excluye negativos, cero y fracciones; busca por código y descripción", async () => {
   obtenerStock.mockResolvedValue([...Array.from({ length: 65 }, (_, i) => producto(String(i))), producto("negativo", -0.1234567), producto("cero", 0), producto("fraccion", 0.99)]);
   montar();
   expect(screen.getByRole("status")).toHaveTextContent("Cargando existencias");
-  await screen.findByText("COD-64");
+  await screen.findByText("TLM-64");
   expect(screen.getAllByRole("row")).toHaveLength(66);
-  expect(screen.queryByText("COD-negativo")).not.toBeInTheDocument();
-  expect(screen.queryByText("COD-cero")).not.toBeInTheDocument();
-  expect(screen.queryByText("COD-fraccion")).not.toBeInTheDocument();
-  const buscar = screen.getByRole("searchbox", { name: "Buscar por código o descripción" });
-  fireEvent.change(buscar, { target: { value: "cod-64" } });
+  expect(screen.queryByText("TLM-negativo")).not.toBeInTheDocument();
+  expect(screen.queryByText("TLM-cero")).not.toBeInTheDocument();
+  expect(screen.queryByText("TLM-fraccion")).not.toBeInTheDocument();
+  const buscar = screen.getByRole("searchbox", { name: "Buscar por referencia o descripción" });
+  fireEvent.change(buscar, { target: { value: "tlm-64" } });
   expect(screen.getAllByRole("row")).toHaveLength(2);
   fireEvent.change(buscar, { target: { value: "descripcion negativo" } });
-  expect(screen.queryByText("COD-negativo")).not.toBeInTheDocument();
+  expect(screen.queryByText("TLM-negativo")).not.toBeInTheDocument();
   fireEvent.change(buscar, { target: { value: "inexistente" } });
   expect(screen.getByRole("status")).toHaveTextContent("No hay productos que coincidan");
   expect(screen.getAllByRole("button")).toHaveLength(1);
@@ -42,13 +49,13 @@ test("distingue stock vacío de error y permite reintentar", async () => {
 test("conserva datos anteriores con aviso si falla la actualización y los reemplaza al recuperar", async () => {
   obtenerStock.mockResolvedValueOnce([producto("primero")]).mockRejectedValueOnce(new Error("Sin conexión")).mockResolvedValueOnce([producto("nuevo")]);
   montar();
-  await screen.findByText("COD-primero");
+  await screen.findByText("TLM-primero");
   fireEvent.click(screen.getByRole("button", { name: "Actualizar datos" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("pueden no estar actualizados");
-  expect(screen.getByText("COD-primero")).toBeInTheDocument();
+  expect(screen.getByText("TLM-primero")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Actualizar datos" }));
-  await screen.findByText("COD-nuevo");
-  expect(screen.queryByText("COD-primero")).not.toBeInTheDocument();
+  await screen.findByText("TLM-nuevo");
+  expect(screen.queryByText("TLM-primero")).not.toBeInTheDocument();
 });
 
 test("no presenta cantidades inválidas como stock cero", async () => {

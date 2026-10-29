@@ -1,3 +1,4 @@
+import { referenciaTlm } from "../utils/referenciaTlm";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
@@ -8,13 +9,13 @@ import * as servicio from "../services/almacen";
 
 export const columnasDiario = [
   ["fecharegistro", "Fecha registro"], ["tipomovimiento", "Tipo mov"], ["numdoc", "Nº documento"],
-  ["numprod", "Nº producto"], ["descripcion", "Descripción"], ["codalmacen", "Cód. almacén"],
+  ["numprod", "Referencia"], ["descripcion", "Descripción"], ["codalmacen", "Cód. almacén"],
   ["cantidad", "Cantidad"], ["codudmedida", "Cód. unidad medida"], ["preciounitario", "Precio unitario"],
   ["importe", "Importe"], ["importedto", "Importe dto."], ["costeunitario", "Coste unitario"],
   ["liqpornumorden", "Movimiento aplicado"], ["tipoproyectocodigo", "Tipo proyecto"], ["departamento", "Departamento"]
 ];
 export const columnasResultado = [...columnasDiario, ["cantidadbase", "Cantidad base"], ["factorunidad", "Factor unidad"], ["conjuntodimensiones", "Conjunto dimensiones"]];
-const columnasVisibles = [["numprod", "Nº producto"], ["descripcion", "Descripción"], ["cantidad", "Cantidad"], ["codudmedida", "Unidad"], ["tipoproyectocodigo", "Tipo proyecto"], ["liqpornumorden", "Movimiento aplicado"], ["modoMonetario", "Valores monetarios"], ["preciounitario", "Precio unitario"], ["importe", "Importe"], ["costeunitario", "Coste unitario"]];
+const columnasVisibles = [["numprod", "Referencia"], ["descripcion", "Descripción"], ["cantidad", "Cantidad"], ["codudmedida", "Unidad"], ["tipoproyectocodigo", "Tipo proyecto"], ["liqpornumorden", "Movimiento aplicado"], ["modoMonetario", "Valores monetarios"], ["preciounitario", "Precio unitario"], ["importe", "Importe"], ["costeunitario", "Coste unitario"]];
 const columnasNumericas = new Set(["cantidad", "preciounitario", "importe", "importedto", "costeunitario", "liqpornumorden"]);
 
 function seleccionarConTeclado(event, seleccionar) {
@@ -29,7 +30,7 @@ function SelectorDiario({ children, ...props }) {
 }
 
 function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, guardar, corregir, ocupado, seleccion, seleccionar, columnas, informarCatalogos }) {
-  const opcionesProductos = useMemo(() => productos.map(item => ({ codigo: item.numprod, nombre: item.descripcion })), [productos]);
+  const opcionesProductos = useMemo(() => productos.map(item => ({ codigo: item.numprod, referencia: referenciaTlm(item), nombre: item.descripcion })), [productos]);
   const [catalogos, setCatalogos] = useState({ producto: "", unidades: [], movimientos: [], cargando: false, error: "" });
   const [intento, setIntento] = useState(0);
   const bloqueada = fila.estado !== "borrador";
@@ -76,6 +77,7 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
     const label = `${titulo}, fila ${indice + 1}`;
     let control;
     if (Object.prototype.hasOwnProperty.call(fijos, campo)) control = fijos[campo];
+    else if (bloqueada && campo === "numprod") control = referenciaTlm(producto || fila);
     else if (bloqueada) control = ["preciounitario", "importe", "costeunitario"].includes(campo) ? (fila.modoMonetario === campo ? fila.valorMonetario : "") : fila[campo] || (campo === "codudmedida" ? "Inicializa BC" : "—");
     else if (campo === "numprod") control = <BuscadorMovimiento label={label} opciones={opcionesProductos} disabled={deshabilitado} value={fila.numprod} onChange={codigo => modificar({ numprod: codigo, codudmedida: "", liqpornumorden: 0 })} />;
     else if (campo === "codudmedida" && !catalogos.unidades.length) control = "";
@@ -143,7 +145,7 @@ export default function DiarioAlmacen(props) {
     <tbody>{props.filas.map((fila, indice) => <FilaDiario {...props} columnas={columnas} informarCatalogos={informarCatalogos} key={fila.solicitudId} fila={fila} indice={indice} />)}
       {entradas.map(entrada => <tr key={entrada.id} className={props.seleccion === entrada.id ? "bc-row-selected" : ""} tabIndex={0} aria-label={`Documento ${entrada.numdoc || entrada.id}`} aria-selected={props.seleccion === entrada.id} onClick={() => { props.seleccionar?.(entrada.id); props.abrirRegistro?.(entrada); }} onFocus={() => props.seleccionar?.(entrada.id)} onKeyDown={event => seleccionarConTeclado(event, () => { props.seleccionar?.(entrada.id); props.abrirRegistro?.(entrada); })}>
         {props.historial && <td data-label="Fecha">{entrada.fechaEnvio && !Number.isNaN(new Date(entrada.fechaEnvio).getTime()) ? new Date(entrada.fechaEnvio).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}</td>}
-        {columnas.map(([campo, titulo]) => <td key={campo} data-label={titulo} className={columnasNumericas.has(campo) ? "bc-cell-number" : ""} title={String(entrada[campo] ?? "")}>{entrada[campo] ?? "—"}</td>)}
+        {columnas.map(([campo, titulo]) => <td key={campo} data-label={titulo} className={columnasNumericas.has(campo) ? "bc-cell-number" : ""} title={String(campo === "numprod" ? referenciaTlm((props.productos || []).find(p => p.numprod === entrada.numprod) || entrada) : entrada[campo] ?? "")}>{campo === "numprod" ? referenciaTlm((props.productos || []).find(p => p.numprod === entrada.numprod) || entrada) : entrada[campo] ?? "—"}</td>)}
         <td className="warehouse-row-status" data-label="Estado"><span className="bc-line-status" title="Recepción confirmada por BC. Selecciona la línea para registrarla.">Enviada a BC</span></td>
       </tr>)}
       {!props.filas.length && !entradas.length && <tr><td colSpan={columnas.length + (props.historial ? 2 : 1)} className="bc-empty">{props.historial ? "Todavía no hay envíos confirmados a BC." : "No hay líneas. Pulsa Nueva línea para empezar."}</td></tr>}
