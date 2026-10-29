@@ -1,3 +1,4 @@
+import { NotificationPeopleList } from "./NotificationPeople";
 import DownloadRequestButton from "./DownloadRequestButton";
 import AttachmentList from "./AttachmentList";
 import ModalShell from "./ModalShell";
@@ -71,6 +72,7 @@ function OriginalRequestModal({ pedido, onClose }) {
           )}
         </div>
 
+        <NotificationPeopleList personas={pedido.personasNotificadas} />
         <DownloadRequestButton pedido={pedido} />
     </ModalShell>
   );

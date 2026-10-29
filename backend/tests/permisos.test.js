@@ -365,3 +365,21 @@ test("Encargado puede consultar el catálogo activo para crear pedidos", async (
   });
   assert.equal((await request("Encargado", "GET", "/api/materiales?incluirInactivos=1")).status, 200);
 });
+
+ test("personas notificadas se guardan al crear y editar y rechazan formatos invalidos", async () => {
+  mock.method(DestinatarioCompra, "find", () => ({ select: () => ({ lean: async () => [] }) }));
+  mock.method(Pedido.prototype, "save", async function () { return this; });
+  const datos = { proyecto: "Obra", elementos: [{ elemento: "Material", referencia: "MAT-1", cantidad: 1 }], personasNotificadas: JSON.stringify([" JUAN@empresa.com ", "externo@otra.org", "juan@empresa.com"]) };
+  const creada = await request("Usuario", "POST", "/api/pedidos", datos);
+  assert.equal(creada.status, 201);
+  assert.deepEqual((await creada.json()).personasNotificadas, ["juan@empresa.com", "externo@otra.org"]);
+  const editada = await request("Usuario", "PUT", "/api/pedidos/" + id, datos);
+  assert.equal(editada.status, 200);
+  assert.deepEqual((await editada.json()).personasNotificadas, ["juan@empresa.com", "externo@otra.org"]);
+  const vacia = await request("Usuario", "PUT", "/api/pedidos/" + id, { ...datos, personasNotificadas: [] });
+  assert.deepEqual((await vacia.json()).personasNotificadas, []);
+  for (const metodo of ["POST", "PUT"]) {
+    const respuesta = await request("Usuario", metodo, "/api/pedidos" + (metodo === "PUT" ? "/" + id : ""), { ...datos, personasNotificadas: ["incorrecto"] });
+    assert.equal(respuesta.status, 400);
+  }
+ });

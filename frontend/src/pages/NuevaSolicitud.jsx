@@ -1,3 +1,4 @@
+import NotificationPeople from "../components/NotificationPeople";
 import reportClientError from "../utils/reportClientError";
 import { useContext, useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -37,6 +38,8 @@ function NuevaSolicitud() {
   const { setSolicitudes } = useContext(SolicitudesContext);
   const { user } = useContext(AuthContext);
 
+  const [personasNotificadas, setPersonasNotificadas] = useState([]);
+  const [correosPendientes, setCorreosPendientes] = useState(false);
   const [proyecto, setProyecto] = useState("");
   const [urgente, setUrgente] = useState("No");
   const [elementos, setElementos] = useState([crearElementoVacio()]);
@@ -185,6 +188,7 @@ function NuevaSolicitud() {
   );
 
   const handleSubmit = async () => {
+    if (correosPendientes) { setMensaje("Revisa y añade los correos antes de crear la solicitud."); return; }
     const elementosNormales = normalizarElementos(elementos);
     const urgentesNormalizados = normalizarElementos(elementosUrgentes);
     const noUrgentesNormalizados = normalizarElementos(elementosNoUrgentes);
@@ -219,6 +223,7 @@ function NuevaSolicitud() {
       urgente === "Sí" ? elementosATexto(noUrgentesNormalizados) : elementosATexto(elementosNormales)
     );
     nuevaSolicitud.append("estado", "Pendiente");
+    nuevaSolicitud.append("personasNotificadas", JSON.stringify(personasNotificadas));
 
     if (urgente === "Sí") {
       archivosUrgente.forEach(archivo => {
@@ -243,6 +248,8 @@ function NuevaSolicitud() {
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+    setPersonasNotificadas([]);
+    setCorreosPendientes(false);
     setProyecto("");
     setUrgente("No");
     setElementos([crearElementoVacio()]);
@@ -402,6 +409,7 @@ function NuevaSolicitud() {
           <>
             <p className="section-kicker">Paso 5</p>
             <h2 id="mobile-step-title-4">Revisa y crea el pedido</h2>
+            <NotificationPeople value={personasNotificadas} onChange={setPersonasNotificadas} onPendingChange={setCorreosPendientes} />
             <div className="summary-grid">
               <div><span>Proyecto</span><strong>{proyecto}</strong></div>
               <div><span>Tipo</span><strong>{urgente === "Sí" ? "Urgente" : "Normal"}</strong></div>
@@ -571,6 +579,10 @@ function NuevaSolicitud() {
                 })}
               </div>
             )}
+          </section>
+
+          <section className="new-request-card new-request-section">
+            <NotificationPeople value={personasNotificadas} onChange={setPersonasNotificadas} onPendingChange={setCorreosPendientes} />
           </section>
 
           <section className="new-request-card new-request-summary-card" aria-label="Resumen de la solicitud">

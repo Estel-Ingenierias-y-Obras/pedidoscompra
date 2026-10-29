@@ -307,7 +307,8 @@ const sendMail = async ({
   recipient,
   subject,
   body,
-  recipients
+  recipients,
+  ccRecipients = []
 }) => {
   const sender = requiredEnv("GRAPH_SENDER_EMAIL");
   const accessToken = await getAccessToken();
@@ -320,6 +321,7 @@ const sendMail = async ({
       message: {
         subject,
         body: { contentType: "HTML", content: body },
+        ...(ccRecipients.length ? { ccRecipients: ccRecipients.map(address => ({ emailAddress: { address } })) } : {}),
         toRecipients: recipientList.map(address => ({
           emailAddress: { address }
         }))
@@ -341,6 +343,7 @@ const sendPurchaseRequestNotification = async (pedido, recipients) => {
 
   await sendMail({
     recipients,
+    ccRecipients: pedido.personasNotificadas || [],
     subject: `Nueva solicitud de compra - ${pedido.proyecto}`,
     body: buildPurchaseRequestBody(pedido, frontendUrl)
   });

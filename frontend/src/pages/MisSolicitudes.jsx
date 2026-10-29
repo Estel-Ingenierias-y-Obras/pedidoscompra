@@ -1,3 +1,4 @@
+import NotificationPeople from "../components/NotificationPeople";
 import reportClientError from "../utils/reportClientError";
 import { useContext, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -66,6 +67,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
   const [error, setError] = useState("");
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState(null);
   const [pedidoAEliminar, setPedidoAEliminar] = useState(null);
+  const [correosPendientes, setCorreosPendientes] = useState(false);
   const [pedidoAEditar, setPedidoAEditar] = useState(null);
   const [pedidoAdjuntosLectura, setPedidoAdjuntosLectura] = useState(null);
   const [pedidoDetalleOriginal, setPedidoDetalleOriginal] = useState(null);
@@ -170,8 +172,10 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
 
   const abrirEdicion = (pedido) => {
     if (!puedeEditarPedido(pedido)) return;
+    setCorreosPendientes(false);
     setPedidoAEditar(pedido);
     setFormEdicion({
+      personasNotificadas: pedido.personasNotificadas || [],
       proyecto: pedido.proyecto || "",
       urgente: pedido.urgente ? "Sí" : "No",
       motivoUrgencia: pedido.motivoUrgencia || "",
@@ -287,7 +291,9 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
     }
 
     try {
+      if (correosPendientes) { mostrarError("Revisa y añade los correos antes de guardar."); return; }
       const datosEdicion = new FormData();
+      datosEdicion.append("personasNotificadas", JSON.stringify(formEdicion.personasNotificadas || []));
       datosEdicion.append("proyecto", formEdicion.proyecto);
       datosEdicion.append("urgente", formEdicion.urgente === "Sí");
       const elementosNormales = normalizarElementos(formEdicion.elementos);
@@ -744,6 +750,7 @@ function MisSolicitudes({ historico = false, onRecuperar, cargando = false, erro
                 </div>
               </div>
 
+              <NotificationPeople value={formEdicion.personasNotificadas || []} onChange={valor => actualizarCampoEdicion("personasNotificadas", valor)} onPendingChange={setCorreosPendientes} />
               <div className="modal-buttons edit-order-actions">
                 <button type="submit">Guardar cambios</button>
               </div>

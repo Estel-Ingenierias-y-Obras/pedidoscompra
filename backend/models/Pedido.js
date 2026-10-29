@@ -1,3 +1,4 @@
+const { emailValido } = require("../utils/personasNotificadas");
 const mongoose = require("mongoose");
 
 const archivoSchema = {
@@ -30,6 +31,12 @@ const elementoPedidoSchema = new mongoose.Schema({
 }, { _id: false });
 
 const pedidoSchema = new mongoose.Schema({
+
+  personasNotificadas: {
+    type: [String],
+    default: [],
+    validate: lista => lista.every(emailValido)
+  },
 
   solicitante: {
     type: String,

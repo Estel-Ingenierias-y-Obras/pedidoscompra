@@ -1,3 +1,4 @@
+import { NotificationPeopleList } from "../components/NotificationPeople";
 import DownloadRequestButton from "../components/DownloadRequestButton";
 import reportClientError from "../utils/reportClientError";
 import { useContext, useRef, useState } from "react";
@@ -567,6 +568,7 @@ function ValidarSolicitudes() {
               </section>
             </div>
 
+            <NotificationPeopleList personas={(pedidoInfoCompras || pedidoSeleccionado).personasNotificadas} />
             <DownloadRequestButton pedido={pedidoInfoCompras || pedidoSeleccionado} />
         </ModalShell>
       )}

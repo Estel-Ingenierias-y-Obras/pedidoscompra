@@ -1,3 +1,4 @@
+const { normalizarPersonasNotificadas } = require("../utils/personasNotificadas");
 const logger = require("../utils/logger");
 const express = require("express");
 const mongoose = require("mongoose");
@@ -296,6 +297,7 @@ router.post("/", permitirRoles("Usuario", "Admin", "Encargado"), recibirArchivos
   const archivosGuardados = [];
 
   try {
+    const personasNotificadas = normalizarPersonasNotificadas(req.body.personasNotificadas);
     const archivosLegacy = [];
     const archivosDescripcion = [];
     const archivosUrgente = [];
@@ -338,6 +340,7 @@ router.post("/", permitirRoles("Usuario", "Admin", "Encargado"), recibirArchivos
         comentarioCompras: "",
         adjuntosCompras: []
       } : {}),
+      personasNotificadas,
       solicitante: req.usuarioActual.nombre,
       email: req.usuarioActual.email,
       elementos,
@@ -528,6 +531,9 @@ router.put("/:id", recibirArchivos, async (req, res) => {
       });
     }
 
+    const personasActualizadas = Object.prototype.hasOwnProperty.call(req.body, "personasNotificadas")
+      ? { personasNotificadas: normalizarPersonasNotificadas(req.body.personasNotificadas) } : {};
+
     const elementosActualizados =
       !esActualizacionGestion && !esActualizacionAdjuntos && !esActualizacionInfoCompras
         ? await Promise.all([
@@ -544,6 +550,7 @@ router.put("/:id", recibirArchivos, async (req, res) => {
         : esActualizacionInfoCompras
           ? { comentarioCompras: req.body.comentarioCompras || "" }
           : {
+              ...personasActualizadas,
               proyecto: req.body.proyecto,
               urgente: normalizarBooleano(req.body.urgente),
               motivoUrgencia: req.body.motivoUrgencia,

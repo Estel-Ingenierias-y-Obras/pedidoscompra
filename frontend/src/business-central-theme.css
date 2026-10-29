@@ -7095,3 +7095,19 @@ table .delete-icon-button {
 .order-detail-modal .download-request-actions {
   margin-bottom: 20px;
 }
+
+.notification-people-readonly {
+  margin-block: 20px;
+}
+
+.notification-people-editor .settings-form {
+  margin-top: 16px;
+}
+
+.notification-people-readonly li {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .notification-people-table td:nth-child(2)::before { content: "Acción"; }
+}

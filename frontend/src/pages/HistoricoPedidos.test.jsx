@@ -142,7 +142,7 @@ test.each([false, true])("Buscador único en histórico=%s: tipos, selección y 
 
  test.each([false, true])("Descarga PDF y solo Visualizar en detalle, hist?rico=%s", async historico => {
  const { descargarSolicitudPdf } = require("../utils/solicitudPdf");
- const pedido = { ...pedidos[2], estado: historico ? "Archivar" : "Pendiente" };
+ const pedido = { ...pedidos[2], personasNotificadas: ["copia@empresa.com", "externo@otra.org"], estado: historico ? "Archivar" : "Pendiente" };
  if (historico) {
  api.get.mockResolvedValue({ data: [pedido] }); mostrar(<HistoricoPedidos />);
  fireEvent.click(await screen.findByRole("button", { name: "Abrir Proyecto mixto, 1 pedidos" }));
@@ -151,6 +151,8 @@ test.each([false, true])("Buscador único en histórico=%s: tipos, selección y 
  mostrar(<ValidarSolicitudes />, jest.fn(), "Admin", [pedido]);
  fireEvent.click(await screen.findByText("Archivado"));
  }
+ expect(screen.getByText("copia@empresa.com")).toBeInTheDocument();
+ expect(screen.getByText("externo@otra.org")).toBeInTheDocument();
  expect(screen.getByRole("button", { name: "Visualizar urgente.pdf" })).toBeInTheDocument();
  expect(screen.queryByRole("button", { name: "Descargar urgente.pdf" })).not.toBeInTheDocument();
  fireEvent.click(screen.getByRole("button", { name: /Descargar Solicitud/ }));
