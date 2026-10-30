@@ -39,6 +39,7 @@ function Usuarios() {
   useState("Usuario");
 
   const [solicitudes, setSolicitudes] = useState([]);
+  const [solicitudesVisibles, setSolicitudesVisibles] = useState(10);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
   const [nombreAprobacion, setNombreAprobacion] = useState("");
   const [rolAprobacion, setRolAprobacion] = useState("Usuario");
@@ -369,7 +370,7 @@ const formatearFecha = (fecha) =>
       </tr>
     </thead>
     <tbody>
-      {solicitudes.map(solicitud => (
+      {solicitudes.slice(0, solicitudesVisibles).map(solicitud => (
         <tr key={solicitud._id}>
           <td>{solicitud.nombre}</td>
           <td>{solicitud.email}</td>
@@ -399,6 +400,20 @@ const formatearFecha = (fecha) =>
       )}
     </tbody>
   </table>
+  {(solicitudesVisibles > 10 || solicitudesVisibles < solicitudes.length) && (
+    <div className="solicitudes-mostrar-mas">
+      {solicitudesVisibles > 10 && (
+        <button type="button" onClick={() => setSolicitudesVisibles(actual => Math.max(10, actual - 10))}>
+          Mostrar menos
+        </button>
+      )}
+      {solicitudesVisibles < solicitudes.length && (
+        <button type="button" onClick={() => setSolicitudesVisibles(actual => actual + 10)}>
+          Mostrar más
+        </button>
+      )}
+    </div>
+  )}
 </section>
       </div>
 

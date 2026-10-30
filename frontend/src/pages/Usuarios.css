@@ -86,3 +86,9 @@ th {
     overflow-x: auto;
   }
 }
+.solicitudes-mostrar-mas {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
