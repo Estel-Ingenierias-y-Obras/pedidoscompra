@@ -5,6 +5,7 @@ import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { modosMonetarios } from "../services/almacenPayload";
 import DeleteIconButton from "./DeleteIconButton";
 import BuscadorMovimiento from "./BuscadorMovimiento";
+import SelectorProducto from "./SelectorProducto";
 import * as servicio from "../services/almacen";
 
 export const columnasDiario = [
@@ -29,7 +30,7 @@ function SelectorDiario({ children, ...props }) {
   return <span className="bc-compact-select"><select {...props}>{children}</select></span>;
 }
 
-function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, guardar, corregir, ocupado, seleccion, seleccionar, columnas, informarCatalogos }) {
+function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, guardar, corregir, ocupado, seleccion, seleccionar, columnas, informarCatalogos, buscarProductos, onProducto }) {
   const opcionesProductos = useMemo(() => productos.map(item => ({ codigo: item.numprod, referencia: referenciaTlm(item), nombre: item.descripcion })), [productos]);
   const [catalogos, setCatalogos] = useState({ producto: "", unidades: [], movimientos: [], cargando: false, error: "" });
   const [intento, setIntento] = useState(0);
@@ -79,7 +80,9 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
     if (Object.prototype.hasOwnProperty.call(fijos, campo)) control = fijos[campo];
     else if (bloqueada && campo === "numprod") control = referenciaTlm(producto || fila);
     else if (bloqueada) control = ["preciounitario", "importe", "costeunitario"].includes(campo) ? (fila.modoMonetario === campo ? fila.valorMonetario : "") : fila[campo] || (campo === "codudmedida" ? "Inicializa BC" : "—");
-    else if (campo === "numprod") control = <BuscadorMovimiento label={label} opciones={opcionesProductos} disabled={deshabilitado} value={fila.numprod} onChange={codigo => modificar({ numprod: codigo, codudmedida: "", liqpornumorden: 0 })} />;
+    else if (campo === "numprod") control = buscarProductos
+      ? <SelectorProducto label={label} producto={producto} onProducto={onProducto} disabled={deshabilitado} value={fila.numprod} onChange={codigo => modificar({ numprod: codigo, codudmedida: "", liqpornumorden: 0 })} />
+      : <BuscadorMovimiento label={label} opciones={opcionesProductos} disabled={deshabilitado} value={fila.numprod} onChange={codigo => modificar({ numprod: codigo, codudmedida: "", liqpornumorden: 0 })} />;
     else if (campo === "codudmedida" && !catalogos.unidades.length) control = "";
     else if (campo === "codudmedida") control = <SelectorDiario aria-label={label} disabled={deshabilitado || catalogos.cargando} value={fila.codudmedida} onChange={e => modificar({ codudmedida: e.target.value })}>
       <option value="">Inicializa BC{producto?.codudmedida ? ` (${producto.codudmedida})` : ""}</option>{catalogos.unidades.map(item => <option key={item.id || item.codigo} value={item.codigo}>{item.codigo} · factor {item.factor}</option>)}
@@ -106,7 +109,7 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
       {fila.estado === "incierta" && <p role="status">Resultado pendiente de confirmar. Se reenviarán la misma clave y los mismos datos.</p>}
       {fila.estado === "bloqueada" && <p>Requiere revisión. No se creará una sustituta.</p>}
       {fila.proximoIntento && <p>Próximo intento a partir de {new Date(fila.proximoIntento).toLocaleTimeString("es")}</p>}
-      {!bloqueada && !fila.cuerpoEnviado && fila.numprod && !producto && <p role="alert" className="journal-error">El material guardado no está en el catálogo con referencia. Selecciona un material disponible.</p>}
+      {!buscarProductos && !bloqueada && !fila.cuerpoEnviado && fila.numprod && !producto && <p role="alert" className="journal-error">El material guardado no está en el catálogo con referencia. Selecciona un material disponible.</p>}
       {!bloqueada && catalogos.cargando && <p role="status">Cargando unidades y movimientos…</p>}
       {!bloqueada && catalogos.error && <p role="alert" className="journal-error">{catalogos.error} <button onClick={() => setIntento(valor => valor + 1)}>Recargar opciones</button></p>}
       {excede && !bloqueada && <p role="alert" className="journal-error">La cantidad base supera la pendiente del movimiento seleccionado.</p>}

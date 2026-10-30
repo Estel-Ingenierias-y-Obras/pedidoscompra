@@ -3,9 +3,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BuscadorMovimiento from "./BuscadorMovimiento";
 const opciones = [{ codigo: "X1", nombre: "Tubo central" }, { codigo: "CENTRAL 3", nombre: "Almacén Palma" }, { codigo: "R1", nombre: "Martín Pérez" }];
-function Campo() {
+function Campo({ lista = opciones }) {
   const [valor, cambiar] = useState("");
-  return <><BuscadorMovimiento label="Origen código" opciones={opciones} value={valor} onChange={cambiar} /><output aria-label="Código seleccionado">{valor}</output><button>Siguiente</button></>;
+  return <><BuscadorMovimiento label="Origen código" opciones={lista} value={valor} onChange={cambiar} /><output aria-label="Código seleccionado">{valor}</output><button>Siguiente</button></>;
 }
 test("TAB completa la coincidencia relevante y avanza al campo siguiente", () => {
   render(<Campo />);
@@ -16,6 +16,21 @@ test("TAB completa la coincidencia relevante y avanza al campo siguiente", () =>
   expect(screen.getByLabelText("Código seleccionado")).toHaveTextContent("CENTRAL 3");
   expect(campo).toHaveValue("CENTRAL 3 · Almacén Palma");
   expect(screen.getByRole("button", { name: "Siguiente" })).toHaveFocus();
+});
+
+test("el desplegable incluye todo el catálogo y encuentra 20193978 aunque esté al final", () => {
+  const lista = Array.from({ length: 11259 }, (_, n) => ({ codigo: `P${n}`, referencia: `REF-${n}`, nombre: `Material ${n}` }));
+  lista.push({ codigo: "ARTEL00204-TEST", referencia: "20193978", nombre: "Cable PRYSMIAN" });
+  render(<Campo lista={lista} />);
+  const campo = screen.getByRole("combobox");
+  fireEvent.focus(campo);
+  expect(screen.getAllByRole("option").length).toBeLessThanOrEqual(12);
+  expect(screen.getAllByRole("option")[0]).toHaveAttribute("aria-setsize", "11260");
+  fireEvent.change(campo, { target: { value: "20193978" } });
+  fireEvent.click(screen.getByRole("option", { name: "20193978 · Cable PRYSMIAN" }));
+  expect(screen.getByLabelText("Código seleccionado")).toHaveTextContent("ARTEL00204-TEST");
+  expect(campo).toHaveValue("20193978 · Cable PRYSMIAN");
+  expect(screen.queryByRole("button", { name: "Reintentar búsqueda" })).not.toBeInTheDocument();
 });
 test("encuentra nombres con tildes y permite flechas y Enter", () => {
   render(<Campo />); const campo = screen.getByRole("combobox");

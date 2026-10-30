@@ -1,0 +1,30 @@
+{
+  "fecha": "2026-10-30T09:38:48.102Z",
+  "alcance": "Edge, bundle real y búsqueda BC real; endpoints auxiliares simulados, sin enviar documentos",
+  "resultados": [
+    {
+      "modo": "escritorio",
+      "llamadasAlAbrir": 0,
+      "msHastaResultados": 1487,
+      "opcionesDOM": 12,
+      "panelDentroDePantalla": true,
+      "cierraTrasSeleccion": true,
+      "reabreConBusquedaVacia": true,
+      "conservaSeleccionAlCancelar": true,
+      "focoVuelveAlCampo": true,
+      "formatoReferenciaDescripcion": true
+    },
+    {
+      "modo": "movil",
+      "llamadasAlAbrir": 0,
+      "msHastaResultados": 357,
+      "opcionesDOM": 12,
+      "panelDentroDePantalla": true,
+      "cierraTrasSeleccion": true,
+      "reabreConBusquedaVacia": true,
+      "conservaSeleccionAlCancelar": true,
+      "focoVuelveAlCampo": true,
+      "formatoReferenciaDescripcion": true
+    }
+  ]
+}

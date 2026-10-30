@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
@@ -9,6 +9,7 @@ import LineasMovimiento from "../components/LineasMovimiento";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 import { construirMovimiento, enviarMovimiento, recuperarBorradorMovimiento, validarMovimiento } from "../services/movimientosAlmacen";
+import { obtenerCatalogosMovimiento } from "../services/almacen";
 import "./Almacen.css";
 export { validarMovimiento } from "../services/movimientosAlmacen";
 
@@ -19,6 +20,11 @@ export default function MovimientosAlmacen() {
   const clave = `almacen-movimientos-v1:${user.email.toLowerCase()}`;
   const [documento, setDocumento] = useState(nuevo);
   const [catalogos, setCatalogos] = useState({});
+  const codigosSeleccionados = useRef(new Set());
+  codigosSeleccionados.current = new Set(documento.lineas.map(linea => linea.numprod));
+  const actualizarProducto = useCallback(producto => {
+    setCatalogos(prev => ({ ...prev, articulos: [...(prev.articulos || []).filter(item => item.number !== producto.numprod && codigosSeleccionados.current.has(item.number)), producto] }));
+  }, []);
   const [proyectos, setProyectos] = useState([]);
   const [errores, setErrores] = useState([]);
   const [storageError, setStorageError] = useState("");
@@ -42,13 +48,13 @@ export default function MovimientosAlmacen() {
   useEffect(() => {
     let activo = true;
     setCargando(true);
-    Promise.allSettled([api.get("/api/almacen/movimientos/catalogos"), api.get("/api/proyectos", { params: { soloAbiertos: true } })]).then(([datos, obras]) => {
+    Promise.allSettled([obtenerCatalogosMovimiento(), api.get("/api/proyectos", { params: { soloAbiertos: true } })]).then(([datos, obras]) => {
       if (!activo) return;
       const fallos = [];
       if (datos.status === "fulfilled") {
-        setCatalogos(datos.value.data);
+        setCatalogos(prev => ({ ...datos.value.data, articulos: prev.articulos || [] }));
         Object.entries(datos.value.data.errores || {}).forEach(([nombre, mensaje]) => fallos.push(`${nombre}: ${mensaje}`));
-      } else { setCatalogos({}); fallos.push("No se pudieron cargar los catálogos de BC."); }
+      } else { setCatalogos({}); fallos.push(datos.reason?.message || "No se pudieron cargar los catálogos de BC."); }
       if (obras.status === "fulfilled") {
         const lista = Array.isArray(obras.value.data) ? obras.value.data : obras.value.data.value;
         if (Array.isArray(lista)) setProyectos(lista
@@ -83,7 +89,7 @@ export default function MovimientosAlmacen() {
     catch (_) { setStorageError("No se pudo guardar el borrador en este navegador."); }
   }, [cargando, errores, storageError, catalogos, proyectos, documento, clave]);
   const materialFueraDeCatalogo = !cargando && !errores.length && !documento.cuerpoEnviado && documento.lineas.some(linea => linea.numprod && !(catalogos.articulos || []).some(item => item.number === linea.numprod));
-  const errorValidacion = validarMovimiento(documento) || (materialFueraDeCatalogo ? "Hay materiales guardados fuera del catálogo con referencia. Selecciona materiales disponibles." : "");
+  const errorValidacion = validarMovimiento(documento) || (materialFueraDeCatalogo ? "Comprueba los artículos pendientes de cargar o selecciona materiales disponibles." : "");
   const enviar = async () => {
     if (enVuelo.current || storageError || errorValidacion || cargando || errores.length) return;
     enVuelo.current = true; setEnviando(true);
@@ -136,7 +142,7 @@ export default function MovimientosAlmacen() {
       <fieldset className="movement-editor" disabled={cargando || enviando || !!storageError}>
         <CabeceraMovimiento cabecera={documento.cabecera} cambiar={cambiarCabecera} catalogos={catalogos} proyectos={proyectos} />
         <h2>Líneas de movimiento</h2>
-        <LineasMovimiento lineas={documento.lineas} articulos={catalogos.articulos || []} cambiar={(id, cambio) => persistir({ ...documento, lineas: documento.lineas.map(linea => linea.id === id ? { ...linea, ...cambio } : linea) })} quitar={id => persistir({ ...documento, lineas: documento.lineas.filter(linea => linea.id !== id) })} />
+        <LineasMovimiento lineas={documento.lineas} articulos={catalogos.articulos || []} buscarProductos onProducto={actualizarProducto} cambiar={(id, cambio) => persistir({ ...documento, lineas: documento.lineas.map(linea => linea.id === id ? { ...linea, ...cambio } : linea) })} quitar={id => persistir({ ...documento, lineas: documento.lineas.filter(linea => linea.id !== id) })} />
       </fieldset>
       <p className="bc-journal-footer">{documento.lineas.length} líneas · {errorValidacion || "Campos básicos completos; pendiente de validar disponibilidad y dimensiones en BC."}</p>
     </div></div></section></Layout>;

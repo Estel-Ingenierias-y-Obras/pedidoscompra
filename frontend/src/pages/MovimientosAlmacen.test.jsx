@@ -10,13 +10,20 @@ const montar = () => render(<MemoryRouter><AuthContext.Provider value={{ user: {
 beforeEach(() => {
   Object.defineProperty(window, "crypto", { configurable: true, value: { randomUUID: () => "18f1c681-7651-4b40-aef7-0f4481ec0402" } });
   localStorage.clear(); jest.clearAllMocks();
-  api.get.mockImplementation(url => Promise.resolve({ data: url === "/api/proyectos" ? [{ nomProyecto: "P1", descProyecto: "Obra", status: "Open", blocked: " ", complete: false }] : { almacenes: [{ code: "A1", displayName: "Almacén" }], articulos: [{ id: "item1", number: "1000", displayName: "Cable", inventory: 12, baseUnitOfMeasureCode: "UD" }], recursos: [{ codigo: "R1", nombre: "Solicitante" }], departamentos: [{ code: "D1", displayName: "Departamento" }], tiposProyecto: [{ codigo: "INDIRECTO", nombre: "Indirecto" }], zonas: [{ code: "EM-ESPAÑA", displayName: "España" }], errores: {} } }));
+  api.get.mockImplementation((url, opciones) => {
+    if (url.endsWith("/configuracion")) return Promise.resolve({ data: { busquedaProductos: true } });
+    if (url.endsWith("/productos")) {
+      const producto = { number: opciones?.params?.numprod || "1000", referenciaTlm: "20193978", displayName: "Cable", inventory: 12, baseUnitOfMeasureCode: "UD" };
+      return Promise.resolve({ data: opciones?.params?.buscar ? { articulos: [producto], hayMas: false } : [producto] });
+    }
+    return Promise.resolve({ data: url === "/api/proyectos" ? [{ nomProyecto: "P1", descProyecto: "Obra", status: "Open", blocked: " ", complete: false }] : { almacenes: [{ code: "A1", displayName: "Almacén" }], articulos: [], recursos: [{ codigo: "R1", nombre: "Solicitante" }], departamentos: [{ code: "D1", displayName: "Departamento" }], tiposProyecto: [{ codigo: "INDIRECTO", nombre: "Indirecto" }], zonas: [{ code: "EM-ESPAÑA", displayName: "España" }], errores: {} } });
+  });
 });
 test("recupera borrador, completa descripción y unidad sin habilitar registros no soportados", async () => {
   localStorage.setItem(key, JSON.stringify({ serie: "ACO-ALM", cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1", solicitante: "R1", departamento: "D1", zona: "EM-ESPAÑA", tipoproyectocodigo: "INDIRECTO" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2", campoAntiguo: "eliminar" }] }));
   montar();
   await waitFor(() => expect(screen.getByRole("button", { name: /Nueva línea/ })).toBeEnabled());
-  expect(screen.getByText("Cable", { selector: "td" })).toBeInTheDocument();
+  expect(await screen.findByText("Cable", { selector: "td" })).toBeInTheDocument();
   expect(screen.getByText("UD", { selector: "td" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Registrar movimiento" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Cantidad línea 1"), { target: { value: "-2" } });
@@ -31,6 +38,31 @@ test("proyectos no disponibles no se sustituyen por datos inventados", async () 
   api.get.mockRejectedValue(new Error("404")); montar();
   expect(await screen.findByText(/No se pudieron cargar los proyectos/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Enviar a BC" })).toBeDisabled();
+});
+
+test("recupera el artículo guardado y busca desde tres caracteres sin cargar el catálogo completo", async () => {
+  const anterior = api.get.getMockImplementation();
+  const producto = { number: "1000", numprod: "1000", referenciaTlm: "20193978", displayName: "Cable", baseUnitOfMeasureCode: "UD" };
+  api.get.mockImplementation(async (url, opciones) => {
+    if (url === "/api/almacen/productos") return { data: opciones?.params?.buscar ? { articulos: [producto], hayMas: false } : [{ ...producto, inventory: 7 }] };
+    const respuesta = await anterior(url, opciones);
+    return url.endsWith("/catalogos") ? { data: { ...respuesta.data, articulos: [producto, { ...producto, number: "B", numprod: "B", referenciaTlm: "REF-B", displayName: "Tubo" }] } } : respuesta;
+  });
+  localStorage.setItem(key, JSON.stringify({ cabecera: { tipoorigen: "Location", origen: "A1", tipodestino: "Job", destino: "P1" }, lineas: [{ id: "l1", numprod: "1000", cantidad: "2" }] }));
+  montar();
+  await screen.findByText("7", { selector: "td" });
+  expect(api.get).toHaveBeenCalledWith("/api/almacen/productos", { params: { numprod: "1000" }, timeout: 20000 });
+  const campo = screen.getByLabelText("Artículo línea 1");
+  fireEvent.focus(campo);
+  const llamadas = api.get.mock.calls.length;
+  fireEvent.change(campo, { target: { value: "20" } });
+  expect(api.get).toHaveBeenCalledTimes(llamadas);
+  fireEvent.change(campo, { target: { value: "201" } });
+  expect(await screen.findByRole("option", { name: "20193978 · Cable" })).toBeInTheDocument();
+  expect(api.get).toHaveBeenCalledWith("/api/almacen/productos", { params: { buscar: "201" }, timeout: 20000 });
+  expect(api.get).toHaveBeenCalledWith("/api/almacen/movimientos/catalogos", { params: { sinArticulos: "1" } });
+  expect(api.get.mock.calls.some(([url, opciones]) => url === "/api/almacen/productos" && !opciones?.params)).toBe(false);
+  expect(api.get.mock.calls.some(([url]) => url === "/api/almacen/articulos")).toBe(false);
 });
 
 test("el selector solo muestra proyectos abiertos aunque el backend devuelva otros estados", async () => {

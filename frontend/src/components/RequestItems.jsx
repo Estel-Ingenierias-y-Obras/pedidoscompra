@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCartPlus, faPlus, faTrash, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { useContext, useId, useState } from "react";
+import { useContext, useId, useMemo, useState } from "react";
 import { MaterialesContext } from "../context/MaterialesContext";
 
 export const crearElementoVacio = () => ({
@@ -49,11 +49,18 @@ function MaterialAutocomplete({ item, onChange, materiales }) {
   const suggestionsId = useId();
   const normalizar = valor => String(valor || "").trim().toLocaleLowerCase("es");
   const termino = normalizar(item.elemento);
-  const nombresUnicos = [...new Map(
-    materiales.map(material => [normalizar(material.referencia), material.referencia])
-  ).values()];
+  const { nombresUnicos, descripciones } = useMemo(() => {
+    const nombres = new Map(), textos = new Map();
+    for (const material of materiales) {
+      nombres.set(normalizar(material.referencia), material.referencia);
+      const previas = textos.get(material.referencia) || [];
+      previas.push(normalizar(material.descripcion));
+      textos.set(material.referencia, previas);
+    }
+    return { nombresUnicos: [...nombres.values()], descripciones: textos };
+  }, [materiales]);
   const sugerencias = termino
-    ? nombresUnicos.filter(nombre => normalizar(nombre).includes(termino) || materiales.some(material => material.referencia === nombre && normalizar(material.descripcion).includes(termino))).slice(0, 8)
+    ? nombresUnicos.filter(nombre => normalizar(nombre).includes(termino) || descripciones.get(nombre).some(texto => texto.includes(termino))).slice(0, 8)
     : nombresUnicos.slice(0, 8);
 
   const seleccionar = nombre => {

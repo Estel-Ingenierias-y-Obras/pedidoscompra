@@ -84,6 +84,7 @@ test("el catálogo filtra en BC y descarta referencias vacías, espacios, bloque
     }
   });
   assert.equal(consulta.searchParams.get("$filter"), "Referencia_TLM ne '' and Blocked eq false and Type eq 'Inventory'");
-  assert.equal(consulta.searchParams.get("$select"), "No,Referencia_TLM,Description,Base_Unit_of_Measure,Inventory,Blocked,Type");
-  assert.deepEqual(productos.map(p => [p.numprod, p.referenciaTlm, p.inventory]), [["P1", "REF-1", 3], ["P6", "REF-1", 3]]);
+  assert.equal(consulta.searchParams.get("$select"), "No,Referencia_TLM,Description,Base_Unit_of_Measure,Blocked,Type");
+  assert.deepEqual(productos.map(p => [p.numprod, p.referenciaTlm]), [["P1", "REF-1"], ["P6", "REF-1"]]);
+  assert.ok(productos.every(p => !Object.hasOwn(p, "inventory")));
 });

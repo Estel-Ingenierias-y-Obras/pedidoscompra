@@ -5,14 +5,33 @@ import EntradasAlmacen from "./EntradasAlmacen";
 import EnviadosAlmacen from "./EnviadosAlmacen";
 import * as servicio from "../services/almacen";
 jest.mock("../components/Layout", () => ({ children }) => <div>{children}</div>);
-jest.mock("../services/almacen", () => ({ obtenerProductos: jest.fn(), obtenerTiposProyecto: jest.fn(), obtenerEntradas: jest.fn(), obtenerOperaciones: jest.fn(), obtenerEnviados: jest.fn(), obtenerUnidades: jest.fn(), obtenerMovimientosAplicables: jest.fn(), guardarEntrada: jest.fn(), obtenerRegistrosPendientes: jest.fn(), registrarEntrada: jest.fn() }));
+jest.mock("../services/almacen", () => ({ buscarProductos: jest.fn(), obtenerProducto: jest.fn(), obtenerProductos: jest.fn(), obtenerTiposProyecto: jest.fn(), obtenerEntradas: jest.fn(), obtenerOperaciones: jest.fn(), obtenerEnviados: jest.fn(), obtenerUnidades: jest.fn(), obtenerMovimientosAplicables: jest.fn(), guardarEntrada: jest.fn(), obtenerRegistrosPendientes: jest.fn(), registrarEntrada: jest.fn() }));
 const key = "almacen-entradas-v2:test@example.com";
 const draft = { solicitudId: "a8c7ab30-7013-4a4b-8d19-1c392a571251", estado: "borrador", numprod: "1000", cantidad: "2", codudmedida: "UD", liqpornumorden: 0, tipoproyectocodigo: "INDIRECTO", modoMonetario: "bc", valorMonetario: "" };
 const montar = () => render(<MemoryRouter initialEntries={["/material/almacen/entradas"]}><AuthContext.Provider value={{ user: { email: "test@example.com", rol: "Admin" } }}><Routes><Route path="/material/almacen/entradas" element={<EntradasAlmacen />} /><Route path="/material/almacen/enviados" element={<EnviadosAlmacen />} /></Routes></AuthContext.Provider></MemoryRouter>);
+
+test("el diario busca 20193978 sin descargar todo el catálogo", async () => {
+  localStorage.setItem(key, JSON.stringify([{ ...draft, numprod: "" }]));
+  servicio.buscarProductos.mockResolvedValue({ articulos: [{ numprod: "ARTEL00204-TEST", referenciaTlm: "20193978", descripcion: "Cable PRYSMIAN", codudmedida: "UD" }], hayMas: false });
+  montar();
+  await waitFor(() => expect(screen.queryByText("Cargando diario y catálogos…")).not.toBeInTheDocument());
+  const campo = screen.getByLabelText("Referencia, fila 1");
+  fireEvent.focus(campo); fireEvent.change(campo, { target: { value: "20193978" } });
+  fireEvent.click(await screen.findByRole("option", { name: "20193978 · Cable PRYSMIAN" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Enviar a BC" })).toBeEnabled());
+  expect(campo).toHaveValue("20193978 · Cable PRYSMIAN");
+  expect(JSON.parse(localStorage.getItem(key))[0].numprod).toBe("ARTEL00204-TEST");
+  expect(servicio.obtenerProductos).not.toHaveBeenCalled();
+  expect(servicio.buscarProductos).toHaveBeenCalledWith("20193978");
+  expect(screen.queryByRole("button", { name: "Reintentar búsqueda" })).not.toBeInTheDocument();
+  expect(servicio.guardarEntrada).not.toHaveBeenCalled();
+});
 beforeEach(() => {
   jest.clearAllMocks(); localStorage.clear();
   localStorage.setItem(key, JSON.stringify([draft]));
   servicio.obtenerProductos.mockResolvedValue([{ numprod: "1000", descripcion: "Producto", codudmedida: "UD" }]);
+  servicio.obtenerProducto.mockResolvedValue({ numprod: "1000", number: "1000", referenciaTlm: "REF-1000", descripcion: "Producto", displayName: "Producto", codudmedida: "UD", inventory: 2 });
+  servicio.buscarProductos.mockResolvedValue({ articulos: [], hayMas: false });
   servicio.obtenerTiposProyecto.mockResolvedValue([{ codigo: "INDIRECTO", nombre: "Estructura", bloqueado: false }]);
   servicio.obtenerEntradas.mockResolvedValue([]); servicio.obtenerOperaciones.mockResolvedValue([]); servicio.obtenerEnviados.mockResolvedValue([]);
   servicio.obtenerRegistrosPendientes.mockResolvedValue([]);

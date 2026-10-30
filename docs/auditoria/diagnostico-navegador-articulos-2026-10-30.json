@@ -1,0 +1,51 @@
+{
+  "fecha": "2026-10-30T09:19:03.915Z",
+  "alcance": "Edge headless, bundle de producción, HTTP local y BC real para búsqueda. Endpoints auxiliares simulados. Sin medir carga completa autenticada en producción.",
+  "mediciones": [
+    {
+      "ruta": "/material/almacen/entradas",
+      "msUsuario": 1165,
+      "msAntesDeHTTP": 313,
+      "msHTTP": 846,
+      "msPresentacionTrasHTTP": 6,
+      "opcionesDOM": 12,
+      "llamadasAlAbrir": 0
+    },
+    {
+      "ruta": "/material/almacen/movimientos",
+      "msUsuario": 334,
+      "msAntesDeHTTP": 311,
+      "msHTTP": 2,
+      "msPresentacionTrasHTTP": 21,
+      "opcionesDOM": 12,
+      "llamadasAlAbrir": 0
+    }
+  ],
+  "servicios": [
+    {
+      "tipo": "busqueda",
+      "msBackend": 844,
+      "filas": 20,
+      "bytesJSON": 5731,
+      "llamadasBC": [
+        {
+          "ms": 602,
+          "filas": 0,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 841,
+          "filas": 21,
+          "bytesJSON": 5403
+        }
+      ]
+    },
+    {
+      "tipo": "busqueda",
+      "msBackend": 0,
+      "filas": 20,
+      "bytesJSON": 5731,
+      "llamadasBC": []
+    }
+  ]
+}

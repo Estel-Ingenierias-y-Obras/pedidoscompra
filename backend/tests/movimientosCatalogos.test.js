@@ -2,6 +2,45 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { crearCliente, clasificarError } = require("../services/almacenBC");
 const standard = "https://example.test/api/v2.0/companies(company)";
+test("catalogos comparte cargas completas, separa destino y mantiene stock fresco", async () => {
+  let destino = standard;
+  const urls = [];
+  const cliente = crearCliente({ token: async () => "test", referencias: async () => [],
+    config: () => ({ standard: destino, custom: destino }),
+    request: async ({ url }) => {
+      urls.push(url);
+      const pagina = new URL(url).searchParams.has("$skiptoken");
+      return { data: { value: [{ code: pagina ? "B" : "A" }],
+        ...(!pagina ? { "@odata.nextLink": `${url}?$skiptoken=2` } : {}) } };
+    }
+  });
+  const resultados = await Promise.all([cliente.obtenerAlmacenesMovimiento(), cliente.obtenerAlmacenesMovimiento()]);
+  assert.deepEqual(resultados[0], [{ code: "A" }, { code: "B" }]);
+  assert.equal(urls.length, 2);
+  await cliente.obtenerAlmacenesMovimiento();
+  assert.equal(urls.length, 2);
+  destino = standard.replace("company", "otra");
+  await cliente.obtenerAlmacenesMovimiento();
+  assert.equal(urls.length, 4);
+  await cliente.obtenerStock(); await cliente.obtenerStock();
+  assert.equal(urls.length, 8);
+});
+
+test("catalogos no conserva errores ni paginas parciales", async () => {
+  let falla = true, cargas = 0;
+  const cliente = crearCliente({ token: async () => "test", config: () => ({ standard }), request: async ({ url }) => {
+    cargas++;
+    if (!new URL(url).searchParams.has("$skiptoken")) return { data: {
+      value: [{ code: "A" }], "@odata.nextLink": `${url}?$skiptoken=2`
+    } };
+    if (falla) throw { response: { status: 403 } };
+    return { data: { value: [{ code: "B" }] } };
+  } });
+  await assert.rejects(cliente.obtenerAlmacenesMovimiento());
+  falla = false;
+  assert.deepEqual(await cliente.obtenerAlmacenesMovimiento(), [{ code: "A" }, { code: "B" }]);
+  assert.equal(cargas, 4);
+});
 test("un permiso denegado en acopios señala su conjunto de permisos correcto", () => {
   const error = { config: { url: "https://example.test/solicitudesAcopio" }, response: { status: 403, data: { error: { message: "TableData 60717 GM Acopio Request Insert" } } } };
   const info = clasificarError(error);

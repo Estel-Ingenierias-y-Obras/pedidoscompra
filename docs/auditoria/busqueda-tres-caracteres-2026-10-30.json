@@ -1,0 +1,170 @@
+{
+  "fecha": "2026-10-30T10:16:22.637Z",
+  "alcance": "Consultas pequeñas reales a BC; sin cargar catálogo completo ni inventario",
+  "resultados": [
+    {
+      "texto": "20",
+      "ms": 1,
+      "resultados": 0,
+      "hayMas": false,
+      "referencia20193978Incluida": false,
+      "llamadasBC": []
+    },
+    {
+      "texto": "201",
+      "ms": 2218,
+      "resultados": 20,
+      "hayMas": true,
+      "referencia20193978Incluida": false,
+      "llamadasBC": [
+        {
+          "ms": 779,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 820,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 1028,
+          "filas": 21,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 5460
+        },
+        {
+          "ms": 1773,
+          "filas": 7,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 1986
+        }
+      ]
+    },
+    {
+      "texto": "2019",
+      "ms": 439,
+      "resultados": 20,
+      "hayMas": true,
+      "referencia20193978Incluida": true,
+      "llamadasBC": [
+        {
+          "ms": 219,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 268,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 416,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 438,
+          "filas": 21,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 5640
+        }
+      ]
+    },
+    {
+      "texto": "20193978",
+      "ms": 303,
+      "resultados": 1,
+      "hayMas": false,
+      "referencia20193978Incluida": true,
+      "llamadasBC": [
+        {
+          "ms": 260,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 269,
+          "filas": 1,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 469
+        },
+        {
+          "ms": 283,
+          "filas": 1,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 469
+        },
+        {
+          "ms": 302,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        }
+      ]
+    },
+    {
+      "texto": "20193978",
+      "ms": 0,
+      "resultados": 1,
+      "hayMas": false,
+      "referencia20193978Incluida": true,
+      "llamadasBC": []
+    },
+    {
+      "texto": "PVC",
+      "ms": 359,
+      "resultados": 20,
+      "hayMas": true,
+      "referencia20193978Incluida": false,
+      "llamadasBC": [
+        {
+          "ms": 212,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 224,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 246,
+          "filas": 0,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 206
+        },
+        {
+          "ms": 358,
+          "filas": 21,
+          "top": 21,
+          "inventory": false,
+          "bytesJSON": 5712
+        }
+      ]
+    }
+  ]
+}

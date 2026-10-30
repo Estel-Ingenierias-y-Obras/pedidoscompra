@@ -1,0 +1,106 @@
+{
+  "fecha": "2026-10-30T09:08:01.244Z",
+  "consultas": [
+    {
+      "nombre": "catalogo_actual_completo",
+      "msTotal": 30224,
+      "error": 504,
+      "paginas": [
+        {
+          "ms": 30011,
+          "error": "ECONNABORTED"
+        }
+      ]
+    },
+    {
+      "nombre": "busqueda_cab_dos_campos_sin_inventario",
+      "msTotal": 744,
+      "filas": 21,
+      "bytesRespuestaBackend": 5199,
+      "paginas": [
+        {
+          "ms": 507,
+          "filas": 0,
+          "bytesJSON": 206,
+          "nextLink": false
+        },
+        {
+          "ms": 741,
+          "filas": 21,
+          "bytesJSON": 5403,
+          "nextLink": false
+        }
+      ]
+    },
+    {
+      "nombre": "detalle_un_articulo_con_inventario",
+      "msTotal": 283,
+      "filas": 1,
+      "bytesRespuestaBackend": 238,
+      "paginas": [
+        {
+          "ms": 283,
+          "filas": 1,
+          "bytesJSON": 442,
+          "nextLink": false
+        }
+      ]
+    },
+    {
+      "nombre": "servicio_final_busqueda_cab_frio",
+      "msTotal": 949,
+      "filas": 20,
+      "bytesRespuestaBackend": 5703,
+      "paginas": [
+        {
+          "ms": 554,
+          "filas": 0,
+          "bytesJSON": 206,
+          "nextLink": false
+        },
+        {
+          "ms": 946,
+          "filas": 21,
+          "bytesJSON": 5403,
+          "nextLink": false
+        }
+      ]
+    },
+    {
+      "nombre": "servicio_final_busqueda_cab_cache",
+      "msTotal": 0,
+      "filas": 20,
+      "bytesRespuestaBackend": 5703,
+      "paginas": []
+    },
+    {
+      "nombre": "servicio_final_detalle_seleccionado",
+      "msTotal": 360,
+      "filas": 1,
+      "bytesRespuestaBackend": 254,
+      "paginas": [
+        {
+          "ms": 360,
+          "filas": 1,
+          "bytesJSON": 442,
+          "nextLink": false
+        }
+      ]
+    },
+    {
+      "nombre": "recuento_catalogo_sin_inventory",
+      "msTotal": 313,
+      "filas": 1,
+      "bytesRespuestaBackend": 88,
+      "paginas": [
+        {
+          "ms": 313,
+          "filas": 1,
+          "bytesJSON": 313,
+          "nextLink": false
+        }
+      ]
+    }
+  ],
+  "totalCatalogoElegible": 11260
+}

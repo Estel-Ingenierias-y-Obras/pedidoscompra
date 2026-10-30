@@ -58,10 +58,15 @@ export default function EnviadosAlmacen() {
     Promise.all([obtenerEnviados(), obtenerEntradas()]).then(([operaciones, diario]) => {
       // Solo actualizar la vista después de recibir ambas colecciones completas.
       if (!Array.isArray(operaciones) || !Array.isArray(diario) || diario.some(linea => typeof linea?.id !== "string" || !linea.id)) throw new Error("Respuesta de BC no válida");
-      const idsVigentes = new Set(diario.map(linea => linea.id.toLowerCase()));
+      const porId = new Map();
+      for (const linea of diario) {
+        const id = linea.id.toLowerCase();
+        if (!porId.has(id)) porId.set(id, linea);
+      }
+      const idsVigentes = new Set(porId.keys());
       if (activo) {
         const vigentes = operaciones.filter(op => typeof op.respuesta?.id === "string" && idsVigentes.has(op.respuesta.id.toLowerCase()));
-        setEntradas(vigentes.map(op => ({ ...op.cuerpo, ...op.respuesta, referenciaTlm: diario.find(linea => linea.id.toLowerCase() === op.respuesta.id.toLowerCase())?.referenciaTlm || "", claveintegracion: op.respuesta.claveintegracion || op.claveintegracion || op.cuerpo?.claveintegracion, solicitudId: op.solicitudId, fechaEnvio: op.createdAt })));
+        setEntradas(vigentes.map(op => ({ ...op.cuerpo, ...op.respuesta, referenciaTlm: porId.get(op.respuesta.id.toLowerCase())?.referenciaTlm || "", claveintegracion: op.respuesta.claveintegracion || op.claveintegracion || op.cuerpo?.claveintegracion, solicitudId: op.solicitudId, fechaEnvio: op.createdAt })));
         setSeleccion(anterior => vigentes.some(op => op.respuesta.id === anterior) ? anterior : null);
         setLineaRegistro(anterior => anterior && idsVigentes.has(anterior.id.toLowerCase()) ? anterior : null);
         setCargado(true);

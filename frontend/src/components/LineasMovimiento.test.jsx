@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import LineasMovimiento from "./LineasMovimiento";
+jest.mock("../services/almacen", () => ({ obtenerProducto: jest.fn() }));
 test("muestra el catálogo completo sin búsqueda adicional ni límite de 50", () => {
   const articulos = Array.from({ length: 125 }, (_, n) => ({ id: String(n), number: `A${n}`, referenciaTlm: `TLM${n}`, displayName: `Artículo ${n}` }));
   render(<LineasMovimiento lineas={[{ id: "L1", numprod: "", cantidad: "" }]} articulos={articulos} cambiar={() => {}} quitar={() => {}} />);

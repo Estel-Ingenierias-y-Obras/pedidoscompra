@@ -5,7 +5,7 @@ const normalizar = texto => String(texto || "").normalize("NFD").replace(/[\u030
 const etiqueta = opcion => opcion ? `${opcion.referencia ?? opcion.codigo}${opcion.nombre ? ` · ${opcion.nombre}` : ""}` : "";
 const ALTO = 44;
 
-export default function BuscadorMovimiento({ opciones, value, onChange, label, disabled = false }) {
+export default function BuscadorMovimiento({ opciones, value, onChange, label, disabled = false, remoto = false, onBuscar, onSeleccion, estado = "", cargando = false, error = "" }) {
   const id = useId(), input = useRef(null), lista = useRef(null), editando = useRef(false);
   const seleccion = opciones.find(opcion => opcion.codigo === value);
   const [texto, setTexto] = useState(etiqueta(seleccion));
@@ -15,12 +15,13 @@ export default function BuscadorMovimiento({ opciones, value, onChange, label, d
   const [posicion, setPosicion] = useState({});
   const datos = useMemo(() => opciones.map((opcion, index) => ({ opcion, index, codigo: normalizar(opcion.referencia ?? opcion.codigo), nombre: normalizar(opcion.nombre) })), [opciones]);
   const coincidencias = useMemo(() => {
+    if (remoto) return cargando || error ? [] : datos;
     const busqueda = normalizar(texto);
     if (!busqueda || (value && texto === etiqueta(seleccion))) return datos;
     return datos.map(item => ({ ...item, prioridad: item.codigo === busqueda || item.nombre === busqueda ? 0 : item.codigo.startsWith(busqueda) || item.nombre.startsWith(busqueda) ? 1 : 2 }))
       .filter(item => item.codigo.includes(busqueda) || item.nombre.includes(busqueda))
       .sort((a, b) => a.prioridad - b.prioridad || a.index - b.index);
-  }, [datos, texto, value, seleccion]);
+  }, [datos, texto, value, seleccion, remoto, cargando, error]);
   useEffect(() => { if (!editando.current) setTexto(etiqueta(seleccion)); }, [value, seleccion]);
   useEffect(() => {
     if (!abierto) return;
@@ -36,7 +37,7 @@ export default function BuscadorMovimiento({ opciones, value, onChange, label, d
   }, [abierto]);
   const elegir = opcion => {
     if (!opcion) return;
-    editando.current = false; setTexto(etiqueta(opcion)); setAbierto(false); onChange(opcion.codigo);
+    editando.current = false; setTexto(etiqueta(opcion)); setAbierto(false); onSeleccion?.(opcion); onChange(opcion.codigo); onBuscar?.("");
   };
   const mover = indice => {
     const siguiente = Math.max(0, Math.min(indice, coincidencias.length - 1));
@@ -51,20 +52,24 @@ export default function BuscadorMovimiento({ opciones, value, onChange, label, d
   const visibles = coincidencias.slice(desde, desde + 12);
   return <>
     <input ref={input} className="movement-combobox" role="combobox" aria-label={label} aria-autocomplete="list" aria-expanded={abierto} aria-controls={`${id}-lista`} aria-activedescendant={abierto && coincidencias.length ? `${id}-${activo}` : undefined} autoComplete="off" disabled={disabled} value={texto} placeholder="Seleccionar…"
-      onFocus={event => { editando.current = true; setAbierto(true); setActivo(0); setScroll(0); event.target.select(); }}
-      onChange={event => { editando.current = true; setTexto(event.target.value); setAbierto(true); setActivo(0); setScroll(0); if (lista.current) lista.current.scrollTop = 0; if (value) onChange(""); }}
-      onBlur={() => { editando.current = false; setAbierto(false); setTexto(etiqueta(opciones.find(opcion => opcion.codigo === value))); }}
+      onClick={() => setAbierto(true)}
+      onFocus={event => { editando.current = true; setAbierto(true); setActivo(0); setScroll(0); onBuscar?.(""); event.target.select(); }}
+      onChange={event => { editando.current = true; setTexto(event.target.value); onBuscar?.(event.target.value); setAbierto(true); setActivo(0); setScroll(0); if (lista.current) lista.current.scrollTop = 0; if (value) onChange(""); }}
+      onBlur={() => { editando.current = false; setAbierto(false); onBuscar?.(""); setTexto(etiqueta(opciones.find(opcion => opcion.codigo === value))); }}
       onKeyDown={event => {
-        if (event.key === "Escape") { event.preventDefault(); setAbierto(false); setTexto(etiqueta(seleccion)); editando.current = false; }
+        if (event.key === "Escape") { event.preventDefault(); setAbierto(false); onBuscar?.(""); setTexto(etiqueta(seleccion)); editando.current = false; }
         if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); if (!abierto) { setAbierto(true); mover(0); } else mover(activo + (event.key === "ArrowDown" ? 1 : -1)); }
         if (event.key === "Enter" && abierto) { event.preventDefault(); elegir(coincidencias[activo]?.opcion); }
         if (event.key === "Tab" && !event.shiftKey && abierto && texto.trim()) elegir(coincidencias[activo]?.opcion);
       }} />
     {abierto && !disabled && createPortal(<div ref={lista} id={`${id}-lista`} role="listbox" aria-label={`Coincidencias de ${label}`} className="movement-suggestions" style={posicion} onScroll={event => setScroll(event.currentTarget.scrollTop)}>
+      {cargando && <div role="status" className="movement-no-matches">Buscando artículos…</div>}
+      {error && <div role="alert" className="movement-no-matches journal-error">{error}</div>}
+      {!cargando && !error && estado && <div className="movement-no-matches">{estado}</div>}
       {coincidencias.length ? <div style={{ height: coincidencias.length * ALTO, position: "relative" }}>{visibles.map(({ opcion }, index) => {
         const indice = desde + index;
         return <div id={`${id}-${indice}`} key={opcion.codigo} role="option" title={etiqueta(opcion)} aria-selected={indice === activo} aria-posinset={indice + 1} aria-setsize={coincidencias.length} className={indice === activo ? "movement-option active" : "movement-option"} style={{ position: "absolute", top: indice * ALTO, height: ALTO, left: 0, right: 0 }} onMouseDown={event => { event.preventDefault(); elegir(opcion); }} onClick={() => elegir(opcion)}>{etiqueta(opcion)}</div>;
-      })}</div> : <div className="movement-no-matches">Sin coincidencias</div>}
+      })}</div> : !cargando && !error && !estado && <div className="movement-no-matches">Sin coincidencias</div>}
     </div>, document.body)}
   </>;
 }

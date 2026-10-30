@@ -1,5 +1,5 @@
 // Solo para lecturas: comparte cargas simultáneas y conserva resultados completos.
-function crearCacheLecturas({ ttl, ahora = Date.now }) {
+function crearCacheLecturas({ ttl, ahora = Date.now, maxEntradas = Infinity }) {
   const entradas = new Map();
   return (clave, cargar) => {
     const previa = entradas.get(clave);
@@ -16,6 +16,7 @@ function crearCacheLecturas({ ttl, ahora = Date.now }) {
       if (entradas.get(clave) === entrada) entradas.delete(clave);
       throw error;
     });
+    if (entradas.size >= maxEntradas) entradas.delete(entradas.keys().next().value);
     entradas.set(clave, entrada);
     return entrada.promesa;
   };

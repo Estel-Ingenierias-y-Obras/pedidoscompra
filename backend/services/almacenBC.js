@@ -1,6 +1,7 @@
 const axios = require("axios");
 const authBC = require("./businessCentral");
 const { configuracionBC, logSolicitudBC } = require("./bcConfig");
+const { crearCacheLecturas } = require("../utils/cacheLecturas");
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fallo = (mensaje, status = 503) => Object.assign(new Error(mensaje), { status, seguro: true });
 
@@ -34,6 +35,10 @@ function clasificarError(error) {
 }
 
 function crearCliente({ request = config => axios.request(config), token = () => authBC.obtenerToken(), config = () => configuracionBC(), esperar = ms => new Promise(resolve => setTimeout(resolve, ms)), referencias = numeros => authBC.obtenerReferenciasTlm({ numeros }), materiales = () => authBC.obtenerMaterialesConReferencia() } = {}) {
+  const cacheCatalogos = crearCacheLecturas({ ttl: 60000 });
+  const catalogo = (tipo, entidad, params = {}) => cacheCatalogos(
+    endpoint(tipo, entidad, params), () => coleccion(tipo, entidad, params)
+  );
   async function ejecutar(method, url, data, limite = Infinity) {
     let huboIncertidumbre = false;
     for (let intento = 0; intento < 3; intento++) {
@@ -91,7 +96,7 @@ function crearCliente({ request = config => axios.request(config), token = () =>
   });
   return {
     destino: () => config().custom,
-    obtenerAlmacenesMovimiento: () => coleccion("standard", "locations"),
+    obtenerAlmacenesMovimiento: () => catalogo("standard", "locations"),
     obtenerArticulosMovimiento: () => materiales(),
     obtenerRecursosAcopio: () => coleccion("custom", "recursosCandidatosAcopio"),
     obtenerAcopios: () => coleccion("custom", "acopios"),
@@ -112,12 +117,12 @@ function crearCliente({ request = config => axios.request(config), token = () =>
       if (!UUID.test(id || "")) throw fallo("Identificador de solicitud AL no válido.", 400);
       return ejecutar("POST", endpoint("custom", `solicitudesAcopio(${id})/Microsoft.NAV.registrar`));
     },
-    obtenerDepartamentos: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: `dimension eq '${(process.env.BC_DEPARTMENT_DIMENSION || "DEPART").replace(/'/g, "''")}'` })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
-    obtenerZonas: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: "dimension eq 'ZONA'" })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
+    obtenerDepartamentos: async () => (await catalogo("custom", "valoresDimensionAcopio", { $filter: `dimension eq '${(process.env.BC_DEPARTMENT_DIMENSION || "DEPART").replace(/'/g, "''")}'` })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
+    obtenerZonas: async () => (await catalogo("custom", "valoresDimensionAcopio", { $filter: "dimension eq 'ZONA'" })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
     obtenerStock: () => conReferencias(coleccion("custom", "productos")),
     obtenerProductos: () => materiales(),
-    obtenerAlmacenes: () => coleccion("standard", "locations", { $filter: "code eq 'CENTRAL 3'" }),
-    obtenerTiposProyecto: () => coleccion("custom", "tiposProyecto"),
+    obtenerAlmacenes: () => catalogo("standard", "locations", { $filter: "code eq 'CENTRAL 3'" }),
+    obtenerTiposProyecto: () => catalogo("custom", "tiposProyecto"),
     obtenerUnidades: numprod => coleccion("custom", "unidadesProducto", filtroProducto(numprod)),
     obtenerMovimientosAplicables: numprod => coleccion("custom", "movimientosAplicables", filtroProducto(numprod)),
     obtenerEntradas: () => conReferencias(coleccion("custom", "diarioProductos")),

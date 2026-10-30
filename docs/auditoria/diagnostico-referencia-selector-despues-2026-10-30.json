@@ -1,0 +1,388 @@
+{
+  "fecha": "2026-10-30T09:36:50.452Z",
+  "alcance": "Muestra acotada sin Inventory; solo métricas, sin referencias ni datos de artículos",
+  "pruebas": [
+    {
+      "longitudReferencia": 8,
+      "tieneLetras": false,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": true,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    },
+    {
+      "longitudReferencia": 9,
+      "tieneLetras": false,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": true,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    },
+    {
+      "longitudReferencia": 9,
+      "tieneLetras": true,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": true,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    },
+    {
+      "longitudReferencia": 8,
+      "tieneLetras": true,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": true,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    }
+  ],
+  "consultas": [
+    {
+      "ms": 725,
+      "filas": 2
+    },
+    {
+      "ms": 421,
+      "filas": 2
+    },
+    {
+      "ms": 148,
+      "filas": 1
+    },
+    {
+      "ms": 428,
+      "filas": 1
+    },
+    {
+      "ms": 150,
+      "filas": 1
+    },
+    {
+      "ms": 159,
+      "filas": 1
+    },
+    {
+      "ms": 132,
+      "filas": 1
+    },
+    {
+      "ms": 173,
+      "filas": 1
+    },
+    {
+      "ms": 138,
+      "filas": 1
+    },
+    {
+      "ms": 170,
+      "filas": 1
+    }
+  ],
+  "servicios": [
+    {
+      "categoria": "referencia_exacta",
+      "ms": 152,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 151,
+          "filas": 1,
+          "top": 21,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "referencia_minusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "referencia_mayusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "numero_interno",
+      "ms": 694,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 139,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 142,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 437,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 550,
+          "filas": 1,
+          "top": 2,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "referencia_exacta",
+      "ms": 144,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 144,
+          "filas": 1,
+          "top": 21,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "referencia_minusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "referencia_mayusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "numero_interno",
+      "ms": 377,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 134,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 172,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 230,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 239,
+          "filas": 1,
+          "top": 2,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "referencia_exacta",
+      "ms": 156,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 155,
+          "filas": 1,
+          "top": 21,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "referencia_minusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "referencia_mayusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "numero_interno",
+      "ms": 438,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 137,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 179,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 263,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 298,
+          "filas": 1,
+          "top": 2,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "referencia_exacta",
+      "ms": 135,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 135,
+          "filas": 1,
+          "top": 21,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "referencia_minusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "referencia_mayusculas_cache",
+      "ms": 0,
+      "filas": 1,
+      "peticionesBC": []
+    },
+    {
+      "categoria": "numero_interno",
+      "ms": 403,
+      "filas": 1,
+      "peticionesBC": [
+        {
+          "ms": 121,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 172,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 267,
+          "filas": 1,
+          "top": 2,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 280,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "texto_PVC",
+      "ms": 1249,
+      "filas": 20,
+      "peticionesBC": [
+        {
+          "ms": 124,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 283,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 293,
+          "filas": 0,
+          "top": 2,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 1122,
+          "filas": 21,
+          "top": 21,
+          "incluyeInventory": false
+        }
+      ]
+    },
+    {
+      "categoria": "texto_TUBO",
+      "ms": 1045,
+      "filas": 20,
+      "peticionesBC": [
+        {
+          "ms": 145,
+          "filas": 0,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 195,
+          "filas": 0,
+          "top": 2,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 327,
+          "filas": 1,
+          "top": 21,
+          "incluyeInventory": false
+        },
+        {
+          "ms": 898,
+          "filas": 21,
+          "top": 21,
+          "incluyeInventory": false
+        }
+      ]
+    }
+  ]
+}

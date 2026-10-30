@@ -25,3 +25,14 @@ test("un error no queda en caché y el siguiente intento vuelve a consultar", as
   await assert.rejects(cache("catalogo", () => { throw new Error("BC sin conexión"); }));
   assert.equal(await cache("catalogo", () => "recuperado"), "recuperado");
 });
+
+test("limita las claves retenidas y una expulsión no altera la promesa ya entregada", async () => {
+  const cache = crearCacheLecturas({ ttl: 1000, maxEntradas: 2 });
+  let resolver;
+  const primera = cache("A", () => new Promise(resolve => { resolver = resolve; }));
+  await Promise.resolve();
+  await cache("B", () => "B"); await cache("C", () => "C");
+  resolver("A original");
+  assert.equal(await primera, "A original");
+  assert.equal(await cache("A", () => "A nueva"), "A nueva");
+});

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import Layout from "../components/Layout";
@@ -27,6 +27,10 @@ export default function EntradasAlmacen() {
   const filasRef = useRef(inicial.filas);
   const [errorStorage, setErrorStorage] = useState(inicial.error);
   const [productos, setProductos] = useState([]);
+  const onProducto = useCallback(item => {
+    const codigos = new Set(filasRef.current.map(fila => fila.numprod));
+    setProductos(prev => [...prev.filter(p => p.numprod !== item.numprod && codigos.has(p.numprod)), item]);
+  }, []);
   const [tiposProyecto, setTiposProyecto] = useState([]);
   const [seleccion, setSeleccion] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -45,11 +49,11 @@ export default function EntradasAlmacen() {
   useEffect(() => {
     let activo = true;
     setCargando(true); setError("");
-    Promise.allSettled([servicio.obtenerProductos(), servicio.obtenerTiposProyecto(), servicio.obtenerOperaciones(), servicio.obtenerEnviados()])
+    setProductos([]);
+    Promise.allSettled([servicio.obtenerTiposProyecto(), servicio.obtenerOperaciones(), servicio.obtenerEnviados()])
       .then(resultados => {
         if (!activo) return;
-        const [items, tipos, operaciones, enviados] = resultados;
-        if (items.status === "fulfilled") setProductos(items.value);
+        const [tipos, operaciones, enviados] = resultados;
         if (tipos.status === "fulfilled") setTiposProyecto(tipos.value);
         const fallos = resultados.filter(item => item.status === "rejected");
         if (fallos.length) setError(fallos.map(item => item.reason.response?.data?.error || item.reason.message || "No se pudieron cargar todos los datos del diario.").join(" "));
@@ -100,7 +104,7 @@ export default function EntradasAlmacen() {
     <header className="page-header"><Link className="back-link" to="/material/almacen">← Almacén</Link><h1>Diario de productos</h1><p className="page-subtitle">Diario de productos · CENTRAL 3 · SG-ALMACEN</p></header>
     <div className="page-content bc-journal-card">
     <div className="bc-command-bar">
-      <button onClick={nueva} disabled={cargando || ocupado || !!error || !!errorStorage || !productos.length || !tiposProyecto.length}><FontAwesomeIcon icon={faPlus} /> Nueva línea</button>
+      <button onClick={nueva} disabled={cargando || ocupado || !!error || !!errorStorage || !tiposProyecto.length}><FontAwesomeIcon icon={faPlus} /> Nueva línea</button>
       <ActualizarDatosButton disabled={ocupado || cargando} onClick={() => setIntento(valor => valor + 1)} />
       <Link className="bc-command-link" to="/material/almacen/enviados"><FontAwesomeIcon icon={faClockRotateLeft} /> Enviados a BC</Link>
       <span className="bc-save-state"><FontAwesomeIcon icon={faCheck} /> {ocupado ? "Procesando…" : filas.length ? "Borradores conservados" : "Actualizado"}</span>
@@ -109,7 +113,7 @@ export default function EntradasAlmacen() {
       {errorStorage && <p role="alert" className="journal-error">{errorStorage}</p>}
       {error && <p role="alert" className="journal-error">{error}</p>}
       {cargando && <p role="status">Cargando diario y catálogos…</p>}
-      <DiarioAlmacen {...{ filas, productos, tiposProyecto, cambiar, guardar, corregir, seleccion }} seleccionar={setSeleccion} ocupado={ocupado || cargando || !!errorStorage} quitar={quitar} />
+      <DiarioAlmacen {...{ filas, productos, tiposProyecto, cambiar, guardar, corregir, seleccion, onProducto }} buscarProductos seleccionar={setSeleccion} ocupado={ocupado || cargando || !!errorStorage} quitar={quitar} />
     </div>
     </div>
     </section>

@@ -1,0 +1,33 @@
+{
+  "fecha": "2026-10-30T09:50:18.529Z",
+  "referencia": "20193978",
+  "articulosCatalogoCompleto": 11260,
+  "msCarga": 33848,
+  "paginasCatalogo": [
+    {
+      "ms": 8194,
+      "filas": 5000,
+      "bytesJSON": 1222774,
+      "incluyeInventario": false
+    },
+    {
+      "ms": 10735,
+      "filas": 5000,
+      "bytesJSON": 1219064,
+      "incluyeInventario": false
+    },
+    {
+      "ms": 14549,
+      "filas": 1260,
+      "bytesJSON": 309484,
+      "incluyeInventario": false
+    }
+  ],
+  "cache": {
+    "ms": 0,
+    "llamadasBC": 0
+  },
+  "coincidenciasReferencia": 1,
+  "codigoCoincideCaptura": true,
+  "inventarioIndividualDisponible": true
+}

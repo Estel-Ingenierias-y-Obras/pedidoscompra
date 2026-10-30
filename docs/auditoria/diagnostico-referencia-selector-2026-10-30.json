@@ -1,0 +1,100 @@
+{
+  "fecha": "2026-10-30T09:30:53.001Z",
+  "alcance": "Muestra acotada sin Inventory; solo métricas, sin referencias ni datos de artículos",
+  "pruebas": [
+    {
+      "longitudReferencia": 8,
+      "tieneLetras": false,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": false,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    },
+    {
+      "longitudReferencia": 9,
+      "tieneLetras": false,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": false,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    },
+    {
+      "longitudReferencia": 9,
+      "tieneLetras": true,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": false,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    },
+    {
+      "longitudReferencia": 8,
+      "tieneLetras": true,
+      "difiereDeNumeroInterno": true,
+      "busquedaReferenciaOriginalEncuentraArticulo": true,
+      "busquedaMinusculasEncuentraArticulo": true,
+      "busquedaMayusculasEncuentraArticulo": true,
+      "busquedaNumeroInternoEncuentraArticulo": false,
+      "coincidenciasActuales": 1,
+      "hayMas": false,
+      "igualdadBCEncuentraArticulo": true,
+      "containsSimpleEncuentraArticulo": true
+    }
+  ],
+  "consultas": [
+    {
+      "ms": 947,
+      "filas": 2
+    },
+    {
+      "ms": 581,
+      "filas": 2
+    },
+    {
+      "ms": 148,
+      "filas": 1
+    },
+    {
+      "ms": 366,
+      "filas": 1
+    },
+    {
+      "ms": 782,
+      "filas": 1
+    },
+    {
+      "ms": 628,
+      "filas": 1
+    },
+    {
+      "ms": 924,
+      "filas": 1
+    },
+    {
+      "ms": 807,
+      "filas": 1
+    },
+    {
+      "ms": 256,
+      "filas": 1
+    },
+    {
+      "ms": 198,
+      "filas": 1
+    }
+  ]
+}

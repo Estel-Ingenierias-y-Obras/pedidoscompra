@@ -8,8 +8,15 @@ const movimientos = require("../services/movimientosAlmacen");
 const router = express.Router();
 router.use(obtenerUsuarioActual, permitirRoles("Admin", "Comprador"));
 const lectura = fn => async (req, res, next) => { try { res.json(await fn(req)); } catch (error) { next(error); } };
-router.get("/configuracion", (req, res) => res.json(servicio.configuracion));
-router.get("/productos", lectura(() => bc.obtenerProductos()));
+router.get("/configuracion", (req, res) => res.json({ ...servicio.configuracion, busquedaProductos: true }));
+router.get("/productos", lectura(async req => req.query.numprod !== undefined
+  ? (await require("../services/businessCentral").buscarArticulos({ numero: req.query.numprod })).articulos
+  : req.query.buscar !== undefined
+    ? require("../services/businessCentral").buscarArticulos({ busqueda: req.query.buscar })
+    : bc.obtenerProductos()));
+router.get("/articulos", lectura(req => require("../services/businessCentral").buscarArticulos({
+  ...(req.query.numprod !== undefined ? { numero: req.query.numprod } : { busqueda: req.query.buscar })
+})));
 router.get("/stock", lectura(() => bc.obtenerStock()));
 router.get("/almacenes", lectura(() => bc.obtenerAlmacenes()));
 router.get("/tipos-proyecto", lectura(() => bc.obtenerTiposProyecto()));
@@ -42,9 +49,9 @@ router.post("/movimientos/:id/registrar", lectura(req => {
   if (!req.body || Object.keys(req.body).some(key => key !== "claveintegracion")) throw Object.assign(new Error("El registro solo admite la clave de integración del documento."), { status: 400, seguro: true });
   return movimientos.registrar({ id: req.params.id, claveintegracion: req.body.claveintegracion }, req.usuarioActual);
 }));
-router.get("/movimientos/catalogos", lectura(async () => {
+router.get("/movimientos/catalogos", lectura(async req => {
   const nombres = ["almacenes", "articulos", "recursos", "departamentos", "tiposProyecto", "zonas"];
-  const resultados = await Promise.allSettled([bc.obtenerAlmacenesMovimiento(), bc.obtenerArticulosMovimiento(), require("../services/businessCentral").obtenerSolicitantesActivos(), bc.obtenerDepartamentos(), bc.obtenerTiposProyecto(), bc.obtenerZonas()]);
+  const resultados = await Promise.allSettled([bc.obtenerAlmacenesMovimiento(), req.query.sinArticulos === "1" ? Promise.resolve([]) : bc.obtenerArticulosMovimiento(), require("../services/businessCentral").obtenerSolicitantesActivos(), bc.obtenerDepartamentos(), bc.obtenerTiposProyecto(), bc.obtenerZonas()]);
   const datos = { errores: {}, capacidades: { crear: true, registrar: true, disponibilidad: false }, serie: "ACO-ALM" };
   resultados.forEach((resultado, index) => {
     const nombre = nombres[index];
