@@ -33,7 +33,7 @@ function clasificarError(error) {
   return { mensaje, status: status === 401 || status === 403 ? 502 : status || 502, codigo: "BC_ERROR", transitorio, incierto: !status || status >= 500 || status === 408, retryMs };
 }
 
-function crearCliente({ request = config => axios.request(config), token = () => authBC.obtenerToken(), config = () => configuracionBC(), esperar = ms => new Promise(resolve => setTimeout(resolve, ms)), referencias = numeros => authBC.obtenerReferenciasTlm({ numeros }) } = {}) {
+function crearCliente({ request = config => axios.request(config), token = () => authBC.obtenerToken(), config = () => configuracionBC(), esperar = ms => new Promise(resolve => setTimeout(resolve, ms)), referencias = numeros => authBC.obtenerReferenciasTlm({ numeros }), materiales = () => authBC.obtenerMaterialesConReferencia() } = {}) {
   async function ejecutar(method, url, data, limite = Infinity) {
     let huboIncertidumbre = false;
     for (let intento = 0; intento < 3; intento++) {
@@ -92,7 +92,7 @@ function crearCliente({ request = config => axios.request(config), token = () =>
   return {
     destino: () => config().custom,
     obtenerAlmacenesMovimiento: () => coleccion("standard", "locations"),
-    obtenerArticulosMovimiento: () => conReferencias(coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,inventory" })),
+    obtenerArticulosMovimiento: () => materiales(),
     obtenerRecursosAcopio: () => coleccion("custom", "recursosCandidatosAcopio"),
     obtenerAcopios: () => coleccion("custom", "acopios"),
     crearAcopio: cuerpo => ejecutar("POST", endpoint("custom", "solicitudesAcopio"), { claveintegracion: cuerpo.solicitudId, datos: JSON.stringify(cuerpo) }),
@@ -115,7 +115,7 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     obtenerDepartamentos: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: `dimension eq '${(process.env.BC_DEPARTMENT_DIMENSION || "DEPART").replace(/'/g, "''")}'` })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
     obtenerZonas: async () => (await coleccion("custom", "valoresDimensionAcopio", { $filter: "dimension eq 'ZONA'" })).map(d => ({ ...d, code: d.codigo, displayName: d.nombre })),
     obtenerStock: () => conReferencias(coleccion("custom", "productos")),
-    obtenerProductos: () => conReferencias(coleccion("standard", "items", { $filter: "blocked eq false and type eq 'Inventory'", $select: "id,number,displayName,baseUnitOfMeasureCode,blocked" })),
+    obtenerProductos: () => materiales(),
     obtenerAlmacenes: () => coleccion("standard", "locations", { $filter: "code eq 'CENTRAL 3'" }),
     obtenerTiposProyecto: () => coleccion("custom", "tiposProyecto"),
     obtenerUnidades: numprod => coleccion("custom", "unidadesProducto", filtroProducto(numprod)),

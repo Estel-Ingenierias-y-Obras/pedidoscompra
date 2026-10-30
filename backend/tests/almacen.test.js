@@ -225,7 +225,7 @@ test("backend conserva Retry-After entre llamadas del navegador", async () => {
 });
 
 const raices = { custom: "https://api.businesscentral.dynamics.com/v2.0/tenant/sandbox/api/Estel/GestionMaterial/v1.0/companies(empresa)", standard: "https://api.businesscentral.dynamics.com/v2.0/tenant/sandbox/api/v2.0/companies(empresa)" };
-const clienteHTTP = (request, esperar = async () => {}) => crearCliente({ referencias: async () => [], request, esperar, token: async () => "token-test", config: () => raices });
+const clienteHTTP = (request, esperar = async () => {}) => crearCliente({ materiales: async () => [], referencias: async () => [], request, esperar, token: async () => "token-test", config: () => raices });
 
 test("registro confirma el comprobante persistido cuando el POST devuelve un buffer incompleto", async () => {
   const cuerpo = { idlinea: randomUUID(), claveintegracion: randomUUID() };
@@ -268,15 +268,19 @@ test("catálogos usan filtro de un producto escapado y siguen todas las páginas
   assert.equal(result.length, 2);
   assert.throws(() => cliente.obtenerMovimientosAplicables(""), { status: 400 });
 });
-test("el diario usa catálogo general de materiales y stock usa catálogo de almacén", async () => {
-  const urls = [];
-  const cliente = clienteHTTP(async ({ url }) => { urls.push(new URL(url)); return { data: { value: [] } }; });
-  await cliente.obtenerProductos(); await cliente.obtenerStock();
-  assert.ok(urls[0].pathname.endsWith("/api/v2.0/companies(empresa)/items"));
-  assert.equal(urls[0].searchParams.get("$filter"), "blocked eq false and type eq 'Inventory'");
-  assert.ok(urls[1].pathname.endsWith("/api/Estel/GestionMaterial/v1.0/companies(empresa)/productos"));
-  assert.equal(urls[1].searchParams.has("$filter"), false);
+test("el diario usa solo el catalogo con referencia y stock consulta sus existencias", async () => {
+  const urls = []; let cargas = 0;
+  const cliente = crearCliente({ config: () => raices, token: async () => "test", referencias: async () => [],
+    materiales: async () => { cargas++; return [{ number: "A", referenciaTlm: "REF-A" }]; },
+    request: async ({ url }) => { urls.push(new URL(url)); return { data: { value: [] } }; }
+  });
+  assert.equal((await cliente.obtenerProductos())[0].referenciaTlm, "REF-A");
+  await cliente.obtenerStock();
+  assert.equal(cargas, 1);
+  assert.equal(urls.length, 1);
+  assert.ok(urls[0].pathname.endsWith("/productos"));
 });
+
 test("rechaza nextLink de otro origen o empresa antes de enviar token", async () => {
   for (const siguiente of ["https://evil.example/items", `${raices.custom.replace("empresa", "otra")}/diarioProductos`]) {
     let llamadas = 0;

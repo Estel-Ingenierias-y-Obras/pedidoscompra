@@ -98,7 +98,7 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
   })}
     <td className="warehouse-row-status" data-label="Acciones">
       <div className="warehouse-row-actions">
-        {fila.estado === "borrador" && <><button aria-label="Enviar a BC" title="Enviar a BC" disabled={ocupado || !disponibles || !proyectoValido || !unidadValida || !movimientoValido || excede} onClick={() => guardar(fila)}><FontAwesomeIcon icon={faPaperPlane} /></button>{!fila.cuerpoEnviado && <DeleteIconButton disabled={ocupado} label={`Eliminar borrador ${indice + 1}`} onClick={event => { event.stopPropagation(); quitar(fila.solicitudId); }} />}</>}
+        {fila.estado === "borrador" && <><button aria-label="Enviar a BC" title="Enviar a BC" disabled={ocupado || (!fila.cuerpoEnviado && !producto) || !disponibles || !proyectoValido || !unidadValida || !movimientoValido || excede} onClick={() => guardar(fila)}><FontAwesomeIcon icon={faPaperPlane} /></button>{!fila.cuerpoEnviado && <DeleteIconButton disabled={ocupado} label={`Eliminar borrador ${indice + 1}`} onClick={event => { event.stopPropagation(); quitar(fila.solicitudId); }} />}</>}
         {["incierta", "procesando", "preparada"].includes(fila.estado) && <button disabled={ocupado} onClick={() => guardar(fila)}>Confirmar resultado / Reintentar</button>}
         {fila.estado === "rechazada" && <button disabled={ocupado} onClick={() => corregir(fila)}>Corregir solicitud rechazada</button>}
       </div>
@@ -106,6 +106,7 @@ function FilaDiario({ fila, indice, productos, tiposProyecto, cambiar, quitar, g
       {fila.estado === "incierta" && <p role="status">Resultado pendiente de confirmar. Se reenviarán la misma clave y los mismos datos.</p>}
       {fila.estado === "bloqueada" && <p>Requiere revisión. No se creará una sustituta.</p>}
       {fila.proximoIntento && <p>Próximo intento a partir de {new Date(fila.proximoIntento).toLocaleTimeString("es")}</p>}
+      {!bloqueada && !fila.cuerpoEnviado && fila.numprod && !producto && <p role="alert" className="journal-error">El material guardado no está en el catálogo con referencia. Selecciona un material disponible.</p>}
       {!bloqueada && catalogos.cargando && <p role="status">Cargando unidades y movimientos…</p>}
       {!bloqueada && catalogos.error && <p role="alert" className="journal-error">{catalogos.error} <button onClick={() => setIntento(valor => valor + 1)}>Recargar opciones</button></p>}
       {excede && !bloqueada && <p role="alert" className="journal-error">La cantidad base supera la pendiente del movimiento seleccionado.</p>}

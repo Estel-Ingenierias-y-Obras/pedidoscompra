@@ -97,9 +97,39 @@ async function obtenerReferenciasTlm({ numeros, ...opciones } = {}) {
   return cacheReferencias(JSON.stringify([urlProyectos(opciones.env), identidadBC(opciones.env), filtro]), cargar);
 }
 
+async function obtenerMaterialesConReferencia(opciones = {}) {
+  const params = {
+    $select: "No,Referencia_TLM,Description,Base_Unit_of_Measure,Inventory,Blocked,Type",
+    $filter: "Referencia_TLM ne '' and Blocked eq false and Type eq 'Inventory'"
+  };
+  const cargar = async () => {
+    try {
+      const filas = await obtenerColeccionOData({ ...opciones, servicio: "Ficha_producto_Excel", tamanoPagina: 5000, timeout: 30000, params });
+      const productos = [];
+      for (const item of filas) {
+        if (typeof item.No !== "string" || typeof item.Referencia_TLM !== "string" || typeof item.Description !== "string"
+          || typeof item.Base_Unit_of_Measure !== "string" || typeof item.Inventory !== "number" || !Number.isFinite(item.Inventory)) {
+          throw Object.assign(new Error("Business Central devolvió un material con referencia no válido."), { status: 502, seguro: true });
+        }
+        if (!item.Referencia_TLM.trim() || item.Blocked !== false || item.Type !== "Inventory") continue;
+        productos.push({ number: item.No, numprod: item.No, referenciaTlm: item.Referencia_TLM.trim(),
+          displayName: item.Description, descripcion: item.Description, baseUnitOfMeasureCode: item.Base_Unit_of_Measure,
+          codudmedida: item.Base_Unit_of_Measure, inventory: item.Inventory, blocked: false });
+      }
+      return productos;
+    } catch (error) {
+      if (error.code === "ECONNABORTED") throw Object.assign(new Error("Business Central está tardando demasiado en devolver los materiales con referencia. Pulsa Actualizar datos para reintentar."), { status: 504, seguro: true });
+      throw error;
+    }
+  };
+  if (opciones.request || opciones.token) return cargar();
+  return cacheReferencias(JSON.stringify([urlProyectos(opciones.env), identidadBC(opciones.env), params]), cargar);
+}
+
 module.exports = {
   obtenerToken,
   obtenerProyectos,
   obtenerSolicitantesActivos,
-  obtenerReferenciasTlm
+  obtenerReferenciasTlm,
+  obtenerMaterialesConReferencia
 };

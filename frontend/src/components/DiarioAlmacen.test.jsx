@@ -5,6 +5,14 @@ jest.mock("../services/almacen", () => ({ obtenerUnidades: jest.fn(), obtenerMov
 const nuevaFila = () => ({ solicitudId: "fila-1", estado: "borrador", numprod: "A", cantidad: "2", codudmedida: "M", tipoproyectocodigo: "INDIRECTO", modoMonetario: "bc", valorMonetario: "" });
 const props = fila => ({ filas: [fila], productos: [{ numprod: "A", referenciaTlm: "TLM-A", descripcion: "Cable", codudmedida: "M" }, { numprod: "B", referenciaTlm: "TLM-B", descripcion: "Caja", codudmedida: "UD" }], tiposProyecto: [{ codigo: "INDIRECTO", nombre: "Estructura", bloqueado: false }, { codigo: "DIRECTO", nombre: "Obra", bloqueado: true }], cambiar: jest.fn(), quitar: jest.fn(), guardar: jest.fn(), corregir: jest.fn(), ocupado: false });
 beforeEach(() => { jest.clearAllMocks(); servicio.obtenerUnidades.mockResolvedValue([{ codigo: "M", factor: 1 }]); servicio.obtenerMovimientosAplicables.mockResolvedValue([]); });
+
+test("avisa de un material guardado fuera del catálogo y no permite enviarlo como selección vacía", async () => {
+  const opciones = { ...props(nuevaFila()), productos: [] };
+  render(<DiarioAlmacen {...opciones} />);
+  await waitFor(() => expect(servicio.obtenerUnidades).toHaveBeenCalled());
+  expect(screen.getByRole("alert")).toHaveTextContent("catálogo con referencia");
+  expect(screen.getByRole("button", { name: "Enviar a BC" })).toBeDisabled();
+});
 test("producto limpia unidad y movimiento; proyectos muestran nombres y respetan bloqueo", async () => {
   const opciones = props(nuevaFila());
   render(<DiarioAlmacen {...opciones} />);

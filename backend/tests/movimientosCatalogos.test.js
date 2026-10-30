@@ -27,14 +27,10 @@ test("departamentos filtra por código de dimensión sin depender del enlace est
   assert.equal(new URL(urls[0]).searchParams.get("$filter"), "dimension eq 'DEPART'");
   assert.equal(new URL(urls[0]).pathname.endsWith("/valoresDimensionAcopio"), true);
 });
-test("artículos sigue la paginación completa y solo excluye bloqueados y tipos sin inventario", async () => {
-  const urls = [];
-  const bc = crearCliente({ referencias: async () => [], token: async () => "test", config: () => ({ standard }), request: async config => {
-    urls.push(new URL(config.url));
-    return { data: urls.length === 1 ? { value: [{ number: "P1" }], "@odata.nextLink": "?$skiptoken=segunda" } : { value: [{ number: "P2" }] } };
-  } });
-  assert.deepEqual(await bc.obtenerArticulosMovimiento(), [{ number: "P1", referenciaTlm: "" }, { number: "P2", referenciaTlm: "" }]);
-  assert.equal(urls[0].searchParams.get("$filter"), "blocked eq false and type eq 'Inventory'");
-  assert.equal(urls[0].searchParams.has("$top"), false);
-  assert.equal(urls[1].searchParams.get("$skiptoken"), "segunda");
+test("articulos utiliza el catalogo compartido con referencia sin consultar items", async () => {
+  let cargas = 0;
+  const productos = [{ number: "P1", referenciaTlm: "REF-1" }];
+  const bc = crearCliente({ materiales: async () => { cargas++; return productos; }, request: async () => { throw Error("No debe consultar items"); } });
+  assert.deepEqual(await bc.obtenerArticulosMovimiento(), productos);
+  assert.equal(cargas, 1);
 });

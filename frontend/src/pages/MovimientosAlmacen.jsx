@@ -82,7 +82,8 @@ export default function MovimientosAlmacen() {
     try { localStorage.setItem(clave, JSON.stringify(valor)); setDocumento(valor); }
     catch (_) { setStorageError("No se pudo guardar el borrador en este navegador."); }
   }, [cargando, errores, storageError, catalogos, proyectos, documento, clave]);
-  const errorValidacion = validarMovimiento(documento);
+  const materialFueraDeCatalogo = !cargando && !errores.length && !documento.cuerpoEnviado && documento.lineas.some(linea => linea.numprod && !(catalogos.articulos || []).some(item => item.number === linea.numprod));
+  const errorValidacion = validarMovimiento(documento) || (materialFueraDeCatalogo ? "Hay materiales guardados fuera del catálogo con referencia. Selecciona materiales disponibles." : "");
   const enviar = async () => {
     if (enVuelo.current || storageError || errorValidacion || cargando || errores.length) return;
     enVuelo.current = true; setEnviando(true);
