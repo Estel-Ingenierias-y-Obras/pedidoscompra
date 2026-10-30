@@ -33,13 +33,14 @@ function clasificarError(error) {
   return { mensaje, status: status === 401 || status === 403 ? 502 : status || 502, codigo: "BC_ERROR", transitorio, incierto: !status || status >= 500 || status === 408, retryMs };
 }
 
-function crearCliente({ request = config => axios.request(config), token = () => authBC.obtenerToken(), config = () => configuracionBC(), esperar = ms => new Promise(resolve => setTimeout(resolve, ms)), referencias = () => authBC.obtenerReferenciasTlm() } = {}) {
-  async function ejecutar(method, url, data) {
+function crearCliente({ request = config => axios.request(config), token = () => authBC.obtenerToken(), config = () => configuracionBC(), esperar = ms => new Promise(resolve => setTimeout(resolve, ms)), referencias = numeros => authBC.obtenerReferenciasTlm({ numeros }) } = {}) {
+  async function ejecutar(method, url, data, limite = Infinity) {
     let huboIncertidumbre = false;
     for (let intento = 0; intento < 3; intento++) {
+      if (Date.now() >= limite) throw fallo("Business Central está tardando demasiado en devolver el catálogo. Vuelve a actualizar los datos.", 504);
       try {
         logSolicitudBC(url);
-        return (await request({ method, url, ...(data === undefined ? {} : { data }), headers: { Authorization: `Bearer ${await token()}` }, timeout: 15000, maxRedirects: 0, proxy: false })).data;
+        return (await request({ method, url, ...(data === undefined ? {} : { data }), headers: { Authorization: `Bearer ${await token()}` }, timeout: Math.min(15000, Math.max(1, limite - Date.now())), maxRedirects: 0, proxy: false })).data;
       } catch (error) {
         const info = clasificarError(error);
         huboIncertidumbre ||= info.incierto;
@@ -55,6 +56,7 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     return url.href;
   }
   async function coleccion(tipo, entidad, params) {
+    const limite = Date.now() + 45000;
     let siguiente = endpoint(tipo, entidad, params);
     const raiz = config()[tipo];
     const resultado = [], visitadas = new Set();
@@ -62,7 +64,7 @@ function crearCliente({ request = config => axios.request(config), token = () =>
       const url = new URL(siguiente, `${raiz}/`);
       if (url.origin !== new URL(raiz).origin || !url.pathname.startsWith(`${new URL(raiz).pathname}/`) || url.username || url.password || visitadas.has(url.href) || visitadas.size >= 1000) throw fallo("La API devolvió un enlace de paginación no válido.", 502);
       visitadas.add(url.href);
-      const data = await ejecutar("GET", url.href);
+      const data = await ejecutar("GET", url.href, undefined, limite);
       if (!Array.isArray(data?.value)) throw fallo("La respuesta de Business Central no coincide con el contrato de colección.", 502);
       resultado.push(...data.value);
       siguiente = data["@odata.nextLink"] ? new URL(data["@odata.nextLink"], url).href : null;
@@ -74,7 +76,9 @@ function crearCliente({ request = config => axios.request(config), token = () =>
     return { $filter: `numprod eq '${numprod.replace(/'/g, "''")}'` };
   };
   async function conReferencias(consulta) {
-    const [productos, fichas] = await Promise.all([consulta, referencias()]);
+    const productos = await consulta;
+    if (!productos.length) return [];
+    const fichas = await referencias(productos.map(p => p.numprod || p.number));
     const porNumero = new Map();
     for (const ficha of fichas) {
       if (typeof ficha.No !== "string" || typeof ficha.Referencia_TLM !== "string") throw fallo("BC devolvió una referencia TLM no válida.", 502);

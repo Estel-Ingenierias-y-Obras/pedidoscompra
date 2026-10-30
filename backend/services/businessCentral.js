@@ -1,32 +1,38 @@
 const axios = require("axios");
 const { identidadBC, urlProyectos, logSolicitudBC } = require("./bcConfig");
+const { crearCacheLecturas } = require("../utils/cacheLecturas");
+const cacheTokens = crearCacheLecturas({ ttl: 60000 });
+const cacheProyectos = crearCacheLecturas({ ttl: 60000 });
+const cacheReferencias = crearCacheLecturas({ ttl: 5 * 60000 });
 
 async function obtenerToken() {
   const config = identidadBC();
+  return cacheTokens(JSON.stringify(config), async () => {
+    const response = await axios.post(
+      `https://login.microsoftonline.com/${config.tenant}/oauth2/v2.0/token`,
+      new URLSearchParams({
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        scope: config.scope,
+        grant_type: "client_credentials"
+      }),
+      {
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded"
+        },
+        proxy: false,
+        timeout: 15000,
+        maxRedirects: 0
+      }
+    );
 
-  const response = await axios.post(
-    `https://login.microsoftonline.com/${config.tenant}/oauth2/v2.0/token`,
-    new URLSearchParams({
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-      scope: config.scope,
-      grant_type: "client_credentials"
-    }),
-    {
-      headers: {
-        "Content-Type":
-          "application/x-www-form-urlencoded"
-      },
-      proxy: false,
-      timeout: 15000,
-      maxRedirects: 0
-    }
-  );
-
-  return response.data.access_token;
+    return response.data.access_token;
+  });
 }
 
-async function obtenerColeccionOData({ request = (url, options) => axios.get(url, options), token = obtenerToken, env = process.env, servicio, params = {}, tamanoPagina, timeout = 15000 } = {}) {
+async function obtenerColeccionOData({ request = (url, options) => axios.get(url, options), token = obtenerToken, env = process.env, servicio, params = {}, tamanoPagina, timeout = 15000, tiempoTotal = 45000 } = {}) {
+  const limite = Date.now() + tiempoTotal;
   const raiz = new URL(urlProyectos(env));
   if (servicio) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(servicio)) throw new Error("Servicio OData no válido.");
@@ -42,8 +48,9 @@ async function obtenerColeccionOData({ request = (url, options) => axios.get(url
     const url = new URL(siguiente, raiz);
     if (url.origin !== raiz.origin || url.pathname !== raiz.pathname || url.username || url.password || visitadas.has(url.href) || visitadas.size >= 1000) throw fallo("BC devolvió una paginación de proyectos no válida.");
     visitadas.add(url.href);
+    if (Date.now() >= limite) throw fallo("Business Central está tardando demasiado en devolver el catálogo. Vuelve a actualizar los datos.");
     logSolicitudBC(url.href, env);
-    const { data } = await request(url.href, { headers: { Authorization: `Bearer ${credencial}`, ...(tamanoPagina ? { Prefer: `odata.maxpagesize=${tamanoPagina}` } : {}) }, proxy: false, timeout, maxRedirects: 0 });
+    const { data } = await request(url.href, { headers: { Authorization: `Bearer ${credencial}`, ...(tamanoPagina ? { Prefer: `odata.maxpagesize=${tamanoPagina}` } : {}) }, proxy: false, timeout: Math.min(timeout, Math.max(1, limite - Date.now())), maxRedirects: 0 });
     if (!Array.isArray(data?.value)) throw fallo("BC devolvió un catálogo de proyectos no válido.");
     proyectos.push(...data.value);
     siguiente = data["@odata.nextLink"] ? new URL(data["@odata.nextLink"], url).href : null;
@@ -52,7 +59,9 @@ async function obtenerColeccionOData({ request = (url, options) => axios.get(url
 }
 
 async function obtenerProyectos({ soloAbiertos = false, ...opciones } = {}) {
-  const datos = await obtenerColeccionOData({ ...opciones, ...(soloAbiertos ? { params: { $filter: "status eq 'Open' and blocked eq ' ' and complete eq false" } } : {}) });
+  const cargar = () => obtenerColeccionOData({ ...opciones, tamanoPagina: 5000, ...(soloAbiertos ? { params: { $filter: "status eq 'Open' and blocked eq ' ' and complete eq false" } } : {}) });
+  const datos = opciones.request || opciones.token ? await cargar()
+    : await cacheProyectos(JSON.stringify([urlProyectos(opciones.env), identidadBC(opciones.env), soloAbiertos]), cargar);
   const proyectos = [];
   for (const item of datos) {
       if (soloAbiertos && !(item.status === "Open" && typeof item.blocked === "string" && !item.blocked.trim() && item.complete === false)) continue;
@@ -75,9 +84,22 @@ async function obtenerSolicitantesActivos(opciones = {}) {
   return recursos.filter(r => r.Type === "Person" && r.Blocked === false && r.Privacy_Blocked === false && activos.has(r.No)).map(r => ({ codigo: r.No, nombre: r.Name }));
 }
 
+async function obtenerReferenciasTlm({ numeros, ...opciones } = {}) {
+  const codigos = numeros ? [...new Set(numeros)].sort() : [];
+  const filtro = codigos.length && codigos.length <= 50
+    ? `Referencia_TLM ne '' and (${codigos.map(no => `No eq '${no.replace(/'/g, "''")}'`).join(" or ")})`
+    : "Referencia_TLM ne ''";
+  const cargar = () => obtenerColeccionOData({ ...opciones, servicio: "Ficha_producto_Excel", tamanoPagina: 5000, timeout: 30000, params: { $select: "No,Referencia_TLM", $filter: filtro } }).catch(error => {
+    if (error.code === "ECONNABORTED") throw Object.assign(new Error("Business Central está tardando demasiado en devolver las referencias de materiales. Pulsa Actualizar datos para reintentar."), { status: 504, seguro: true });
+    throw error;
+  });
+  if (opciones.request || opciones.token) return cargar();
+  return cacheReferencias(JSON.stringify([urlProyectos(opciones.env), identidadBC(opciones.env), filtro]), cargar);
+}
+
 module.exports = {
   obtenerToken,
   obtenerProyectos,
   obtenerSolicitantesActivos,
-  obtenerReferenciasTlm: opciones => obtenerColeccionOData({ ...opciones, servicio: "Ficha_producto_Excel", tamanoPagina: 1000, timeout: 60000, params: { $select: "No,Referencia_TLM", $filter: "Referencia_TLM ne ''" } })
+  obtenerReferenciasTlm
 };

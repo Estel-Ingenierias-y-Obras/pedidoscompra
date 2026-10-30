@@ -9,7 +9,8 @@ test("consulta las referencias TLM con todas sus páginas y solo los dos campos 
     env: { BC_TENANT_ID: "11111111-1111-4111-8111-111111111111", BC_CLIENT_ID: "client", BC_CLIENT_SECRET: "secret", BC_ENVIRONMENT: "test", BC_COMPANY_NAME: "Empresa" },
     token: async () => "test",
     request: async (url, options) => {
-      assert.equal(options.headers.Prefer, "odata.maxpagesize=1000");
+      assert.equal(options.headers.Prefer, "odata.maxpagesize=5000");
+      assert.ok(options.timeout > 15000 && options.timeout <= 30000);
       urls.push(new URL(url));
       return { data: urls.length === 1 ? { value: [{ No: "A", Referencia_TLM: "REF-A" }], "@odata.nextLink": "?$skiptoken=2" } : { value: [{ No: "B", Referencia_TLM: "REF-B" }] } };
     }
@@ -40,4 +41,33 @@ test("un fallo al consultar referencias no se presenta como referencias vacías"
     referencias: async () => { throw new Error("Referencia no disponible"); }
   });
   await assert.rejects(bc.obtenerStock(), /Referencia no disponible/);
+});
+
+test("stock consulta solo las referencias de sus productos y evita consultar el catálogo vacío", async () => {
+  const consultas = [];
+  let productos = [{ numprod: "A" }];
+  const bc = crearCliente({ config: () => ({ custom: "https://bc.test/custom" }), token: async () => "test",
+    request: async () => ({ data: { value: productos } }),
+    referencias: async numeros => { consultas.push(numeros); return []; }
+  });
+  await bc.obtenerStock();
+  productos = [];
+  await bc.obtenerStock();
+  assert.deepEqual(consultas, [["A"]]);
+});
+
+test("filtra referencias pequeñas por los números internos y escapa las comillas", async () => {
+  let filtro;
+  await obtenerReferenciasTlm({ numeros: ["A'B", "C"], token: async () => "test",
+    env: { BC_TENANT_ID: "11111111-1111-4111-8111-111111111111", BC_CLIENT_ID: "client", BC_CLIENT_SECRET: "secret", BC_ENVIRONMENT: "test", BC_COMPANY_NAME: "Empresa" },
+    request: async url => { filtro = new URL(url).searchParams.get("$filter"); return { data: { value: [] } }; }
+  });
+  assert.equal(filtro, "Referencia_TLM ne '' and (No eq 'A''B' or No eq 'C')");
+});
+
+test("el timeout de referencias devuelve un error recuperable y no un catálogo vacío", async () => {
+  await assert.rejects(obtenerReferenciasTlm({ token: async () => "test",
+    env: { BC_TENANT_ID: "11111111-1111-4111-8111-111111111111", BC_CLIENT_ID: "client", BC_CLIENT_SECRET: "secret", BC_ENVIRONMENT: "test", BC_COMPANY_NAME: "Empresa" },
+    request: async () => { throw Object.assign(new Error("timeout"), { code: "ECONNABORTED" }); }
+  }), error => error.status === 504 && error.seguro === true && error.message.includes("Actualizar datos"));
 });

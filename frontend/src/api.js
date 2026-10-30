@@ -12,6 +12,23 @@ const api = axios.create({
 
 const TOKEN_REFRESH_MARGIN_SECONDS = 120;
 const SESSION_EXPIRED_FLAG = "sessionExpired";
+let renovacionPendiente = null;
+
+const renovarTokenMicrosoft = account => {
+  if (!renovacionPendiente) {
+    let temporizador;
+    renovacionPendiente = Promise.race([
+      Promise.resolve().then(() => msalInstance.acquireTokenSilent({ account, scopes: ["openid", "profile", "email"] })),
+      new Promise((_, reject) => {
+        temporizador = window.setTimeout(() => reject(new Error("No se pudo renovar la sesión de Microsoft. Vuelve a iniciar sesión.")), 20000);
+      })
+    ]).finally(() => {
+      window.clearTimeout(temporizador);
+      renovacionPendiente = null;
+    });
+  }
+  return renovacionPendiente;
+};
 
 const finalizarSesionExpirada = () => {
   localStorage.removeItem("user");
@@ -79,14 +96,11 @@ const obtenerTokenMicrosoftActual = async () => {
 
   if (!account) {
     finalizarSesionExpirada();
-    return null;
+    throw new Error("La sesión ha caducado. Vuelve a iniciar sesión.");
   }
 
   try {
-    const response = await msalInstance.acquireTokenSilent({
-      account,
-      scopes: ["openid", "profile", "email"]
-    });
+    const response = await renovarTokenMicrosoft(account);
 
     const tokenRenovado = response.idToken || tokenGuardado;
 
@@ -98,11 +112,12 @@ const obtenerTokenMicrosoftActual = async () => {
   } catch (error) {
     reportClientError();
     finalizarSesionExpirada();
-    return null;
+    throw new Error("No se pudo renovar la sesión de Microsoft. Vuelve a iniciar sesión.");
   }
 };
 
 api.interceptors.request.use(async (config) => {
+  if ((!config.method || config.method.toLowerCase() === "get") && !config.timeout) config.timeout = 60000;
   const microsoftAuthToken = await obtenerTokenMicrosoftActual();
 
   config.headers = config.headers || {};
