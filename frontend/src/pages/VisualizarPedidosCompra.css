@@ -1,0 +1,10 @@
+.purchase-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
+.purchase-filters label { display: flex; flex-direction: column; gap: 6px; }
+.purchase-filters input, .purchase-filters select, .purchase-pagination input { padding: 8px; border: 1px solid #aaa; border-radius: 4px; }
+.purchase-order-row { cursor: pointer; }
+.purchase-order-row:hover { background: #edf6f6; }
+.purchase-order-row button { white-space: nowrap; }
+.purchase-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 20px; }
+.purchase-pagination input { width: 90px; }
+.purchase-sort { background: transparent; border: 0; color: inherit; font: inherit; font-weight: 600; cursor: pointer; text-align: left; white-space: nowrap; }
+.purchase-sort:focus-visible { outline: 2px solid #007f83; outline-offset: 3px; }

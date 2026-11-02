@@ -10,6 +10,8 @@ import "./App.css";
 import HistoricoPedidos from "./pages/HistoricoPedidos";
 import Materiales from "./pages/Materiales";
 import Material from "./pages/Material";
+import PedidosCompra, { ApartadoPedidosCompra } from "./pages/PedidosCompra";
+import VisualizarPedidosCompra from "./pages/VisualizarPedidosCompra";
 import Almacen from "./pages/Almacen";
 import EntradasAlmacen from "./pages/EntradasAlmacen";
 import EnviadosAlmacen from "./pages/EnviadosAlmacen";
@@ -22,6 +24,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/pedidos-compra" element={<ProtectedRoute><PedidosCompra /></ProtectedRoute>} />
+        <Route path="/pedidos-compra/crear" element={<ProtectedRoute><ApartadoPedidosCompra crear /></ProtectedRoute>} />
+        <Route path="/pedidos-compra/visualizar" element={<ProtectedRoute><VisualizarPedidosCompra /></ProtectedRoute>} />
         <Route path="/" element={<Login />} />
         <Route path="/pedidos" element={<ProtectedRoute><MisSolicitudes /></ProtectedRoute>} />
         <Route path="*" element={<ProtectedRoute><Navigate to="/" replace /></ProtectedRoute>} />

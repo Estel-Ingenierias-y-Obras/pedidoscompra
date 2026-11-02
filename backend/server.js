@@ -79,6 +79,7 @@ app.use("/api/pedidos", pedidosRoutes);
 app.use("/api/proyectos", proyectosRoutes);
 app.use("/api/materiales", materialesRoutes);
 app.use("/api/almacen", require("./routes/almacen"));
+app.use("/api/pedidos-compra", require("./routes/pedidosCompraBC"));
 app.use("/api/solicitudes-acceso", solicitudesAccesoRoutes);
 app.use(
   "/api/configuracion/notificaciones-acceso",

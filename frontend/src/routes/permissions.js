@@ -4,6 +4,7 @@ export const paginas = [
   { path: "/validar-solicitudes", label: "Gestión de Pedidos", roles: ["Admin", "Comprador"] },
   { path: "/historico-pedidos", label: "Histórico de Pedidos", roles: ["Admin", "Comprador", "Encargado"] },
   { path: "/material", label: "Material", roles: ["Admin", "Comprador"] },
+  { path: "/pedidos-compra", label: "Pedidos Compra", roles: ["Admin", "Comprador"] },
   { path: "/usuarios", label: "Usuarios", roles: ["Admin"] },
   { path: "/configuracion", label: "Configuración", roles: ["Admin"] }
 ];
@@ -13,6 +14,7 @@ export const rutaInicio = rol => paginas.find(pagina => pagina.roles.includes(ro
 export const puedeAcceder = (rol, pathname) => {
   const ruta = pathname.replace(/\/+$/, "").toLowerCase();
   const subrutasMaterial = ["/material/catalogo", "/material/almacen", "/material/almacen/entradas", "/material/almacen/movimientos", "/material/almacen/movimientos/enviados", "/material/almacen/enviados", "/material/almacen/stock"];
-  const pagina = paginas.find(item => item.path === (subrutasMaterial.includes(ruta) ? "/material" : ruta === "/pedidos" ? "/missolicitudes" : ruta));
+  const subrutasPedidosCompra = ["/pedidos-compra/crear", "/pedidos-compra/visualizar"];
+  const pagina = paginas.find(item => item.path === (subrutasPedidosCompra.includes(ruta) ? "/pedidos-compra" : subrutasMaterial.includes(ruta) ? "/material" : ruta === "/pedidos" ? "/missolicitudes" : ruta));
   return pagina?.roles.includes(rol) || false;
 };
