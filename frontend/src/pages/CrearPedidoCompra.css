@@ -1,0 +1,21 @@
+.purchase-create { max-width: 1440px; padding: 24px; }
+.purchase-create-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.purchase-create-context { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0; font-size: 13px; color: var(--text-muted, #617181); }
+.purchase-create-context strong { padding: 5px 10px; border: 1px solid var(--border, #ccd3da); border-radius: 4px; color: var(--brand-navy, #17324d); background: var(--surface-muted, #f3f6f8); }
+.purchase-create-header { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 32px; }
+.purchase-create-fields { border: 0; border-top: 1px solid var(--border, #ccd3da); padding: 22px 0 28px; margin: 0; min-width: 0; }
+.purchase-create-fields legend { font-weight: 600; color: var(--brand-navy, #17324d); font-size: 16px; padding: 0 14px 0 0; }
+.purchase-create .purchase-create-header label { display: flex; flex-direction: column; gap: 8px; margin: 0; min-width: 0; font-size: 13px; }
+.purchase-create .purchase-create-header input { height: 40px; width: 100%; max-width: none; min-width: 0; margin: 0; box-sizing: border-box; font-weight: 400; }
+.purchase-create-lookup { display: block; position: relative; min-width: 0; }
+.purchase-create .purchase-create-lookup input { padding-right: 34px; cursor: pointer; }
+.purchase-create-lookup > svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted, #617181); pointer-events: none; font-size: 11px; }
+.purchase-create .journal-table { min-width: 1000px; }
+.purchase-create .journal-table td:first-child { min-width: 260px; }
+.purchase-create .journal-table input { min-width: 90px; }
+.purchase-create .warehouse-journal-scroll { margin-bottom: 14px; }
+.purchase-create-actions { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 20px; border-top: 1px solid var(--border, #ccd3da); }
+@media (max-width: 760px) {
+  .purchase-create { padding: 18px; }
+  .purchase-create-header { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}

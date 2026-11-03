@@ -1,13 +1,24 @@
 const express = require("express");
 const { obtenerUsuarioActual, permitirRoles } = require("../middleware/auth");
 const bc = require("../services/pedidosCompraBC");
+const escritura = require("../services/crearPedidoCompra");
+const { clasificarError } = require("../services/almacenBC");
 const logger = require("../utils/logger");
 const router = express.Router();
 router.use(obtenerUsuarioActual, permitirRoles("Admin", "Comprador"));
+const ejecutar = fn => async (req, res, next) => { try { res.json(await fn(req)); } catch (e) { next(e); } };
+router.get("/proveedores", ejecutar(req => escritura.proveedores(req.query.buscar)));
+router.get("/configuracion", (req, res) => res.json({ entorno: process.env.BC_ENVIRONMENT, empresa: process.env.BC_COMPANY_NAME, empresaId: process.env.BC_COMPANY_ID }));
+router.get("/usuarios-asignados", ejecutar(() => escritura.catalogo("assignedPurchaseUsers")));
+router.get("/tareas", ejecutar(req => escritura.catalogo("purchaseJobTasks", req.query.proyecto)));
+router.post("/solicitudes/:id", ejecutar(req => escritura.crear(req.params.id, req.body, req.usuarioActual)));
+router.get("/solicitudes/:id", ejecutar(req => escritura.recuperar(req.params.id, req.usuarioActual)));
+router.post("/solicitudes/:id/lanzar", ejecutar(req => escritura.lanzar(req.params.id, req.usuarioActual)));
 router.get("/", async (req, res, next) => { try { res.json(await bc.listar(req.query)); } catch (error) { next(error); } });
 router.get("/:numero/lineas", async (req, res, next) => { try { res.json(await bc.lineas(req.params.numero)); } catch (error) { next(error); } });
 router.use((error, req, res, next) => {
   logger.error("bc.purchase.read.error");
-  res.status(error.seguro ? error.status : 502).json({ error: error.seguro ? error.message : "No se pudieron consultar los pedidos. Comprueba que la ampliación de PedidosCompraALL esté publicada en BC y tenga permisos de lectura." });
+  const info = clasificarError(error);
+  res.status(error.seguro ? error.status : info.status).json({ error: error.seguro ? error.message : info.mensaje, definitivo: error.definitivo === true });
 });
 module.exports = router;

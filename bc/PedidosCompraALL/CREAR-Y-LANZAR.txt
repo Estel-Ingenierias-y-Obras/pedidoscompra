@@ -1,0 +1,66 @@
+Ampliacion Crear en BC
+
+Paquete corregido para sandbox - 03/11/2026:
+Instalar PedidosCompraALL_SANDBOX_1.0.7.20261103.app en Production-Estel-IT.
+Este paquete depende SOLO de Estel Customization 1.6.8.20260727, ya instalada.
+No instalar CamposESTEL: colisiona con el campo DynES EST Registro Mercantil
+de Company Information de Dynasoft en este sandbox.
+Se descargaron los simbolos reales del sandbox y se verificaron los campos
+DynES EST Proyecto y DynES EST Tarea en Purchase Header. El fichero local
+de Dynasoft con igual version tenia simbolos distintos; no se utilizo.
+Build-Sandbox.ps1 convierte las referencias ALX del codigo de produccion
+en una copia temporal, elimina la dependencia CamposESTEL SOLO del paquete
+sandbox y compila con los simbolos reales. No modifica el proyecto original
+ni las extensiones del entorno. No usar este paquete en produccion sin
+verificar las extensiones y campos de ese entorno.
+
+Revision de campos y sandbox - 03/11/2026:
+El backend local usa Production-Estel-IT y ESTEL INGENIERIA Y OBRAS.
+La configuracion BC es comun a pedidos, catalogos, proyectos y almacen.
+Este cambio local requiere reiniciar el backend; no cambia un backend desplegado.
+Comprobacion de solo lectura: proveedores, proyectos y productos responden 200.
+Las APIs purchaseHeadersDetailed, purchaseRequests, assignedPurchaseUsers y
+purchaseJobTasks responden 404 en este sandbox hasta instalar la extension.
+
+La cabecera requiere proveedor (nombre completado desde BC), proyecto, tarea,
+usuario asignado y fecha de recepcion esperada. La tarea se aplica a las lineas.
+Los materiales usan el selector y las columnas de movimientos de almacen;
+las cantidades se envian en la unidad base que muestra el selector.
+La direccion de entrega se valida contra los campos Ship-to del pedido.
+Fechas documento, pedido, registro e IVA: las asigna BC con WorkDate y las
+validaciones estandar; no se aceptan fechas contables desde el navegador.
+Se anaden paginas 59113 (User Setup) y 59114 (Job Task) de solo lectura.
+Los borradores nuevos se separan por usuario, entorno y empresa. No se migran
+solicitudes antiguas de produccion al sandbox ni se permite reenviarlas alli.
+Solo crear y lanzar: no se registra recepcion ni factura.
+
+Los archivos PurchaseRequest.Table.al, PurchaseRequest.API.al y
+PurchaseRequest.PermissionSet.al son NUEVOS objetos. Se anaden al proyecto
+original junto a sus dos paginas actuales. No sustituyen a las paginas 59110
+y 59111. Los objetos nuevos usan el numero 59112 en sus respectivos tipos.
+
+La API purchaseRequests crea cabecera y lineas juntas en una transaccion.
+El id de solicitud y su huella permiten recuperar un pedido confirmado tras
+perder la respuesta, sin volver a crear otro. No se elimina el historial de
+solicitudes. No se permite modificar o borrar solicitudes mediante la API.
+
+La accion Microsoft.NAV.lanzar utiliza Release Purchase Document de BC y
+respeta las validaciones/aprobaciones. Lanzar no recibe ni factura el pedido.
+
+Despues de subir la nueva version de la extension, asignar EST PURCHASE WEB a
+la aplicacion de Entra usada por el backend, en la empresa correspondiente.
+Tambien necesita los permisos habituales de BC para leer proveedores,
+productos y proyectos y crear/modificar pedidos y lineas de compra, junto a
+las tablas auxiliares exigidas por la configuracion de esa empresa.
+El permiso EST PURCHASE WEB no concede por si solo toda la operativa de compras.
+
+Primera validacion en sandbox: seleccionar un proveedor y un articulo de prueba,
+crear un pedido, verificar en BC numero, lineas, cantidades, coste, proyecto y
+estado Abierto; pulsar Lanzar y comprobar estado Lanzado. Si BC solicita una
+aprobacion, resolverla por el flujo correspondiente. No se omiten aprobaciones.
+La compilacion y las pruebas automaticas no sustituyen esta comprobacion.
+
+El backend guarda la solicitud antes de enviar a BC y verifica propietario,
+empresa, entorno y huella en cada reintento. El navegador conserva el borrador
+y el id de solicitud por usuario. Ante resultado incierto se reintenta la misma
+solicitud; no se habilita Nuevo pedido hasta recuperar un pedido confirmado.

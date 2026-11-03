@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import Layout from "../components/Layout";
 import api from "../api";
 import "./Almacen.css";
@@ -24,15 +26,15 @@ function LineasPedido({ numero }) {
   }, [numero, intento]);
   if (error) return <div role="alert">{error} <button onClick={() => setIntento(i => i + 1)}>Reintentar artículos</button></div>;
   if (!datos) return <p role="status">Cargando artículos…</p>;
-  return <div className="warehouse-journal-scroll"><table className="journal-table"><caption>Artículos del pedido {numero}</caption>
+  return <div className="warehouse-journal-scroll"><table className="journal-table" aria-label={`Artículos del pedido ${numero}`}>
     <thead><tr>{["Referencia", "Descripción", "Inventario", "Cantidad disponible", "Cantidad", "Unidad de medida"].map(t => <th scope="col" key={t}>{t}</th>)}</tr></thead>
     <tbody>{datos.map(l => <tr key={l.id || l.lineNumber}><td>{l.referencia || l.Referencia || "—"}</td><td>{l.Description || "—"}</td><td title={`Inventario actual en unidad base: ${l.unidadInventario || "no disponible"}`}>{decimal(l.inventario)}</td><td>—</td><td>{decimal(l.Cantidad)}</td><td>{l.unitOfMeasureCode || "—"}</td></tr>)}{!datos.length && <tr><td colSpan={6}>Este pedido no tiene líneas.</td></tr>}</tbody>
-  </table><p>Inventario actual en la unidad base del artículo. Cantidad disponible pendiente de consulta del almacén; los guiones indican datos no disponibles.</p></div>;
+  </table></div>;
 }
 
 export default function VisualizarPedidosCompra() {
-  const [anio, setAnio] = useState("");
-  const [consulta, setConsulta] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [consulta, setConsulta] = useState({ buscar: "", pagina: 1, ordenar: "documentDate", direccion: "desc" });
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -49,19 +51,25 @@ export default function VisualizarPedidosCompra() {
       .finally(() => { if (activo) setCargando(false); });
     return () => { activo = false; };
   }, [consulta]);
-  const buscar = event => { event.preventDefault(); setConsulta({ anio, pagina: 1, ordenar: "documentDate", direccion: "desc" }); };
+  useEffect(() => {
+    const espera = setTimeout(() => setConsulta(prev => prev.buscar === busqueda.trim() ? prev : { ...prev, buscar: busqueda.trim(), pagina: 1 }), 350);
+    return () => clearTimeout(espera);
+  }, [busqueda]);
+  const buscar = event => { event.preventDefault(); setConsulta(prev => ({ ...prev, buscar: busqueda.trim(), pagina: 1 })); };
   const ordenar = campo => setConsulta(prev => ({ ...prev, ordenar: campo, direccion: prev.ordenar === campo && prev.direccion === "asc" ? "desc" : "asc", pagina: 1 }));
   const pagina = numero => setConsulta(prev => ({ ...prev, pagina: numero }));
-  return <Layout><div className="page-header"><Link className="back-link" to="/pedidos-compra">← Pedidos Compra</Link><h1>Visualizar</h1><p className="page-subtitle">Pedidos de compra de Business Central · 100 pedidos por página</p></div>
+  return <Layout><div className="page-header"><Link className="back-link" to="/pedidos-compra">← Pedidos Compra</Link><h1>Visualizar</h1><p className="page-subtitle">Pedidos de Compra · 100 pedidos por página</p></div>
     <div className="page-content purchase-orders">
       <form className="purchase-filters" onSubmit={buscar}>
-        <label>Año de emisión<input type="number" min="2000" max="9998" required placeholder="Selecciona un año" value={anio} onChange={e => { setAnio(e.target.value); setConsulta(null); }} /></label>
-        <button type="submit" disabled={!anio || cargando}>Mostrar pedidos</button>
+        <label htmlFor="purchase-order-search">Buscar por Nº</label>
+        <div className="purchase-search-controls">
+          <input id="purchase-order-search" type="search" maxLength={100} placeholder="Nº del pedido de compra" value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+          <button type="submit" className="purchase-search-button" aria-label="Buscar pedidos" title="Buscar"><FontAwesomeIcon icon={faMagnifyingGlass} aria-hidden="true" /></button>
+        </div>
       </form>
-      {!consulta && <p>Selecciona el año y pulsa Mostrar pedidos. Se usará la fecha de emisión del documento.</p>}
       {cargando && <p role="status">Cargando pedidos…</p>}
       {error && <p role="alert">{error} <button onClick={() => setConsulta({ ...consulta })}>Reintentar</button></p>}
-      {datos && consulta && <><p role="status">{datos.total} pedidos · Año {consulta.anio}</p><div className="warehouse-journal-scroll"><table className="journal-table"><caption>Pedidos de compra</caption><thead><tr>{[["number", "Nº"], ["buyFromVendorNumber", "Compra a Nº Proveedor"], ["NombreCliente", "Compra a Nombre"], ["documentDate", "Fecha emisión documento"], ["Estado", "Estado"], ["amount", "Importe"], ["amountIncludingVAT", "Importe IVA incl."], ["Proyecto", "Proyecto"]].map(([campo, titulo]) => <th key={campo} scope="col" aria-sort={consulta.ordenar === campo ? (consulta.direccion === "asc" ? "ascending" : "descending") : "none"}><button className="purchase-sort" onClick={() => ordenar(campo)} aria-label={`Ordenar por ${titulo}`}>{titulo} {consulta.ordenar === campo ? (consulta.direccion === "asc" ? "↑" : "↓") : "↕"}</button></th>)}</tr></thead>
+      {datos && consulta && <><div className="warehouse-journal-scroll"><table className="journal-table"><caption>Pedidos de compra</caption><thead><tr>{[["number", "Nº"], ["buyFromVendorNumber", "Compra a Nº Proveedor"], ["NombreCliente", "Compra a Nombre"], ["documentDate", "Fecha emisión documento"], ["Estado", "Estado"], ["amount", "Importe"], ["amountIncludingVAT", "Importe IVA incl."], ["Proyecto", "Proyecto"]].map(([campo, titulo]) => <th key={campo} scope="col" aria-sort={consulta.ordenar === campo ? (consulta.direccion === "asc" ? "ascending" : "descending") : "none"}><button className="purchase-sort" onClick={() => ordenar(campo)} aria-label={`Ordenar por ${titulo}`}>{titulo} {consulta.ordenar === campo ? (consulta.direccion === "asc" ? "↑" : "↓") : "↕"}</button></th>)}</tr></thead>
         <tbody>{datos.pedidos.map(p => <Fragment key={p.number}><tr className="purchase-order-row" onClick={() => setAbiertos(prev => ({ ...prev, [p.number]: !prev[p.number] }))}>
           <td><button aria-expanded={!!abiertos[p.number]} aria-label={`Artículos del pedido ${p.number}`} onClick={e => { e.stopPropagation(); setAbiertos(prev => ({ ...prev, [p.number]: !prev[p.number] })); }}>{abiertos[p.number] ? "▾" : "▸"} {p.number}</button></td>
           <td>{p.buyFromVendorNumber}</td><td>{p.NombreCliente}</td><td>{fecha(p.documentDate)}</td><td>{estados[p.Estado] || p.Estado}</td><td>{decimal(p.amount)}</td><td>{decimal(p.amountIncludingVAT)}</td><td>{p.Proyecto || "—"}</td>

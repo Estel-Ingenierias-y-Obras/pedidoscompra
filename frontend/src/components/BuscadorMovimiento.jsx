@@ -63,7 +63,7 @@ export default function BuscadorMovimiento({ opciones, value, onChange, label, d
         if (event.key === "Tab" && !event.shiftKey && abierto && texto.trim()) elegir(coincidencias[activo]?.opcion);
       }} />
     {abierto && !disabled && createPortal(<div ref={lista} id={`${id}-lista`} role="listbox" aria-label={`Coincidencias de ${label}`} className="movement-suggestions" style={posicion} onScroll={event => setScroll(event.currentTarget.scrollTop)}>
-      {cargando && <div role="status" className="movement-no-matches">Buscando artículos…</div>}
+      {cargando && <div role="status" className="movement-no-matches">Buscando…</div>}
       {error && <div role="alert" className="movement-no-matches journal-error">{error}</div>}
       {!cargando && !error && estado && <div className="movement-no-matches">{estado}</div>}
       {coincidencias.length ? <div style={{ height: coincidencias.length * ALTO, position: "relative" }}>{visibles.map(({ opcion }, index) => {

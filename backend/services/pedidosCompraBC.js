@@ -32,9 +32,12 @@ function crearCliente({ request = config => axios.request(config), token = obten
   }
   return {
     async listar(query = {}) {
-      const anio = Number(query.anio), pagina = query.pagina === undefined ? 1 : Number(query.pagina);
-      if (!/^\d{4}$/.test(String(query.anio)) || anio < 2000 || anio > 9998 || !Number.isSafeInteger(pagina) || pagina < 1 || pagina > 1000000) throw fallo("Selecciona un año desde 2000 y una página válidos.");
-      const filtros = [`documentType eq 'Order'`, `documentDate ge ${anio}-01-01`, `documentDate lt ${anio + 1}-01-01`];
+      const pagina = query.pagina === undefined ? 1 : Number(query.pagina);
+      if (!Number.isSafeInteger(pagina) || pagina < 1 || pagina > 1000000) throw fallo("Selecciona una página válida.");
+      const filtros = [`documentType eq 'Order'`];
+      const busqueda = query.buscar === undefined ? "" : query.buscar;
+      if (typeof busqueda !== "string" || busqueda.length > 100 || /[\x00-\x1f]/.test(busqueda)) throw fallo("Búsqueda no válida.");
+      if (busqueda.trim()) filtros.push(`contains(tolower(number),${literal(busqueda.trim().toLocaleLowerCase("es"))})`);
       for (const [campo, clave] of [["Proyecto", "proyecto"], ["number", "numero"]]) {
         const valor = query[clave] || "";
         if (typeof valor !== "string" || valor.length > 100 || /[\x00-\x1f]/.test(valor)) throw fallo("Filtro no válido.");
@@ -47,7 +50,7 @@ function crearCliente({ request = config => axios.request(config), token = obten
       const campo = query.ordenar || "documentDate", direccion = query.direccion || "desc";
       if (!["number", "buyFromVendorNumber", "NombreCliente", "documentDate", "Estado", "amount", "amountIncludingVAT", "Proyecto"].includes(campo) || !["asc", "desc"].includes(direccion)) throw fallo("Ordenación no válida.");
       const orden = `${campo} ${direccion}${campo === "number" ? "" : ",number asc"}`;
-      const { filas, total } = await consultar("purchaseHeadersDetailed", { $filter: filtros.join(" and "), $orderby: orden, $top: 100, $skip: (pagina - 1) * 100, $count: "true" }, 100);
+      const { filas, total } = await consultar("purchaseHeadersDetailed", { $filter: filtros.join(" and "), $orderby: orden, $top: 100, $skip: (pagina - 1) * 100, $count: "true", $schemaversion: "2.1" }, 100);
       if (!Number.isSafeInteger(total) || total < 0 || filas.some(f => typeof f.number !== "string" || typeof f.documentDate !== "string" || typeof f.buyFromVendorNumber !== "string" || typeof f.amount !== "number" || typeof f.amountIncludingVAT !== "number")) throw fallo("La API PedidosCompraALL necesita la ampliación de campos de Visualizar.", 502);
       return { pedidos: filas, total, pagina, paginas: Math.ceil(total / 100) };
     },
