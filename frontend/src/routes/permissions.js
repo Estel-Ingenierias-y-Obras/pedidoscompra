@@ -14,7 +14,7 @@ export const rutaInicio = rol => paginas.find(pagina => pagina.roles.includes(ro
 export const puedeAcceder = (rol, pathname) => {
   const ruta = pathname.replace(/\/+$/, "").toLowerCase();
   const subrutasMaterial = ["/material/catalogo", "/material/almacen", "/material/almacen/entradas", "/material/almacen/movimientos", "/material/almacen/movimientos/enviados", "/material/almacen/enviados", "/material/almacen/stock"];
-  const subrutasPedidosCompra = ["/pedidos-compra/crear", "/pedidos-compra/visualizar"];
+  const subrutasPedidosCompra = ["/pedidos-compra/crear", "/pedidos-compra/visualizar", "/pedidos-compra/enviados"];
   const pagina = paginas.find(item => item.path === (subrutasPedidosCompra.includes(ruta) ? "/pedidos-compra" : subrutasMaterial.includes(ruta) ? "/material" : ruta === "/pedidos" ? "/missolicitudes" : ruta));
   return pagina?.roles.includes(rol) || false;
 };

@@ -1,5 +1,90 @@
 Ampliacion Crear en BC
 
+Enviados a BC - 04/11/2026:
+Al confirmar una creacion, la web abre Enviados a BC y limpia su borrador.
+Se accede tambien desde un boton en Crear en BC. Admin y Comprador consultan
+todos los envios web de la empresa y entorno configurados, incluidos los previos.
+El listado pagina de 100 en 100 sobre purchaseRequests, que solo contiene
+solicitudes confirmadas; muestra fecha real de creacion y usuario remitente.
+Al abrir un pedido se consultan su cabecera y lineas actuales en BC.
+Lanzar y eliminar se ejecutan desde los detalles del historial.
+
+Eliminar exige confirmacion del numero original en el backend y confirmacion
+visual del usuario. La accion AL verifica ausencia de cantidades recibidas y
+facturadas, reabre si esta lanzado y llama a Header.Delete(true), conservando
+las restricciones estandar y de las extensiones instaladas. No registra nada.
+La aplicacion Entra necesita los permisos habituales de eliminacion de compras;
+EST PURCHASE WEB da acceso a la accion y al registro de solicitudes.
+La solicitud no se borra: guarda Deleted y Deleted At para confirmar reintentos
+y evitar recreaciones. Por defecto el listado oculta eliminados; se pueden mostrar.
+Los pedidos ya no disponibles en BC se conservan en el historial sin acciones.
+Una respuesta perdida al eliminar se recupera leyendo la misma solicitud.
+Las pruebas automaticas usan simulaciones; no se han borrado pedidos reales.
+
+Correccion de validacion de cliente - 04/11/2026:
+La preparacion general de la direccion ya no valida Ship-to Code vacio.
+BC exige Sell-to Customer No. al validar ese campo, incluso sin codigo.
+Como se trata de una cabecera nueva y aun no hay lineas, el codigo anterior
+se limpia directamente; Sell-to Customer No. y Location Code solo se limpian
+mediante Validate si ya tienen valor. La validacion de Ship-to Code se mantiene
+en el modo Cliente, despues de validar su Sell-to Customer No.
+Esto permite crear pedidos para proyecto, almacen y direccion personalizada
+sin imponer un cliente ajeno al modo de envio seleccionado.
+
+Origen del destino Predeterminado - 04/11/2026:
+Predeterminado usa la DIRECCION DE ENVIO DEL PROYECTO seleccionado (campos
+Ship-to de Job), tanto en la vista web como al crear el pedido en BC.
+La pagina nueva 59121 purchaseProjectAddresses expone esos campos por numero
+de proyecto. No se usa Company Information como alternativa si falta direccion.
+Al cambiar de proyecto se actualiza el predeterminado. Si el usuario ha elegido
+Almacen, Cliente o Personalizada, se conserva ese destino y sus datos.
+Almacen usa Location; Cliente usa Customer/Ship-to Address; Personalizada es
+editable y visible. Se muestra la direccion efectiva de los destinos automaticos.
+El backend impide enviar un predeterminado contra una API anterior que todavia
+tomaria Company Information. BC comprueba que el proyecto tenga Ship-to Address.
+Los pagos y los pedidos ya confirmados conservan su comportamiento y su identidad.
+
+Revision segun capturas de Envio y pago - 04/11/2026:
+El bloque tiene filas horizontales compactas. Predeterminado muestra solo
+Direccion de envio y Direccion pago. Almacen anade Cod. almacen; Cliente anade
+Cliente y, solo tras seleccionarlo, Cod. direccion envio cliente.
+Los datos postales no aparecen desplegados de inicio. En los modos personalizados
+se pueden abrir sus detalles para modificar la direccion.
+Direccion pago ofrece Predeterminado (proveedor), Otro proveedor y Direccion
+personalizada. Otro proveedor permite elegir Nombre y Contacto; personalizada
+muestra Nombre de solo lectura y permite seleccionar Contacto y editar detalles.
+Los contactos proceden de Contact Business Relation y Contact, limitados al
+proveedor de pago. La extension valida Pay-to Vendor No. y Pay-to Contact No.
+Se anaden paginas 59118, 59119 y 59120 de solo lectura. Conservar asignado
+EST PURCHASE WEB tras actualizar. El backend comprueba la API nueva antes
+de enviar pedidos con pago para que una version antigua no ignore esos datos.
+
+Correccion de modos de envio - 04/11/2026:
+El selector ofrece exactamente Predeterminado (direccion de la empresa),
+Almacen, Direccion del cliente y Direccion personalizada.
+Almacen aparece en un campo aparte, solo en su modo. Cliente y codigo de
+direccion se muestran solo en Direccion del cliente. Los datos postales
+son de solo lectura para empresa/almacen/cliente y editables para personalizada.
+Al cambiar de modo se limpian cliente, codigo de direccion y almacen anteriores.
+La API rechaza datos personalizados en otros modos y codigos incompatibles.
+Se anaden paginas 59116 para consultar direccion de la empresa y 59117 para
+paises/regiones. La pagina 59115 expone los detalles de las direcciones de cliente.
+La nueva extension valida los campos Ship-to de la direccion personalizada;
+conserva las comprobaciones estandar de cliente, codigo de envio y almacen.
+Esta seccion sustituye el comportamiento descrito en la revision anterior.
+
+Direccion de entrega - 04/11/2026:
+Se muestran solo Direccion de envio, Cliente y Cod. direccion envio cliente.
+El primer desplegable ofrece empresa, cliente y los almacenes de BC.
+Cliente se consulta en la API estandar customers. Las direcciones alternativas
+se consultan en la nueva pagina 59115 purchaseShipToAddresses, filtradas por
+Customer No. Se valida Sell-to Customer No. y Ship-to Code en el pedido.
+Empresa y almacen usan las direcciones existentes de BC; no se envia texto libre.
+Los campos de cliente se deshabilitan cuando el destino no es un cliente.
+Los borradores antiguos no enviados adoptan el destino empresa y requieren
+seleccionar de nuevo la entrega. Las solicitudes enviadas conservan sus datos.
+Se debe instalar el paquete actualizado y conservar EST PURCHASE WEB asignado.
+
 Paquete corregido para sandbox - 03/11/2026:
 Instalar PedidosCompraALL_SANDBOX_1.0.7.20261103.app en Production-Estel-IT.
 Este paquete depende SOLO de Estel Customization 1.6.8.20260727, ya instalada.

@@ -29,6 +29,16 @@ page 59110 "EST PurchHeader API"
                 field(Estado; rec.Status) { }
                 field(Proyecto; Rec.ALXProyecto) { }
                 field(NombreCliente; Rec."Buy-from Vendor Name") { }
+                field(taskNumber; Rec.ALXTarea) { Editable = false; }
+                field(assignedUserId; Rec."Assigned User ID") { Editable = false; }
+                field(currencyCode; Rec."Currency Code") { Editable = false; }
+                field(shipToName; Rec."Ship-to Name") { Editable = false; }
+                field(shipToAddress; Rec."Ship-to Address") { Editable = false; }
+                field(shipToAddress2; Rec."Ship-to Address 2") { Editable = false; }
+                field(shipToCity; Rec."Ship-to City") { Editable = false; }
+                field(shipToPostCode; Rec."Ship-to Post Code") { Editable = false; }
+                field(shipToCounty; Rec."Ship-to County") { Editable = false; }
+                field(shipToCountry; Rec."Ship-to Country/Region Code") { Editable = false; }
 
 
             }

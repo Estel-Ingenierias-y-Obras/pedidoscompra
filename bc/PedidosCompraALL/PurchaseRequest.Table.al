@@ -7,6 +7,8 @@ table 59112 "EST Purchase Request"
         field(2; Fingerprint; Text[64]) { }
         field(3; "Header Id"; Guid) { }
         field(4; "Order No."; Code[20]) { }
+        field(5; Deleted; Boolean) { }
+        field(6; "Deleted At"; DateTime) { }
     }
     keys { key(PK; Id) { Clustered = true; } }
 }

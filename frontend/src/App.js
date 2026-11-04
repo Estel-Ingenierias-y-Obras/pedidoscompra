@@ -12,6 +12,7 @@ import Materiales from "./pages/Materiales";
 import Material from "./pages/Material";
 import PedidosCompra from "./pages/PedidosCompra";
 import CrearPedidoCompra from "./pages/CrearPedidoCompra";
+import EnviadosPedidosCompra from "./pages/EnviadosPedidosCompra";
 import VisualizarPedidosCompra from "./pages/VisualizarPedidosCompra";
 import Almacen from "./pages/Almacen";
 import EntradasAlmacen from "./pages/EntradasAlmacen";
@@ -27,6 +28,7 @@ function App() {
       <Routes>
         <Route path="/pedidos-compra" element={<ProtectedRoute><PedidosCompra /></ProtectedRoute>} />
         <Route path="/pedidos-compra/crear" element={<ProtectedRoute><CrearPedidoCompra /></ProtectedRoute>} />
+        <Route path="/pedidos-compra/enviados" element={<ProtectedRoute><EnviadosPedidosCompra /></ProtectedRoute>} />
         <Route path="/pedidos-compra/visualizar" element={<ProtectedRoute><VisualizarPedidosCompra /></ProtectedRoute>} />
         <Route path="/" element={<Login />} />
         <Route path="/pedidos" element={<ProtectedRoute><MisSolicitudes /></ProtectedRoute>} />

@@ -11,3 +11,7 @@ test("movimientos comparte los permisos de Almacén", () => {
   }
   expect(puedeAcceder("Admin", "/material/almacen/desconocido")).toBe(false);
 });
+test("Enviados a BC comparte los permisos del módulo Pedidos Compra", () => {
+  for (const rol of ["Admin", "Comprador"]) expect(puedeAcceder(rol, "/pedidos-compra/enviados")).toBe(true);
+  for (const rol of ["Usuario", "Encargado", undefined]) expect(puedeAcceder(rol, "/pedidos-compra/enviados")).toBe(false);
+});

@@ -17,11 +17,11 @@ export default function BuscadorMovimiento({ opciones, value, onChange, label, d
   const coincidencias = useMemo(() => {
     if (remoto) return cargando || error ? [] : datos;
     const busqueda = normalizar(texto);
-    if (!busqueda || (value && texto === etiqueta(seleccion))) return datos;
+    if (!busqueda || (seleccion && texto === etiqueta(seleccion))) return datos;
     return datos.map(item => ({ ...item, prioridad: item.codigo === busqueda || item.nombre === busqueda ? 0 : item.codigo.startsWith(busqueda) || item.nombre.startsWith(busqueda) ? 1 : 2 }))
       .filter(item => item.codigo.includes(busqueda) || item.nombre.includes(busqueda))
       .sort((a, b) => a.prioridad - b.prioridad || a.index - b.index);
-  }, [datos, texto, value, seleccion, remoto, cargando, error]);
+  }, [datos, texto, seleccion, remoto, cargando, error]);
   useEffect(() => { if (!editando.current) setTexto(etiqueta(seleccion)); }, [value, seleccion]);
   useEffect(() => {
     if (!abierto) return;

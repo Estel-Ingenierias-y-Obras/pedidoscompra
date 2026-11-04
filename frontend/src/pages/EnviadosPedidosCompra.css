@@ -1,0 +1,17 @@
+.purchase-sent-toolbar, .purchase-sent-actions, .purchase-sent-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.purchase-sent-toolbar form { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.purchase-sent .purchase-sent-check { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.purchase-sent .purchase-sent-check input { width: 16px; min-height: 16px; margin: 0; }
+.purchase-sent .journal-table tbody tr { cursor: pointer; }
+.purchase-sent .purchase-sent-number { background: transparent; color: var(--brand-navy, #17324d); box-shadow: none; border: 0; padding: 4px; text-decoration: underline; }
+.purchase-sent-selected { background: #edf6f6; }
+.purchase-sent-details { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border, #ccd3da); }
+.purchase-sent-details header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.purchase-sent-details header button { margin-left: auto; }
+.purchase-sent-details dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+.purchase-sent-details dt { font-weight: 600; font-size: 13px; color: #617181; }
+.purchase-sent-details dd { margin: 4px 0 0; }
+.purchase-sent .purchase-sent-delete { background: #a02c35; border-color: #a02c35; color: white; }
+.purchase-sent-pagination { margin-top: 16px; }
+.purchase-sent-pagination label { display: flex; align-items: center; gap: 8px; margin: 0; }
+.purchase-sent-pagination input { width: 85px; }

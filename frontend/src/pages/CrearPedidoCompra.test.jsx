@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api";
 import CrearPedidoCompra from "./CrearPedidoCompra";
@@ -18,27 +18,24 @@ const clave = "pedido-compra-v2:Sandbox:empresa:compras@example.test";
 beforeEach(() => {
   localStorage.clear(); jest.clearAllMocks();
   Object.defineProperty(global, "crypto", { configurable: true, value: { randomUUID: () => "12345678-1234-4234-8234-123456789012" } });
-  api.get.mockImplementation(async url => ({ data: url.endsWith("/configuracion") ? { entorno: "Sandbox", empresaId: "empresa", empresa: "Empresa prueba" } : url === "/api/proyectos" ? [{ nomProyecto: "OBRA", descProyecto: "Obra" }] : url.endsWith("/usuarios-asignados") ? [{ userId: "COMPRAS" }] : url.endsWith("/tareas") ? [{ number: "100", description: "Tarea" }] : [] }));
+  api.get.mockImplementation(async url => ({ data: url.endsWith("/configuracion") ? { entorno: "Sandbox", empresaId: "empresa", empresa: "Empresa prueba" } : url.endsWith("/direccion-entrega") ? { nombre: "Obra", direccion: "Calle del proyecto" } : url === "/api/proyectos" ? [{ nomProyecto: "OBRA", descProyecto: "Obra" }] : url.endsWith("/usuarios-asignados") ? [{ userId: "COMPRAS" }] : url.endsWith("/tareas") ? [{ number: "100", description: "Tarea" }] : [] }));
 });
-const montar = () => render(<MemoryRouter><AuthContext.Provider value={{ user: { email: "compras@example.test" } }}><CrearPedidoCompra /></AuthContext.Provider></MemoryRouter>);
+const montar = () => render(<MemoryRouter initialEntries={["/pedidos-compra/crear"]}><AuthContext.Provider value={{ user: { email: "compras@example.test" } }}><Routes><Route path="/pedidos-compra/crear" element={<CrearPedidoCompra />} /><Route path="/pedidos-compra/enviados" element={<p>Historial de enviados</p>} /></Routes></AuthContext.Provider></MemoryRouter>);
 const rellenar = async () => {
-  await screen.findByText("Sandbox");
+
   await waitFor(() => expect(screen.getByLabelText("Nº de proveedor")).not.toBeDisabled());
-  for (const [label, valor] of [["Nº de proveedor", "PROV1"], ["Proyecto", "OBRA"], ["Tarea", "100"], ["Id. usuario asignado", "COMPRAS"], ["Nombre de entrega", "Obra"], ["Dirección", "Calle 1"], ["Ciudad", "Palma"], ["Código postal", "07001"], ["Artículo línea 1", "1000"]]) { await waitFor(() => expect(screen.getByLabelText(label)).not.toBeDisabled()); fireEvent.change(screen.getByLabelText(label), { target: { value: valor } }); await waitFor(() => expect(screen.getByLabelText(label)).toHaveValue(valor)); }
+  for (const [label, valor] of [["Nº de proveedor", "PROV1"], ["Proyecto", "OBRA"], ["Tarea", "100"], ["Id. usuario asignado", "COMPRAS"], ["Artículo línea 1", "1000"]]) { await waitFor(() => expect(screen.getByLabelText(label)).not.toBeDisabled()); fireEvent.change(screen.getByLabelText(label), { target: { value: valor } }); await waitFor(() => expect(screen.getByLabelText(label)).toHaveValue(valor)); }
 };
-test("crea abierto, bloquea el formulario enviado y solo lanza al pulsar Lanzar", async () => {
+test("crea, abre Enviados a BC y deja un borrador limpio para el siguiente pedido", async () => {
   api.post.mockImplementation(async url => ({ data: { solicitudId: "12345678-1234-4234-8234-123456789012", id: "12345678-1234-4234-8234-123456789013", numero: "PC001", estado: url.endsWith("/lanzar") ? "Released" : "Open" } }));
   montar();
   await rellenar();
   fireEvent.click(screen.getByRole("button", { name: "Crear pedido en BC" }));
-  await screen.findByText("Abierto");
+  await screen.findByText("Historial de enviados");
   expect(api.post).toHaveBeenCalledTimes(1);
-  expect(screen.getByLabelText("Nº de proveedor")).toBeDisabled();
-  expect(screen.queryByLabelText("Fecha de emisión")).not.toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem(clave)).enviado).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Lanzar" }));
-  await screen.findByText("Lanzado");
-  expect(api.post).toHaveBeenLastCalledWith(expect.stringMatching(/\/lanzar$/), {});
+  const borrador = JSON.parse(localStorage.getItem(clave));
+  expect(borrador.enviado).toBe(false);
+  expect(borrador.cuerpo.proveedor).toBe("");
   expect(screen.queryByRole("button", { name: "Lanzar" })).not.toBeInTheDocument();
 });
 test("un fallo de red conserva la solicitud para reintentar y recuperar estado", async () => {

@@ -31,6 +31,9 @@ page 59111 "EST PurchLine API"
                 field(CantidadRecivida; Rec."Quantity Received") { }
                 field(CantidadARecibir; Rec."Outstanding Quantity") { }
                 field(Description; Rec.Description) { }
+                field(unitCost; Rec."Direct Unit Cost") { Editable = false; }
+                field(lineAmount; Rec."Line Amount") { Editable = false; }
+                field(quantityInvoiced; Rec."Quantity Invoiced") { Editable = false; }
 
 
             }
