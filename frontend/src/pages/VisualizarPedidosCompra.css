@@ -22,7 +22,7 @@
 .purchase-orders .purchase-order-lines { width: 100%; min-width: 0; table-layout: fixed; }
 .purchase-orders .purchase-orders-table th,
 .purchase-orders .purchase-orders-table td { padding: 10px 8px; white-space: normal; overflow-wrap: anywhere; }
-.purchase-orders .purchase-sort { display: block; width: 100%; min-width: 0; padding: 4px 0; white-space: normal; line-height: 1.4; }
+.purchase-orders .purchase-sort { display: block; width: 100%; min-width: 0; box-sizing: border-box; margin: 0; padding: 4px 14px 4px 0; white-space: normal; line-height: 1.4; }
 .purchase-orders-table > thead th:nth-child(1) { width: 12%; }
 .purchase-orders-table > thead th:nth-child(2) { width: 10%; }
 .purchase-orders-table > thead th:nth-child(3) { width: 21%; }
@@ -32,7 +32,14 @@
 .purchase-orders-table > thead th:nth-child(7) { width: 12%; }
 .purchase-orders-table > thead th:nth-child(8) { width: 10%; }
 .purchase-orders .purchase-order-row > td:first-child button { max-width: 100%; min-width: 0; padding: 6px 4px; white-space: normal; overflow-wrap: anywhere; text-align: left; }
-.purchase-order-row > td:nth-child(6), .purchase-order-row > td:nth-child(7) { text-align: right; font-variant-numeric: tabular-nums; }
+.purchase-orders .purchase-orders-table > thead > tr > th,
+.purchase-orders .purchase-order-row > td { text-align: left; vertical-align: middle; }
+@media (min-width: 761px) {
+  .purchase-orders .purchase-orders-table > thead > tr > th:nth-child(6) .purchase-sort,
+  .purchase-orders .purchase-orders-table > thead > tr > th:nth-child(7) .purchase-sort,
+  .purchase-orders .purchase-order-row > td:nth-child(6),
+  .purchase-orders .purchase-order-row > td:nth-child(7) { text-align: center; font-variant-numeric: tabular-nums; }
+}
 .purchase-orders .purchase-order-lines th:nth-child(2) { width: 30%; }
 @media (max-width: 760px) {
   .purchase-orders .purchase-orders-table { display: block; }
@@ -49,4 +56,11 @@
   .purchase-orders .purchase-order-expanded > td { display: block; padding: 12px 8px; }
   .purchase-orders .purchase-order-lines { font-size: 12px; }
   .purchase-orders .purchase-order-lines th, .purchase-orders .purchase-order-lines td { padding: 8px 3px; }
+}
+
+.purchase-sort-title { display: inline-block; position: relative; max-width: 100%; }
+.purchase-sort-arrow { position: absolute; left: 100%; top: 0; width: 14px; text-align: center; }
+@media (min-width: 761px) {
+  .purchase-orders .purchase-orders-table > thead > tr > th:nth-child(6) .purchase-sort,
+  .purchase-orders .purchase-orders-table > thead > tr > th:nth-child(7) .purchase-sort { padding-left: 14px; padding-right: 14px; }
 }
