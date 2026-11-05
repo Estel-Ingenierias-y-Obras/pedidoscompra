@@ -26,6 +26,8 @@ page 59112 "EST Purchase Request API"
                 field(createdAt; Rec.SystemCreatedAt) { Editable = false; }
                 field(deleted; Rec.Deleted) { Editable = false; }
                 field(deletedAt; Rec."Deleted At") { Editable = false; }
+                field(headerStatus; Rec."Header Status") { Editable = false; }
+                field(releasedAt; Rec."Released At") { Editable = false; }
                 field(vendorNumber; VendorNumber) { Editable = false; }
                 field(vendorName; VendorName) { Editable = false; }
                 field(projectNumber; ProjectNumber) { Editable = false; }
@@ -292,9 +294,32 @@ page 59112 "EST Purchase Request API"
         if Header.Status <> Header.Status::Released then begin
             Header.TestField(Status, Header.Status::Open);
             ReleaseDocument.PerformManualRelease(Header);
+            Rec."Released At" := CurrentDateTime();
+            Rec.Modify(true);
         end;
         Header.GetBySystemId(Rec."Header Id");
         Header.TestField(Status, Header.Status::Released);
+        ActionContext.SetObjectType(ObjectType::Page);
+        ActionContext.SetObjectId(Page::"EST Purchase Request API");
+        ActionContext.AddEntityKey(Rec.FieldNo(Id), Rec.Id);
+        ActionContext.SetResultCode(WebServiceActionResultCode::Updated);
+    end;
+
+    [ServiceEnabled]
+    procedure abrir(var ActionContext: WebServiceActionContext)
+    var
+        Header: Record "Purchase Header";
+        ReleaseDocument: Codeunit "Release Purchase Document";
+    begin
+        if Rec.Deleted then Error('El pedido ya esta eliminado.');
+        if not Header.GetBySystemId(Rec."Header Id") then Error('El pedido original no existe.');
+        Header.TestField("Document Type", Header."Document Type"::Order);
+        if Header.Status <> Header.Status::Open then begin
+            Header.TestField(Status, Header.Status::Released);
+            ReleaseDocument.PerformManualReopen(Header);
+        end;
+        Header.GetBySystemId(Rec."Header Id");
+        Header.TestField(Status, Header.Status::Open);
         ActionContext.SetObjectType(ObjectType::Page);
         ActionContext.SetObjectId(Page::"EST Purchase Request API");
         ActionContext.AddEntityKey(Rec.FieldNo(Id), Rec.Id);

@@ -15,3 +15,8 @@ test("Enviados a BC comparte los permisos del módulo Pedidos Compra", () => {
   for (const rol of ["Admin", "Comprador"]) expect(puedeAcceder(rol, "/pedidos-compra/enviados")).toBe(true);
   for (const rol of ["Usuario", "Encargado", undefined]) expect(puedeAcceder(rol, "/pedidos-compra/enviados")).toBe(false);
 });
+
+test("Lanzados requiere permisos de compras", () => {
+ for (const rol of ["Admin", "Comprador"]) expect(puedeAcceder(rol, "/pedidos-compra/lanzados")).toBe(true);
+ for (const rol of ["Usuario", "Encargado", undefined]) expect(puedeAcceder(rol, "/pedidos-compra/lanzados")).toBe(false);
+});

@@ -30,7 +30,7 @@ test("crea, abre Enviados a BC y deja un borrador limpio para el siguiente pedid
   api.post.mockImplementation(async url => ({ data: { solicitudId: "12345678-1234-4234-8234-123456789012", id: "12345678-1234-4234-8234-123456789013", numero: "PC001", estado: url.endsWith("/lanzar") ? "Released" : "Open" } }));
   montar();
   await rellenar();
-  fireEvent.click(screen.getByRole("button", { name: "Crear pedido en BC" }));
+  fireEvent.click(screen.getByRole("button", { name: "Crear" }));
   await screen.findByText("Historial de enviados");
   expect(api.post).toHaveBeenCalledTimes(1);
   const borrador = JSON.parse(localStorage.getItem(clave));
@@ -42,7 +42,7 @@ test("un fallo de red conserva la solicitud para reintentar y recuperar estado",
   api.post.mockRejectedValue(new Error("Sin conexión"));
   montar();
   await rellenar();
-  fireEvent.click(screen.getByRole("button", { name: "Crear pedido en BC" }));
+  fireEvent.click(screen.getByRole("button", { name: "Crear" }));
   await screen.findByText("Sin conexión");
   const guardado = JSON.parse(localStorage.getItem(clave));
   expect(guardado.enviado).toBe(true);

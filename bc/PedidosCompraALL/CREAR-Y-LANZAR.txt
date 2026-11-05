@@ -149,3 +149,10 @@ El backend guarda la solicitud antes de enviar a BC y verifica propietario,
 empresa, entorno y huella en cada reintento. El navegador conserva el borrador
 y el id de solicitud por usuario. Ante resultado incierto se reintenta la misma
 solicitud; no se habilita Nuevo pedido hasta recuperar un pedido confirmado.
+
+
+VERSION 1.0.13.20261105 - LANZADOS
+Instalar PedidosCompraALL.app antes de usar la nueva separacion de enviados/lanzados.
+Enviados excluye pedidos con estado Released. Lanzados muestra los pedidos enviados desde la web con ese estado, 100 por pagina, ordenados por Released At y fecha de creacion descendentes.
+Abrir usa PerformManualReopen de BC y devuelve el pedido a Enviados.
+Los pedidos lanzados antes de esta version no tienen fecha de lanzamiento guardada; se ordenan por su fecha de envio despues de los nuevos lanzamientos.

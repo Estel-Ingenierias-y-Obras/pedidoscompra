@@ -213,7 +213,7 @@ export default function CrearPedidoCompra() {
   };
   return <Layout><div className="page-header"><Link className="back-link" to="/pedidos-compra">← Pedidos Compra</Link><h1>Crear en BC</h1><p className="page-subtitle">Nuevo pedido de compra</p></div>
     <div className="page-content purchase-create">
-      <div className="bc-command-bar purchase-create-toolbar"><Link className="bc-command-link" to="/pedidos-compra/enviados"><FontAwesomeIcon icon={faClockRotateLeft} /> Enviados a BC</Link></div>
+      <div className="bc-command-bar purchase-create-toolbar">{!resultado && <button disabled={!valido || ocupado || !cargado || !!errorGuardado || !!errorCatalogos || cargandoCatalogos} onClick={() => ejecutar("crear")}>{documento.enviado ? "Reintentar creación" : "Crear"}</button>}<Link className="bc-command-link" to="/pedidos-compra/enviados"><FontAwesomeIcon icon={faClockRotateLeft} /> Enviados a BC</Link></div>
       {errorCatalogos && <p role="alert" className="journal-error">{errorCatalogos}</p>}
       {errorGuardado && <p role="alert">{errorGuardado}</p>}{error && <p role="alert">{error}</p>}
       {resultado && <p role="status">Pedido <strong>{resultado.numero}</strong> · Estado: <strong>{estados[resultado.estado]}</strong></p>}
@@ -258,10 +258,9 @@ export default function CrearPedidoCompra() {
 
       </div></fieldset>
       {errorEntrega && <p role="alert" className="journal-error">{errorEntrega}</p>}
-      <div className="purchase-create-actions">
-        {!resultado && <button disabled={!valido || ocupado || !cargado || !!errorGuardado || !!errorCatalogos || cargandoCatalogos} onClick={() => ejecutar("crear")}>{documento.enviado ? "Reintentar creación" : "Crear pedido en BC"}</button>}
+      {(documento.enviado || resultado) && <div className="purchase-create-actions">
         {documento.enviado && <button disabled={ocupado || !!errorGuardado} onClick={() => ejecutar("consultar")}>Actualizar estado</button>}
         {resultado && <button disabled={ocupado || !!errorGuardado} onClick={() => { guardar(nuevo()); setError(""); }}>Nuevo pedido</button>}
-      </div>
+      </div>}
     </div></Layout>;
 }

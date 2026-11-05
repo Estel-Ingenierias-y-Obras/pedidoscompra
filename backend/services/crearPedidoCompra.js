@@ -84,11 +84,12 @@ function crearServicio({ modelo = Modelo, request = c => axios.request(c), token
       const pagina = Number(query.pagina || 1);
       if (!Number.isSafeInteger(pagina) || pagina < 1 || pagina > 1000000) throw fallo("Página no válida.");
       const buscar = texto(query.buscar ?? "", 100).toLocaleLowerCase("es").replace(/'/g, "''");
-      const filtros = [];
+      const lanzados = query.estado === "Released";
+      const filtros = [`headerStatus ${lanzados ? "eq" : "ne"} 'Released'`];
       if (query.incluirEliminados !== "1") filtros.push("deleted eq false");
       if (buscar) filtros.push(`contains(tolower(number),'${buscar}')`);
       const base = new URL(endpoint());
-      let siguiente = `${base}?${new URLSearchParams({ $top: 100, $skip: (pagina - 1) * 100, $count: "true", $orderby: "createdAt desc,id desc", $schemaversion: "2.1", ...(filtros.length ? { $filter: filtros.join(" and ") } : {}) })}`;
+      let siguiente = `${base}?${new URLSearchParams({ $top: 100, $skip: (pagina - 1) * 100, $count: "true", $orderby: lanzados ? "releasedAt desc,createdAt desc,id desc" : "createdAt desc,id desc", $schemaversion: "2.1", ...(filtros.length ? { $filter: filtros.join(" and ") } : {}) })}`;
       const filas = [], visitadas = new Set();
       let total;
       const limite = Date.now() + 45000;
@@ -108,7 +109,7 @@ function crearServicio({ modelo = Modelo, request = c => axios.request(c), token
       const porId = new Map(ops.map(op => [op._id.toLowerCase(), op]));
       return { pedidos: filas.map(r => {
         const op = porId.get(r.id.toLowerCase());
-        return { solicitudId: r.id, numero: r.number, estado: r.status, fechaEnvio: r.createdAt, proveedor: r.vendorNumber || op?.cuerpo?.proveedor || "", nombreProveedor: r.vendorName || "", proyecto: r.projectNumber || op?.cuerpo?.proyecto || "", enviadoPor: op?.usuario || "", gestionable: Boolean(op) };
+        return { solicitudId: r.id, numero: r.number, estado: r.status, fechaEnvio: r.createdAt, fechaLanzamiento: r.releasedAt, proveedor: r.vendorNumber || op?.cuerpo?.proveedor || "", nombreProveedor: r.vendorName || "", proyecto: r.projectNumber || op?.cuerpo?.proyecto || "", enviadoPor: op?.usuario || "", gestionable: Boolean(op) };
       }), pagina, paginas: Math.ceil(total / 100), total };
     },
     async detalles(id, usuario) {
@@ -202,6 +203,21 @@ function crearServicio({ modelo = Modelo, request = c => axios.request(c), token
       const op = await operacion(id, usuario);
       const resultado = await consultar(op);
       return { resultado, cuerpo: op.cuerpo };
+    },
+    async abrir(id, usuario) {
+      const op = await operacion(id, usuario);
+      const actual = await consultar(op);
+      if (actual?.estado === "Open") return actual;
+      if (actual?.estado !== "Released") throw fallo("Solo se puede abrir un pedido lanzado.", 409);
+      try { await ejecutar("POST", `${op.destino}(${id})/Microsoft.NAV.abrir`, {}); }
+      catch (e) {
+        const recuperado = await consultar(op).catch(() => null);
+        if (recuperado?.estado === "Open") return recuperado;
+        throw e;
+      }
+      const resultado = await consultar(op);
+      if (resultado?.estado !== "Open") throw fallo("BC no ha confirmado el estado Abierto. Actualiza los datos antes de reintentar.", 409);
+      return resultado;
     },
     async lanzar(id, usuario) {
       const op = await operacion(id, usuario);

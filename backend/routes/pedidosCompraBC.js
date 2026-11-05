@@ -23,6 +23,7 @@ router.get("/solicitudes/:id/detalles", ejecutar(req => escritura.detalles(req.p
 router.delete("/solicitudes/:id", ejecutar(req => escritura.eliminar(req.params.id, req.usuarioActual, req.body?.numero)));
 router.post("/solicitudes/:id", ejecutar(req => escritura.crear(req.params.id, req.body, req.usuarioActual)));
 router.get("/solicitudes/:id", ejecutar(req => escritura.recuperar(req.params.id, req.usuarioActual)));
+router.post("/solicitudes/:id/abrir", ejecutar(req => escritura.abrir(req.params.id, req.usuarioActual)));
 router.post("/solicitudes/:id/lanzar", ejecutar(req => escritura.lanzar(req.params.id, req.usuarioActual)));
 router.get("/", async (req, res, next) => { try { res.json(await bc.listar(req.query)); } catch (error) { next(error); } });
 router.get("/:numero/lineas", async (req, res, next) => { try { res.json(await bc.lineas(req.params.numero)); } catch (error) { next(error); } });

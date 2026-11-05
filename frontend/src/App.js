@@ -28,7 +28,8 @@ function App() {
       <Routes>
         <Route path="/pedidos-compra" element={<ProtectedRoute><PedidosCompra /></ProtectedRoute>} />
         <Route path="/pedidos-compra/crear" element={<ProtectedRoute><CrearPedidoCompra /></ProtectedRoute>} />
-        <Route path="/pedidos-compra/enviados" element={<ProtectedRoute><EnviadosPedidosCompra /></ProtectedRoute>} />
+        <Route path="/pedidos-compra/enviados" element={<ProtectedRoute><EnviadosPedidosCompra key="enviados" /></ProtectedRoute>} />
+        <Route path="/pedidos-compra/lanzados" element={<ProtectedRoute><EnviadosPedidosCompra key="lanzados" lanzados /></ProtectedRoute>} />
         <Route path="/pedidos-compra/visualizar" element={<ProtectedRoute><VisualizarPedidosCompra /></ProtectedRoute>} />
         <Route path="/" element={<Login />} />
         <Route path="/pedidos" element={<ProtectedRoute><MisSolicitudes /></ProtectedRoute>} />

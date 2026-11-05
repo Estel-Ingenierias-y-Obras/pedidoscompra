@@ -9,6 +9,12 @@ table 59112 "EST Purchase Request"
         field(4; "Order No."; Code[20]) { }
         field(5; Deleted; Boolean) { }
         field(6; "Deleted At"; DateTime) { }
+        field(7; "Header Status"; Enum "Purchase Document Status")
+        {
+            FieldClass = FlowField;
+            CalcFormula = lookup("Purchase Header".Status where("Document Type" = const(Order), "No." = field("Order No."), SystemId = field("Header Id")));
+        }
+        field(8; "Released At"; DateTime) { }
     }
     keys { key(PK; Id) { Clustered = true; } }
 }

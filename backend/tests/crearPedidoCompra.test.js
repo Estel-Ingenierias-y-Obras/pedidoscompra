@@ -16,6 +16,7 @@ function entorno({ timeout = false, rechazar = false, sinDireccionProyecto = fal
   const servicio = crearServicio({ modelo, raiz: () => "https://bc.test/empresa", token: async () => "secreto", request: async config => {
     if (config.url.includes("/purchaseProjectAddresses")) { if (sinDireccionProyecto) throw noEncontrado(); return { data: { value: [] } }; }
     if (config.method === "GET") { if (!recibo) throw noEncontrado(); return { data: recibo }; }
+    if (config.url.endsWith("/Microsoft.NAV.abrir")) { recibo.status = "Open"; return { data: null }; }
     if (config.url.endsWith("/Microsoft.NAV.lanzar")) { lanzamientos++; recibo.status = "Released"; return { data: null }; }
     if (config.url.endsWith("/Microsoft.NAV.eliminar")) { eliminaciones++; recibo.status = "Deleted"; if (timeoutEliminar) throw Error("timeout"); return { data: null }; }
     posts++;
@@ -145,9 +146,31 @@ test("el historial incluye envíos previos y usa páginas de 100 en la empresa a
   const r = await servicio.enviados({ pagina: "2" }, { ...usuario, rol: "Comprador" });
   assert.equal(params.get("$top"), "100");
   assert.equal(params.get("$skip"), "100");
-  assert.equal(params.get("$filter"), "deleted eq false");
+  assert.equal(params.get("$filter"), "headerStatus ne 'Released' and deleted eq false");
   assert.equal(r.pedidos[0].proveedor, "PROV1");
   assert.equal(r.pedidos[0].gestionable, true);
   assert.equal(r.paginas, 2);
   await assert.rejects(servicio.enviados({}, { ...usuario, rol: "Usuario" }), { status: 403 });
+});
+
+test("reabrir devuelve el pedido a Abierto y permite reintentar sin duplicar", async () => {
+ const e = entorno();
+ await e.servicio.crear(id, cuerpo(), usuario);
+ await assert.rejects(e.servicio.abrir(id, { email: "otro@test.es", rol: "Usuario" }), { status: 404 });
+ await e.servicio.lanzar(id, usuario);
+ assert.equal((await e.servicio.abrir(id, usuario)).estado, "Open");
+ assert.equal((await e.servicio.abrir(id, usuario)).estado, "Open");
+ e.cambiarEstado("Pending Approval");
+ await assert.rejects(e.servicio.abrir(id, usuario), { status: 409 });
+});
+test("Lanzados filtra antes de paginar y ordena por fecha de lanzamiento", async () => {
+ let params;
+ const servicio = crearServicio({ modelo: { find: () => ({ lean: async () => [] }) }, raiz: () => "https://bc.test/empresa", token: async () => "token", request: async config => {
+  params = new URL(config.url).searchParams;
+  return { data: { value: [], "@odata.count": 0 } };
+ } });
+ await servicio.enviados({ estado: "Released", buscar: "PC001", pagina: 2 }, { ...usuario, rol: "Comprador" });
+ assert.equal(params.get("$filter"), "headerStatus eq 'Released' and deleted eq false and contains(tolower(number),'pc001')");
+ assert.equal(params.get("$orderby"), "releasedAt desc,createdAt desc,id desc");
+ assert.equal(params.get("$skip"), "100");
 });
